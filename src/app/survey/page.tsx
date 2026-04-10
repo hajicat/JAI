@@ -85,9 +85,16 @@ export default function SurveyPage() {
   const handleSubmit = async () => {
     setSaving(true)
     try {
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrf-token='))
+        ?.split('=')[1] || ''
       const res = await fetch('/api/survey', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify(answers)
       })
       if (res.ok) router.push('/match')
