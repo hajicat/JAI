@@ -59,7 +59,7 @@ export function setCsrfCookie(response: NextResponse): NextResponse {
  */
 export function getClientIp(req: NextRequest): string {
   // Cloudflare Workers: use connectingIp for real client IP (cannot be spoofed by user)
-  const cf = req.cf as any
+  const cf = (req as any).cf as { connectingIp?: string } | undefined
   if (cf?.connectingIp) {
     return cf.connectingIp
   }
