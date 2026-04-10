@@ -3,7 +3,7 @@ import { getDb, initDb } from '@/lib/db'
 import { verifyPassword, createToken } from '@/lib/auth'
 import { validateEmail, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, LOGIN_LIMITER } from '@/lib/rate-limit'
-import { getClientIp, setCsrfCookie, getCookieName } from '@/lib/csrf'
+import { getClientIp, setCsrfCookie, validateCsrfToken } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
@@ -12,6 +12,11 @@ const LOCKOUT_DURATION_MS = 30 * 60 * 1000 // 30 minutes
 
 export async function POST(req: NextRequest) {
   try {
+    // CSRF protection
+    if (!validateCsrfToken(req)) {
+      return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
+    }
+
     // Rate limiting by IP
     const ip = getClientIp(req)
     const rateResult = checkRateLimit(ip, LOGIN_LIMITER, 'login')

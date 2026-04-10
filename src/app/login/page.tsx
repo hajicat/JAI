@@ -4,6 +4,14 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
+// 从 cookie 获取 CSRF Token
+function getCsrfToken(): string {
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf-token='))
+    ?.split('=')[1] || ''
+}
+
 type GenderOption = 'male' | 'female' | 'other' | ''
 type PrefGenderOption = 'male' | 'female' | 'all' | ''
 
@@ -122,7 +130,10 @@ function LoginForm() {
       try {
         res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-csrf-token': getCsrfToken(),
+          },
           body: JSON.stringify(body),
         })
       } catch (netErr) {

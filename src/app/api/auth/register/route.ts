@@ -3,7 +3,7 @@ import { getDb, initDb, CAMPUS_LAT, CAMPUS_LNG, CAMPUS_RADIUS_KM } from '@/lib/d
 import { hashPassword, createToken, generateInviteCode } from '@/lib/auth'
 import { validateEmail, validatePassword, validateNickname, validateInviteCode, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, REGISTER_LIMITER } from '@/lib/rate-limit'
-import { getClientIp, setCsrfCookie, getCookieName } from '@/lib/csrf'
+import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
@@ -22,6 +22,11 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 export async function POST(req: NextRequest) {
   try {
+    // CSRF protection
+    if (!validateCsrfToken(req)) {
+      return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
+    }
+
     const ip = getClientIp(req)
     const rateResult = checkRateLimit(ip, REGISTER_LIMITER, 'register')
     if (!rateResult.allowed) {

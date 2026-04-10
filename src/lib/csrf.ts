@@ -54,20 +54,23 @@ export function setCsrfCookie(response: NextResponse): NextResponse {
 }
 
 /**
- * Extract client IP from request headers.
+ * Extract client IP from request.
+ * Priority: CF connectingIp (most reliable) > x-forwarded-for (fallback)
  */
 export function getClientIp(req: NextRequest): string {
+  // Cloudflare Workers: use connectingIp for real client IP (cannot be spoofed by user)
+  const cf = req.cf as any
+  if (cf?.connectingIp) {
+    return cf.connectingIp
+  }
+
+  // Fallback for non-CF environments
   const forwarded = req.headers.get('x-forwarded-for')
   if (forwarded) {
     const firstIp = forwarded.split(',')[0]?.trim()
     if (firstIp && isValidIp(firstIp)) {
       return firstIp
     }
-  }
-
-  const realIp = req.headers.get('x-real-ip')
-  if (realIp && isValidIp(realIp)) {
-    return realIp.trim()
   }
 
   return 'unknown'
