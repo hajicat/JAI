@@ -2,10 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+// 从 cookie 获取 CSRF Token
+function getCsrfToken(): string {
+  if (typeof document === 'undefined') return ''
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf-token='))
+    ?.split('=')[1] || ''
+}
 
 export default function Home() {
+  const router = useRouter()
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
   const [stats, setStats] = useState({ totalUsers: 0, completedSurvey: 0 })
+  const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
     function updateCountdown() {
@@ -30,9 +43,23 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    fetch('/api/stats').then(r => r.json()).then(data => {
+    fetch('/api/public-stats').then(r => r.json()).then(data => {
       setStats({ totalUsers: data.totalUsers, completedSurvey: data.completedSurvey })
     }).catch(() => {})
+  }, [])
+
+  // Check auth status on mount
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (data.user) {
+        setUser(data.user)
+        if (data.user.isAdmin) router.push('/admin')
+        else if (!data.user.surveyCompleted) router.push('/survey')
+        else router.push('/match')
+      }
+    }).catch(() => {})
+    .finally(() => setAuthChecked(true))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const displayCount = stats.completedSurvey > 0 ? stats.completedSurvey.toLocaleString() : '...'
@@ -50,13 +77,32 @@ export default function Home() {
           <span className="text-2xl">🎁</span>
           <span className="font-bold text-xl gradient-text">吉动盲盒</span>
         </div>
-        <div className="flex gap-3">
-          <Link href="/login" className="px-5 py-2 text-sm font-medium text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">
-            登录
-          </Link>
-          <Link href="/login?mode=register" className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition">
-            注册
-          </Link>
+        <div className="flex items-center gap-3">
+          {user ? (
+            <>
+              <span className="text-sm text-gray-500">Hi, {user.nickname}</span>
+              <button onClick={async () => {
+                try {
+                  await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: { 'x-csrf-token': getCsrfToken() },
+                  })
+                } catch { /* ignore */ }
+                router.push('/login')
+              }} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 border border-gray-200 rounded-full hover:bg-gray-50 transition">
+                退出
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="px-5 py-2 text-sm font-medium text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">
+                登录
+              </Link>
+              <Link href="/login?mode=register" className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition">
+                注册
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
