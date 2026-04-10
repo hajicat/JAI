@@ -9,7 +9,7 @@ function getCsrfToken(): string {
   return document.cookie
     .split('; ')
     .find(row => row.startsWith('csrf-token='))
-    ?.split('=)[1] || ''
+    ?.split('=')[1] || ''
 }
 
 // === 新版题库：32题，5层分类 ===
