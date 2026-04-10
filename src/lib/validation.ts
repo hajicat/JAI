@@ -49,26 +49,30 @@ export function validateInviteCode(code: string): ValidationResult {
 
 export function sanitizeString(input: string, maxLength: number = 500): string {
   if (typeof input !== 'string') return ''
+  // Remove null bytes and control characters (except newline/tab)
+  // Note: Do NOT HTML-encode here — that breaks exact-string matching (e.g., whitelist validation).
+  // HTML encoding is handled by JSX auto-escape at render time + CSP headers.
   return input
     .replace(/\0/g, '')
     // eslint-disable-next-line no-control-regex
     .replace(/[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+    .slice(0, maxLength)
+    .trim()
+}
+
+/**
+ * Escape HTML entities — ONLY use when inserting into dangerouslySetInnerHTML.
+ * For normal JSX rendering, auto-escape handles this automatically.
+ */
+export function escapeHtml(input: string, maxLength: number = 500): string {
+  const s = sanitizeString(input, maxLength)
+  return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
     .replace(/\//g, '&#x2F;')
-    .slice(0, maxLength)
-    .trim()
-}
-
-/**
- * Sanitize for display in JSX — returns safe string already escaped.
- * Use this for all user-provided text that will be rendered.
- */
-export function escapeHtml(input: string, maxLength: number = 500): string {
-  return sanitizeString(input, maxLength)
 }
 
 export function validateContactInfo(info: string): ValidationResult {
