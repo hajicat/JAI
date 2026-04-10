@@ -48,15 +48,10 @@ export default function Home() {
     }).catch(() => {})
   }, [])
 
-  // Check auth status on mount
+  // Check auth status on mount — do NOT auto-redirect, just set user state
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
-      if (data.user) {
-        setUser(data.user)
-        if (data.user.isAdmin) router.push('/admin')
-        else if (!data.user.surveyCompleted) router.push('/survey')
-        else router.push('/match')
-      }
+      if (data.user) setUser(data.user)
     }).catch(() => {})
     .finally(() => setAuthChecked(true))
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,9 +73,13 @@ export default function Home() {
           <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
         </div>
         <div className="flex items-center gap-2">
-          {user ? (
+          {!authChecked ? (
+            <span className="text-xs text-gray-400 px-3">加载中...</span>
+          ) : user ? (
             <>
-              <span className="text-xs text-gray-500 hidden sm:inline">Hi, {user.nickname}</span>
+              <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition px-4 py-1.5">
+                👤 个人信息
+              </Link>
               <button onClick={async () => {
                 try {
                   await fetch('/api/auth/logout', {
@@ -88,9 +87,9 @@ export default function Home() {
                     headers: { 'x-csrf-token': getCsrfToken() },
                   })
                 } catch { /* ignore */ }
-                router.push('/login')
-              }} className="text-xs text-gray-400 hover:text-gray-600 px-2.5 py-1 border border-gray-200 rounded-full hover:bg-gray-50 transition">
-                退出
+                setUser(null)
+              }} className="text-xs text-gray-500 hover:text-red-500 px-2.5 py-1.5 border border-gray-200 rounded-full hover:bg-red-50 hover:border-red-200 transition">
+                退出登录
               </button>
             </>
           ) : (

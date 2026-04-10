@@ -144,6 +144,11 @@ export default function MatchPage() {
           {user?.isAdmin && (
             <Link href="/admin" className="hidden sm:inline-flex px-2.5 py-1 text-xs text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理</Link>
           )}
+          <Link href="/"
+            className="text-xs px-2 py-1 text-gray-500 border border-gray-200 rounded-full hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50 transition"
+            title="返回首页">
+            🏠 首页
+          </Link>
           <button onClick={handleRefresh}
             className={`text-xs px-2 py-1 border rounded-full transition ${
               refreshing ? 'animate-spin text-pink-400 border-pink-200' : 'text-pink-500 hover:text-pink-600 border-pink-200 hover:bg-pink-50'
@@ -157,12 +162,8 @@ export default function MatchPage() {
             📝
           </Link>
           <button onClick={handleLogout}
-            className="text-xs px-2 py-1 text-gray-400 border border-gray-200 rounded-full hover:text-gray-600 hover:bg-gray-50 transition sm:hidden"
+            className="text-xs px-2.5 py-1 text-red-400 border border-red-200 rounded-full hover:text-red-600 hover:bg-red-50 transition"
             title="退出登录">
-            ✕
-          </button>
-          <button onClick={handleLogout}
-            className="hidden sm:block text-xs px-2.5 py-1 text-gray-400 border border-gray-200 rounded-full hover:text-gray-600 hover:bg-gray-50 transition">
             退出
           </button>
         </div>

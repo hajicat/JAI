@@ -182,10 +182,16 @@ export default function SurveyPage() {
             className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition mb-4 w-full">
             🔄 重新填写问卷
           </button>
-          <button onClick={() => router.push('/match')}
-            className="px-6 py-2 text-gray-400 hover:text-gray-600 transition text-sm">
-            查看当前匹配结果 →
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/"
+              className="px-6 py-2 text-gray-400 hover:text-pink-600 transition text-sm">
+              🏠 返回首页
+            </Link>
+            <Link href="/match"
+              className="px-6 py-2 text-gray-400 hover:text-pink-600 transition text-sm">
+              查看当前匹配结果 →
+            </Link>
+          </div>
         </div>
       )}
 
@@ -199,7 +205,10 @@ export default function SurveyPage() {
           <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Link href={alreadyCompleted ? '/match' : '/'} className="text-xs text-gray-400 hover:text-gray-600 hover:underline whitespace-nowrap">← 返回</Link>
+          <Link href="/" className="text-xs text-gray-400 hover:text-gray-600 hover:underline whitespace-nowrap">🏠 首页</Link>
+          {alreadyCompleted && (
+            <Link href="/match" className="text-xs text-pink-500 hover:text-pink-600 hover:underline whitespace-nowrap">👤 个人信息</Link>
+          )}
           <button onClick={async () => {
             try {
               await fetch('/api/auth/logout', {
@@ -208,8 +217,8 @@ export default function SurveyPage() {
               })
             } catch { /* ignore */ }
             router.push('/login')
-          }} className="text-xs text-gray-400 hover:text-gray-600 px-2.5 py-1 border border-gray-200 rounded-full hover:bg-gray-50 transition">
-            退出
+          }} className="text-xs text-red-400 hover:text-red-600 px-2.5 py-1 border border-red-200 rounded-full hover:bg-red-50 transition">
+            退出登录
           </button>
         </div>
         </div>
