@@ -42,6 +42,9 @@ export async function POST(req: NextRequest) {
     const longitude = body.longitude
 
     // --- GPS Verification (可由管理员在后台开关) ---
+    const db = getDb()
+    await initDb()
+
     // 检查 GPS 是否必需
     let gpsEnabled = true
     try {
@@ -88,9 +91,6 @@ export async function POST(req: NextRequest) {
     if (!['male', 'female', 'all'].includes(preferredGender)) {
       return NextResponse.json({ error: '请选择你想匹配的性别' }, { status: 400 })
     }
-
-    const db = getDb()
-    await initDb()
 
     // Check invite code
     const codeResult = await db.execute({
