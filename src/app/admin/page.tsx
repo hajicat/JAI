@@ -31,6 +31,7 @@ export default function AdminPage() {
   // 系统设置状态
   const [gpsRequired, setGpsRequired] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -74,9 +75,9 @@ export default function AdminPage() {
         body: JSON.stringify({ count: newCodeCount })
       })
       const data = await res.json()
-      if (data.success) { loadCodes(); alert(`已生成 ${data.codes.length} 个邀请码`) }
-      else alert(data.error || '生成失败')
-    } catch { alert('生成失败') }
+      if (data.success) { loadCodes(); setToast({ msg: `已生成 ${data.codes.length} 个邀请码`, type: 'success' }) }
+      else setToast({ msg: data.error || '生成失败', type: 'error' })
+    } catch { setToast({ msg: '生成失败', type: 'error' }) }
     finally { setGenerating(false) }
   }
 
@@ -91,7 +92,7 @@ export default function AdminPage() {
       })
       const data = await res.json()
       setMatchResult(data)
-    } catch { alert('匹配失败') }
+    } catch { setToast({ msg: '匹配失败', type: 'error' }) }
     finally { setGenerating(false) }
   }
 
@@ -122,8 +123,8 @@ export default function AdminPage() {
       })
       const data = await res.json()
       if (data.success) setGpsRequired(newValue)
-      else alert(data.error || '保存失败')
-    } catch { alert('保存失败') }
+      else setToast({ msg: data.error || '保存失败', type: 'error' })
+    } catch { setToast({ msg: '保存失败', type: 'error' }) }
     finally { setSavingSettings(false) }
   }
 
@@ -137,6 +138,13 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in ${
+          toast.type === 'success' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'
+        }`}>
+          {toast.msg}
+        </div>
+      )}
       <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🎁</span>
@@ -226,7 +234,7 @@ export default function AdminPage() {
                     <tr key={i} className="border-t border-gray-100 hover:bg-pink-50/50 transition">
                       <td className="px-4 py-3">
                         <code className="font-mono font-bold text-pink-600">{c.code}</code>
-                        <button onClick={() => { navigator.clipboard.writeText(c.code); alert('已复制') }}
+                        <button onClick={async () => { await navigator.clipboard.writeText(c.code) }}
                           className="ml-2 text-xs text-gray-400 hover:text-pink-500">复制</button>
                       </td>
                       <td className="px-4 py-3 text-center">

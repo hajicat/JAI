@@ -1,10 +1,25 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
+import { verifyToken } from '@/lib/auth'
+import { getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Auth check - only admins can view stats
+    const cookieName = getCookieName('token')
+    const token = req.cookies.get(cookieName)?.value
+
+    if (!token) {
+      return NextResponse.json({ error: '未授权' }, { status: 401 })
+    }
+
+    const decoded = await verifyToken(token)
+    if (!decoded || !decoded.isAdmin) {
+      return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
+    }
+
     const db = getDb()
     await initDb()
 

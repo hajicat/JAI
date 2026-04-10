@@ -83,22 +83,35 @@ export async function POST(req: NextRequest) {
     const contactInfo = sanitizeString(body.contactInfo || '', 100)
     const matchEnabled = body.matchEnabled
 
-    if (!['wechat', 'qq', 'other'].includes(contactType)) {
-      return NextResponse.json({ error: '无效的联系方式类型' }, { status: 400 })
-    }
+    // Only validate contact type if contact info is being updated
+    if (contactInfo) {
+      if (!['wechat', 'qq', 'other'].includes(contactType)) {
+        return NextResponse.json({ error: '无效的联系方式类型' }, { status: 400 })
+      }
 
-    const infoCheck = validateContactInfo(contactInfo)
-    if (!infoCheck.valid) return NextResponse.json({ error: infoCheck.error }, { status: 400 })
+      const infoCheck = validateContactInfo(contactInfo)
+      if (!infoCheck.valid) return NextResponse.json({ error: infoCheck.error }, { status: 400 })
+    }
 
     const db = getDb()
 
-    // Build dynamic update
-    const updates: string[] = ['contact_type = ?', 'contact_info = ?']
-    const args: any[] = [contactType, await encrypt(contactInfo)]
+    // Build dynamic update - only update fields that are provided
+    const updates: string[] = []
+    const args: any[] = []
+
+    if (contactInfo && contactType) {
+      updates.push('contact_type = ?', 'contact_info = ?')
+      args.push(contactType, await encrypt(contactInfo))
+    }
 
     if (typeof matchEnabled === 'boolean') {
       updates.push('match_enabled = ?')
       args.push(matchEnabled ? 1 : 0)
+    }
+
+    // At least one field must be updated
+    if (updates.length === 0) {
+      return NextResponse.json({ error: '没有可更新的字段' }, { status: 400 })
     }
 
     args.push(decoded.id)
