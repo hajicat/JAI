@@ -19,19 +19,51 @@ export async function GET(req: NextRequest) {
     const decoded = await verifyToken(token)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
-    const userId = Number(req.nextUrl.searchParams.get('id'))
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return NextResponse.json({ error: '无效的用户ID' }, { status: 400 })
-    }
+    const userId = req.nextUrl.searchParams.get('id')
 
     const db = getDb()
+
+    // No id → return user list
+    if (!userId) {
+      const result = await db.execute({
+        sql: `SELECT u.id, u.nickname, u.email, u.gender, u.preferred_gender, u.conflict_type,
+                u.survey_completed, u.match_enabled, u.is_admin,
+                u.created_at, u.invited_by,
+                (SELECT COUNT(*) FROM invitation_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
+                inv.nickname as invited_by_name
+              FROM users u LEFT JOIN users inv ON u.invited_by = inv.id
+              ORDER BY u.created_at DESC`,
+        args: [],
+      })
+      return NextResponse.json({
+        users: result.rows.map((row: any) => ({
+          id: row.id,
+          nickname: row.nickname,
+          email: row.email,
+          gender: row.gender,
+          preferred_gender: row.preferred_gender,
+          conflict_type: row.conflict_type,
+          survey_completed: !!row.survey_completed,
+          match_enabled: !!row.match_enabled,
+          is_admin: !!row.is_admin,
+          remaining_codes: Number(row.remaining_codes) || 0,
+          invited_by_name: row.invited_by_name,
+          created_at: row.created_at,
+        })),
+      })
+    }
+
+    const uid = Number(userId)
+    if (!Number.isInteger(uid) || uid <= 0) {
+      return NextResponse.json({ error: '无效的用户ID' }, { status: 400 })
+    }
 
     // Get basic user info
     const userResult = await db.execute({
       sql: `SELECT id, nickname, email, gender, preferred_gender, conflict_type,
                 is_admin, survey_completed, match_enabled, contact_type,
                 created_at FROM users WHERE id = ?`,
-      args: [userId],
+      args: [uid],
     })
     const userRow = userResult.rows[0] as any
     if (!userRow) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
@@ -42,7 +74,7 @@ export async function GET(req: NextRequest) {
       // Need to get encrypted contact_info separately since it's not in the SELECT above
       const contactResult = await db.execute({
         sql: 'SELECT contact_info FROM users WHERE id = ?',
-        args: [userId],
+        args: [uid],
       })
       const encryptedContact = (contactResult.rows[0] as any)?.contact_info
       if (encryptedContact) {
@@ -62,7 +94,7 @@ export async function GET(req: NextRequest) {
                   q13,q14,q15,q16,q17,q18,q19,q20,q21,q22,q23,q24,
                   q25,q26,q27,q28,q29,q30,q31, updated_at
                FROM survey_responses WHERE user_id = ?`,
-        args: [userId],
+        args: [uid],
       })
       if (surveyResult.rows.length > 0) {
         surveyAnswers = {}
