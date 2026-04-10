@@ -94,10 +94,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-
-// 导出供其他模块使用
-export async function isGpsRequired(): Promise<boolean> {
-  const db = getDb()
-  const settings = await ensureSettings(db)
-  return settings.gpsRequired !== false
-}
