@@ -42,22 +42,23 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [])
 
+  // Single combined API call for stats + user info — much faster than 2 separate requests
   useEffect(() => {
-    fetch('/api/public-stats').then(r => r.json()).then(data => {
-      setStats({ totalUsers: data.totalUsers, completedSurvey: data.completedSurvey })
-    }).catch(() => {})
-  }, [])
-
-  // Check auth status on mount — do NOT auto-redirect, just set user state
-  useEffect(() => {
-    fetch('/api/auth/me').then(r => r.json()).then(data => {
+    fetch('/api/home-data').then(r => r.json()).then(data => {
+      setStats({ totalUsers: data.totalUsers || 0, completedSurvey: data.completedSurvey || 0 })
       if (data.user) setUser(data.user)
     }).catch(() => {})
     .finally(() => setAuthChecked(true))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const displayCount = stats.completedSurvey > 0 ? stats.completedSurvey.toLocaleString() : '...'
+  const displayCount = !authChecked ? (
+    <span className="inline-block w-8 h-4 bg-gray-200 rounded animate-pulse" />
+  ) : stats.completedSurvey > 0 ? (
+    stats.completedSurvey.toLocaleString()
+  ) : (
+    '0'
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">

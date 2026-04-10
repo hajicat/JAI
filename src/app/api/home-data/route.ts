@@ -1,0 +1,88 @@
+import { NextResponse } from 'next/server'
+import { getDb, initDb } from '@/lib/db'
+import { verifyToken } from '@/lib/auth'
+
+export const runtime = 'edge';
+
+/**
+ * Combined home data endpoint - single API call for homepage.
+ * Returns: public stats + user info (if authenticated)
+ * This replaces calling /api/public-stats + /api/auth/me separately,
+ * cutting cold-start latency in half.
+ */
+export async function GET(req: Request) {
+  try {
+    const db = getDb()
+    await initDb()
+
+    // Run both queries in parallel
+    const [totalResult, surveyResult, matchResult] = await Promise.all([
+      db.execute('SELECT COUNT(*) as count FROM users WHERE is_admin = 0'),
+      db.execute('SELECT COUNT(*) as count FROM users WHERE survey_completed = 1 AND is_admin = 0'),
+      db.execute('SELECT COUNT(*) as count FROM matches'),
+    ])
+
+    const publicStats = {
+      totalUsers: Number(totalResult.rows[0].count),
+      completedSurvey: Number(surveyResult.rows[0].count),
+      totalMatches: Number(matchResult.rows[0].count),
+    }
+
+    // Check if user is authenticated
+    let user = null
+    const cookieName = process.env.NODE_ENV === 'production' ? '__Host-token' : 'token'
+    const token = req.headers.get('cookie')
+      ?.split('; ')
+      .find(row => row.startsWith(cookieName + '='))
+      ?.split('=')[1]
+
+    if (token) {
+      try {
+        const decoded = await verifyToken(token)
+        if (decoded) {
+          // Only fetch essential fields, no invite codes (keep it light)
+          const userResult = await db.execute({
+            sql: `SELECT id, nickname, email, is_admin, survey_completed
+                   FROM users WHERE id = ?`,
+            args: [decoded.id],
+          })
+          const u = userResult.rows[0] as any
+          if (u) {
+            user = {
+              id: Number(u.id),
+              nickname: u.nickname,
+              isAdmin: !!u.is_admin,
+              surveyCompleted: !!u.survey_completed,
+            }
+          }
+        }
+      } catch {
+        // Invalid token — treat as not logged in
+      }
+    }
+
+    return NextResponse.json({
+      ...publicStats,
+      user,
+    }, {
+      headers: {
+        // Cache public stats for 30s, but user info varies per user
+        // Vercel/Cloudflare edge will respect s-maxage
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+      },
+    })
+  } catch (error: any) {
+    console.error('[home-data]', error?.message || error)
+    return NextResponse.json({
+      totalUsers: 0,
+      completedSurvey: 0,
+      totalMatches: 0,
+      user: null,
+    }, {
+      headers: {
+        // Cache error response briefly to avoid thundering herd
+        'Cache-Control': 'public, s-maxage=5',
+      },
+    })
+  }
+}

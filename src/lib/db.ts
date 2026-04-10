@@ -1,6 +1,7 @@
 import { createClient, type Client } from '@libsql/client'
 
 let client: Client | null = null
+let dbInitialized = false
 
 export function getDb(): Client {
   if (!client) {
@@ -30,6 +31,7 @@ export const CAMPUS_LNG = 125.3178
 export const CAMPUS_RADIUS_KM = 1.0
 
 export async function initDb(): Promise<void> {
+  if (dbInitialized) return
   const db = getDb()
 
   await db.executeMultiple(`
@@ -167,4 +169,6 @@ export async function initDb(): Promise<void> {
       /* ignore */
     }
   }
+
+  dbInitialized = true
 }

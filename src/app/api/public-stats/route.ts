@@ -20,6 +20,10 @@ export async function GET() {
       totalUsers: Number(totalResult.rows[0].count),
       completedSurvey: Number(surveyResult.rows[0].count),
       totalMatches: Number(matchResult.rows[0].count),
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+      },
     })
   } catch (error: any) {
     console.error('[public-stats]', error?.message || error)
