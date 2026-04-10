@@ -64,12 +64,31 @@ export async function GET(req: NextRequest) {
       })
       const partner = partnerResult.rows[0] as any
       if (partner && partner.contact_info) {
-        partnerContact = {
-          type: partner.contact_type,
-          info: await decrypt(String(partner.contact_info)),
+        try {
+          partnerContact = {
+            type: partner.contact_type,
+            info: await decrypt(String(partner.contact_info)),
+          }
+        } catch {
+          partnerContact = {
+            type: partner.contact_type,
+            info: '[解密失败]',
+            decryptError: true,
+          }
         }
+      } else {
+        partnerContact = { type: null, info: null, empty: true }
       }
     }
+
+    // 检查当前用户是否填写了联系方式
+    let selfHasContact = false
+    const selfResult = await db.execute({
+      sql: 'SELECT contact_info FROM users WHERE id = ?',
+      args: [uid],
+    })
+    const selfRow = selfResult.rows[0] as any
+    if (selfRow && selfRow.contact_info) selfHasContact = true
 
     let dimScores = null
     try {
@@ -88,6 +107,7 @@ export async function GET(req: NextRequest) {
         iRevealed: !!match.i_revealed,
         partnerRevealed: !!match.partner_revealed,
         contact: partnerContact,
+        selfHasContact,
       },
     })
   } catch (error: any) {

@@ -9,7 +9,8 @@ interface MatchData {
   id: number; partnerId: number; partnerNickname: string
   score: number; dimScores: DimScore[] | null; reasons: string[]
   weekKey: string; iRevealed: boolean; partnerRevealed: boolean
-  contact: { type: string; info: string } | null
+  contact: { type: string | null; info: string | null; decryptError?: boolean; empty?: boolean } | null
+  selfHasContact?: boolean
 }
 
 const DIM_COLORS: Record<string, string> = {
@@ -226,16 +227,38 @@ export default function MatchPage() {
 
             {/* Reveal Contact */}
             {!match.iRevealed ? (
-              <button onClick={handleReveal} disabled={revealing}
-                className="w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl hover:opacity-90 transition text-lg">
-                {revealing ? '确认中...' : '🤝 我愿意交换联系方式'}
-              </button>
+              <div>
+                {!match.selfHasContact && (
+                  <div className="mb-3 text-center py-2 px-4 bg-orange-50 rounded-xl border border-orange-200">
+                    <p className="text-sm text-orange-600">⚠️ 请先填写你自己的联系方式，才能查看对方的</p>
+                  </div>
+                )}
+                <button onClick={handleReveal} disabled={revealing || !match.selfHasContact}
+                  className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl transition text-lg ${
+                    !match.selfHasContact ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+                  }`}>
+                  {revealing ? '确认中...' : '🤝 我愿意交换联系方式'}
+                </button>
+              </div>
             ) : !match.partnerRevealed ? (
               <div className="text-center py-4 px-6 bg-yellow-50 rounded-2xl border border-yellow-200">
                 <p className="text-yellow-700 font-medium">你已确认 ✓</p>
                 <p className="text-sm text-yellow-600 mt-1">等待对方也确认后即可看到联系方式</p>
               </div>
-            ) : match.contact ? (
+            ) : match.contact ? match.contact.empty ? (
+              <div className="text-center py-4 px-6 bg-gray-50 rounded-2xl border border-gray-200">
+                <p className="text-gray-500 font-medium">😅 对方暂未填写联系方式</p>
+                <p className="text-xs text-gray-400 mt-1">可以等对方补充后再来查看</p>
+              </div>
+            ) : match.contact.decryptError ? (
+              <div className="bg-green-50 rounded-2xl p-6 border border-green-200 text-center">
+                <p className="text-green-600 font-medium mb-2">🎉 双方已确认！</p>
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <p className="text-sm text-red-400">联系方式解密失败</p>
+                  <p className="text-sm text-gray-400 mt-1">请联系管理员处理</p>
+                </div>
+              </div>
+            ) : (
               <div className="bg-green-50 rounded-2xl p-6 border border-green-200 text-center">
                 <p className="text-green-600 font-medium mb-2">🎉 双方已确认！</p>
                 <div className="bg-white rounded-xl p-4 shadow-sm">
