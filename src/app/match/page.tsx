@@ -132,26 +132,37 @@ export default function MatchPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-      <nav className="flex items-center justify-between px-4 py-3 max-w-4xl mx-auto gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-xl shrink-0">🎁</span>
-          <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
+      <nav className="flex items-center justify-between px-3 py-2.5 max-w-4xl mx-auto">
+        {/* 左侧：Logo */}
+        <div className="flex items-center gap-1 min-w-0">
+          <span className="text-lg shrink-0">🎁</span>
+          <span className="font-bold text-base gradient-text hidden sm:inline">吉动盲盒</span>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+
+        {/* 右侧：操作按钮（手机端只显示图标） */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {user?.isAdmin && (
-            <Link href="/admin" className="hidden sm:inline-flex px-3 py-1 text-xs text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理</Link>
+            <Link href="/admin" className="hidden sm:inline-flex px-2.5 py-1 text-xs text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理</Link>
           )}
-          <span className="text-xs text-gray-500 hidden sm:inline">Hi, {user?.nickname}</span>
           <button onClick={handleRefresh}
-            className={`text-xs text-pink-500 hover:text-pink-600 px-2.5 py-1 border border-pink-200 rounded-full hover:bg-pink-50 transition ${refreshing ? 'animate-spin' : ''}`}>
+            className={`text-xs px-2 py-1 border rounded-full transition ${
+              refreshing ? 'animate-spin text-pink-400 border-pink-200' : 'text-pink-500 hover:text-pink-600 border-pink-200 hover:bg-pink-50'
+            }`}
+            title="刷新匹配结果">
             {refreshing ? '...' : '🔄'}
           </button>
           <Link href="/survey"
-            className="text-xs text-purple-500 hover:text-purple-600 px-2.5 py-1 border border-purple-200 rounded-full hover:bg-purple-50 transition">
+            className="text-xs px-2 py-1 text-purple-500 border border-purple-200 rounded-full hover:text-purple-600 hover:bg-purple-50 transition"
+            title="重新测试问卷">
             📝
           </Link>
           <button onClick={handleLogout}
-            className="px-2.5 py-1 text-xs text-gray-400 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-600 transition">
+            className="text-xs px-2 py-1 text-gray-400 border border-gray-200 rounded-full hover:text-gray-600 hover:bg-gray-50 transition sm:hidden"
+            title="退出登录">
+            ✕
+          </button>
+          <button onClick={handleLogout}
+            className="hidden sm:block text-xs px-2.5 py-1 text-gray-400 border border-gray-200 rounded-full hover:text-gray-600 hover:bg-gray-50 transition">
             退出
           </button>
         </div>
@@ -344,18 +355,18 @@ function ContactSettings({ user }: { user: any }) {
           {errorMsg}
         </div>
       )}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2.5">
         <select value={contactType} onChange={e => setContactType(e.target.value)}
-          className="px-3 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300">
+          className="px-3 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300 w-full sm:w-auto">
           <option value="wechat">微信号</option>
           <option value="qq">QQ号</option>
           <option value="other">其他</option>
         </select>
         <input type="text" placeholder="输入你的联系方式" value={contactInfo}
           onChange={e => setContactInfo(e.target.value)}
-          className="flex-1 px-4 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300" />
+          className="flex-1 min-w-0 px-4 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300" />
         <button onClick={handleSave} disabled={saving}
-          className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition">
+          className="w-full sm:w-auto px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition whitespace-nowrap">
           {saved ? '已保存 ✓' : saving ? '...' : '保存'}
         </button>
       </div>
