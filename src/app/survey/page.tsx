@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+// 从 cookie 获取 CSRF Token
+function getCsrfToken(): string {
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf-token='))
+    ?.split('=)[1] || ''
+}
 
 // === 新版题库：32题，5层分类 ===
 
@@ -185,11 +194,24 @@ export default function SurveyPage() {
       <>
       <div className="relative z-10 max-w-2xl mx-auto px-6 py-10">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🎁</span>
-            <span className="font-bold text-xl gradient-text">吉动盲盒</span>
-          </div>
-          <span className="text-sm text-gray-400">{step + 1} / {QUESTIONS.length}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🎁</span>
+          <span className="font-bold text-xl gradient-text">吉动盲盒</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/match" className="text-sm text-gray-400 hover:text-gray-600 hover:underline">← 返回</Link>
+          <button onClick={async () => {
+            try {
+              await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: { 'x-csrf-token': getCsrfToken() },
+              })
+            } catch { /* ignore */ }
+            router.push('/login')
+          }} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 border border-gray-200 rounded-full hover:bg-gray-50 transition">
+            退出
+          </button>
+        </div>
         </div>
 
         {/* Progress bar */}

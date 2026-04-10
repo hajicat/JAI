@@ -199,7 +199,20 @@ export default function AdminPage() {
           <span className="text-2xl">🎁</span>
           <span className="font-bold text-xl gradient-text">管理后台</span>
         </div>
-        <Link href="/match" className="text-sm text-pink-500 hover:underline">← 返回首页</Link>
+        <div className="flex items-center gap-3">
+          <Link href="/match" className="text-sm text-pink-500 hover:underline">← 返回首页</Link>
+          <button onClick={async () => {
+            try {
+              await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: { 'x-csrf-token': getCsrfToken() },
+              })
+            } catch { /* ignore */ }
+            router.push('/login')
+          }} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 border border-gray-200 rounded-full hover:bg-gray-50 transition">
+            退出
+          </button>
+        </div>
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-6">
