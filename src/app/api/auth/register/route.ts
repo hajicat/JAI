@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     if (gpsEnabled) {
       if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-        return NextResponse.json({ error: '请允许获取位置信息以验证在校身份' }, { status: 400 })
+        return NextResponse.json({ error: '请先在页面上完成GPS校内验证（点击"点击验证位置"按钮）' }, { status: 400 })
       }
       if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
         return NextResponse.json({ error: '坐标范围无效' }, { status: 400 })

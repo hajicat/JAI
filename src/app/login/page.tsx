@@ -271,7 +271,7 @@ function LoginForm() {
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">密码</label>
-              <input type="password" placeholder="设置密码（至少8位，含字母和数字）"
+              <input type="password" placeholder={isRegister ? "设置密码（至少8位，含字母和数字）" : "请输入密码"}
                 value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required minLength={8} />
             </div>

@@ -81,8 +81,21 @@ export default function MatchPage() {
       const res = await fetch('/api/match')
       const data = await res.json()
       if (data.match) setMatch(data.match)
-    } catch { alert('操作失败') }
+    } catch { /* silent fail */ }
     finally { setRevealing(false) }
+  }
+
+  const handleLogout = async () => {
+    try {
+      const csrfToken = getCsrfToken()
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'x-csrf-token': csrfToken },
+      })
+      router.push('/login')
+    } catch {
+      router.push('/login')
+    }
   }
 
   const toggleMatch = async (enabled: boolean) => {
@@ -95,7 +108,10 @@ export default function MatchPage() {
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
-        body: JSON.stringify({ contactType: user?.contactType || 'wechat', contactInfo: '', matchEnabled: enabled })
+        body: JSON.stringify({
+          matchEnabled: enabled,
+          ...(enabled ? {} : {}),
+        })
       })
     } catch (e) { /* ignore */ }
   }
@@ -120,6 +136,10 @@ export default function MatchPage() {
             <Link href="/admin" className="px-4 py-1.5 text-sm text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理后台</Link>
           )}
           <span className="text-sm text-gray-500">Hi, {user?.nickname}</span>
+          <button onClick={handleLogout}
+            className="px-3 py-1.5 text-sm text-gray-400 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-600 transition">
+            退出
+          </button>
         </div>
       </nav>
 
@@ -248,7 +268,7 @@ export default function MatchPage() {
               {inviteCodes.length > 0 ? inviteCodes.map((c, i) => (
                 <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                   <code className="text-sm font-mono font-bold text-pink-600">{c.code}</code>
-                  <button onClick={() => { navigator.clipboard.writeText(c.code); alert('已复制！') }}
+                  <button onClick={async () => { await navigator.clipboard.writeText(c.code) }}
                     className="text-xs text-gray-400 hover:text-pink-500 transition">复制</button>
                 </div>
               )) : <p className="text-sm text-gray-400 text-center py-4">邀请码已用完</p>}
@@ -271,13 +291,18 @@ function ContactSettings({ user }: { user: any }) {
   const [contactInfo, setContactInfo] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   const handleSave = async () => {
-    if (!contactInfo.trim()) return
+    if (!contactInfo.trim()) {
+      setErrorMsg('请输入联系方式')
+      return
+    }
+    setErrorMsg('')
     setSaving(true)
     try {
       const csrfToken = getCsrfToken()
-      await fetch('/api/auth/me', {
+      const res = await fetch('/api/auth/me', {
         method: 'POST', 
         headers: { 
           'Content-Type': 'application/json',
@@ -285,9 +310,14 @@ function ContactSettings({ user }: { user: any }) {
         },
         body: JSON.stringify({ contactType, contactInfo, matchEnabled: true })
       })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorMsg(data.error || '保存失败')
+        return
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch { alert('保存失败') }
+    } catch { setErrorMsg('网络错误，保存失败') }
     finally { setSaving(false) }
   }
 
@@ -298,6 +328,11 @@ function ContactSettings({ user }: { user: any }) {
         <h3 className="font-semibold text-gray-800">联系方式设置</h3>
       </div>
       <p className="text-xs text-gray-400 mb-4">匹配成功后才会展示给对方，全程加密存储</p>
+      {errorMsg && (
+        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-500">
+          {errorMsg}
+        </div>
+      )}
       <div className="flex gap-3">
         <select value={contactType} onChange={e => setContactType(e.target.value)}
           className="px-3 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300">

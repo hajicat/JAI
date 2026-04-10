@@ -55,6 +55,7 @@ export default function SurveyPage() {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
@@ -100,10 +101,10 @@ export default function SurveyPage() {
       if (res.ok) router.push('/match')
       else {
         const data = await res.json()
-        alert(data.error || '提交失败')
+        setError(data.error || '提交失败')
       }
     } catch {
-      alert('保存失败，请重试')
+      setError('保存失败，请重试')
     } finally {
       setSaving(false)
     }
@@ -130,6 +131,12 @@ export default function SurveyPage() {
           <div className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }} />
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-500 text-center">
+            {error}
+          </div>
+        )}
 
         {/* Dimension progress dots */}
         <div className="flex justify-center gap-4 mb-8">
