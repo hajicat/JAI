@@ -159,6 +159,7 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE survey_responses ADD COLUMN q29 TEXT`,
     `ALTER TABLE survey_responses ADD COLUMN q30 TEXT`,
     `ALTER TABLE survey_responses ADD COLUMN q31 TEXT`,
+    `ALTER TABLE survey_responses ADD COLUMN q32 TEXT`,
   ]
   for (const sql of alterStatements) {
     try {
