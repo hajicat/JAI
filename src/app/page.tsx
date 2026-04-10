@@ -13,6 +13,66 @@ function getCsrfToken(): string {
     ?.split('=')[1] || ''
 }
 
+// Airport-style flip board for the user count display
+function FlipBoardCount({ value, loading }: { value: number; loading: boolean }) {
+  const [display, setDisplay] = useState('0')
+  // Each digit independently tracks its current shown value
+  const [digits, setDigits] = useState<string[]>(['0'])
+
+  useEffect(() => {
+    if (!loading) {
+      // Settle: animate to final value
+      const target = String(value)
+      if (target === display) return
+      // Animate each digit position with staggered timing
+      const maxLen = Math.max(digits.length, target.length)
+      let frame = 0
+      const totalFrames = 12 + maxLen * 4 // more frames for longer numbers
+      const interval = setInterval(() => {
+        frame++
+        const newDigits = target.padStart(maxLen, ' ').split('').map((char, i) => {
+          if (frame > totalFrames - i * 3) return char
+          // Random roll during animation
+          return String(Math.floor(Math.random() * 10))
+        })
+        setDigits(newDigits)
+        if (frame >= totalFrames) {
+          setDigits(target.split(''))
+          clearInterval(interval)
+          setDisplay(target)
+        }
+      }, 60)
+      return () => clearInterval(interval)
+    } else {
+      // Rolling mode: keep flipping random numbers
+      const interval = setInterval(() => {
+        const len = 1 + Math.floor(Math.random() * 2) // 1-2 digits while loading
+        setDigits(Array.from({ length: len }, () => String(Math.floor(Math.random() * 10))))
+      }, 120)
+      return () => clearInterval(interval)
+    }
+  }, [value, loading]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <span className="inline-flex font-mono">
+      {digits.map((d, i) => (
+        <span
+          key={i}
+          className={`inline-block w-[1ch] text-center tabular-nums transition-all duration-150 ${
+            !loading ? 'text-pink-600' : 'text-pink-400'
+          } ${loading ? 'animate-pulse' : ''}`}
+          style={{
+            transform: loading ? `translateY(${Math.random() * 2 - 1}px)` : 'translateY(0)',
+            opacity: loading ? 0.7 + Math.random() * 0.3 : 1,
+          }}
+        >
+          {d}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export default function Home() {
   const router = useRouter()
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
@@ -52,13 +112,7 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const displayCount = !authChecked ? (
-    <span className="inline-block w-8 h-4 bg-gray-200 rounded animate-pulse" />
-  ) : stats.completedSurvey > 0 ? (
-    stats.completedSurvey.toLocaleString()
-  ) : (
-    '0'
-  )
+  const displayCount = <FlipBoardCount value={stats.completedSurvey} loading={!authChecked} />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
