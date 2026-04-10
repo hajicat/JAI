@@ -422,6 +422,93 @@ function genderCompatible(userA: any, userB: any): boolean {
 }
 
 // ─────────────────────────────────────────────
+//  手动指定匹配（管理员配对）
+// ─────────────────────────────────────────────
+
+/** Generate a YYYY-WNN format week key from a date string like "2026-04-12" */
+function dateToWeekKey(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  if (isNaN(d.getTime())) return getWeekKey() // fallback to current
+  const start = new Date(d.getFullYear(), 0, 1)
+  const diff = d.getTime() - start.getTime()
+  const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+}
+
+async function handleManualMatch(body: any) {
+  const db = getDb()
+  const userAId = Number(body.userA)
+  const userBId = Number(body.userB)
+  const weekKey = body.weekKey ? dateToWeekKey(body.weekKey) : getWeekKey()
+
+  if (!Number.isInteger(userAId) || !Number.isInteger(userBId) || userAId <= 0 || userBId <= 0) {
+    return NextResponse.json({ error: '无效的用户ID' }, { status: 400 })
+  }
+  if (userAId === userBId) {
+    return NextResponse.json({ error: '不能匹配同一个人' }, { status: 400 })
+  }
+
+  // Verify both users exist and have completed surveys
+  const [userARes, userBRes] = await Promise.all([
+    db.execute({ sql: `SELECT u.id, u.nickname, u.gender, u.preferred_gender,
+                    s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
+                    s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
+                    s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
+                    s.q31,s.q32
+             FROM users u JOIN survey_responses s ON u.id = s.user_id WHERE u.id = ?`, args: [userAId] }),
+    db.execute({ sql: `SELECT u.id, u.nickname, u.gender, u.preferred_gender,
+                    s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
+                    s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
+                    s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
+                    s.q31,s.q32
+             FROM users u JOIN survey_responses s ON u.id = s.user_id WHERE u.id = ?`, args: [userBId] }),
+  ])
+
+  const userA = userARes.rows[0] as any
+  const userB = userBRes.rows[0] as any
+  if (!userA || !userB) {
+    return NextResponse.json({ error: `用户不存在 — A: ${!!userA}, B: ${!!userB}` }, { status: 404 })
+  }
+
+  // Check for existing match in the target week
+  const existingCheck = await db.execute({
+    sql: `SELECT id FROM matches WHERE week_key = ? AND (user_a IN (?, ?) OR user_b IN (?, ?)) LIMIT 1`,
+    args: [weekKey, userAId, userBId, userAId, userBId],
+  })
+  if (existingCheck.rows.length > 0) {
+    return NextResponse.json({
+      error: `其中一方在本周(${weekKey})已有匹配记录，如需重新配对请先删除现有记录`,
+      existingMatchId: Number(existingCheck.rows[0].id),
+    }, { status: 409 })
+  }
+
+  // Calculate match score using the real algorithm
+  const result = calculateMatch(userA, userB)
+
+  // Insert the match record
+  await db.execute({
+    sql: `INSERT INTO matches (user_a, user_b, score, dim_scores, reasons, week_key)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [userAId, userBId, result.score, JSON.stringify(result.dimScores), JSON.stringify(result.reasons), weekKey],
+  })
+
+  return NextResponse.json({
+    success: true,
+    manual: true,
+    weekKey,
+    match: {
+      userA: userAId,
+      userAName: userA.nickname,
+      userB: userBId,
+      userBName: userB.nickname,
+      score: result.score,
+      dimScores: result.dimScores,
+      reasons: result.reasons,
+    },
+  })
+}
+
+// ─────────────────────────────────────────────
 //  API 入口
 // ─────────────────────────────────────────────
 
@@ -438,6 +525,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
     }
 
+    const body = await req.json().catch(() => ({}))
+
+    // ── 手动指定匹配模式 ──
+    if (body.userA && body.userB) {
+      return handleManualMatch(body)
+    }
+
+    // ── 自动匹配模式（原有逻辑）──
     const db = getDb()
     const weekKey = getWeekKey()
 

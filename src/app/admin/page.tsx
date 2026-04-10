@@ -45,6 +45,13 @@ export default function AdminPage() {
   const [userDetail, setUserDetail] = useState<any>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
 
+  // 手动匹配状态
+  const [manualUserA, setManualUserA] = useState<number | ''>('')
+  const [manualUserB, setManualUserB] = useState<number | ''>('')
+  const [manualDate, setManualDate] = useState('')        // empty = immediate (this week)
+  const [manualMatching, setManualMatching] = useState(false)
+  const [matchUsersForSelect, setMatchUsersForSelect] = useState<any[]>([])
+
   useEffect(() => {
     async function load() {
       const res = await fetch('/api/auth/me')
@@ -60,6 +67,7 @@ export default function AdminPage() {
     if (loading) return
     if (tab === 'users') loadUsers()
     if (tab === 'codes') loadCodes()
+    if (tab === 'match') loadMatchUsers()
   }, [tab, loading])
 
   const loadUsers = async () => {
@@ -120,6 +128,57 @@ export default function AdminPage() {
       setMatchResult(data)
     } catch { setToast({ msg: '匹配失败', type: 'error' }) }
     finally { setGenerating(false) }
+  }
+
+  // 手动指定匹配
+  const runManualMatching = async () => {
+    if (!manualUserA || !manualUserB) {
+      setToast({ msg: '请选择两个用户', type: 'error' }); return
+    }
+    if (Number(manualUserA) === Number(manualUserB)) {
+      setToast({ msg: '不能选择同一个用户', type: 'error' }); return
+    }
+    if (!confirm(`确定将这两个用户匹配到一起？${manualDate ? `\n匹配周: ${manualDate}` : '\n匹配周: 本周（立即生效）'}`)) return
+
+    setManualMatching(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const body: any = {
+        userA: Number(manualUserA),
+        userB: Number(manualUserB),
+      }
+      if (manualDate) body.weekKey = manualDate
+      const res = await fetch('/api/admin/match', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMatchResult(data)
+        setManualUserA('')
+        setManualUserB('')
+        setManualDate('')
+        setToast({ msg: `✅ 手动匹配成功！${data.match.userAName} ↔ ${data.match.userBName} (${data.match.score}% 契合度)`, type: 'success' })
+      } else {
+        setToast({ msg: data.error || '匹配失败', type: 'error' })
+      }
+    } catch { setToast({ msg: '网络错误', type: 'error' }) }
+    finally { setManualMatching(false) }
+  }
+
+  // 加载可用于匹配的用户列表（已完成问卷的）
+  const loadMatchUsers = async () => {
+    if (matchUsersForSelect.length > 0) return // already loaded
+    try {
+      const res = await fetch('/api/admin/users')
+      const data = await res.json()
+      // Filter to only users who completed survey
+      setMatchUsersForSelect((data.users || []).filter((u: any) => u.survey_completed))
+    } catch { /* ignore */ }
   }
 
   // 加载系统设置
@@ -437,14 +496,91 @@ export default function AdminPage() {
         )}
 
         {tab === 'match' && (
-          <div className="glass-card rounded-3xl p-10 text-center">
-            <div className="text-6xl mb-4">💌</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">执行本周匹配</h2>
-            <p className="text-gray-500 mb-6">将为所有完成问卷且开启匹配的用户进行匹配<br />支持性别偏好过滤 + 五维度加权评分 + 冲突类型分析</p>
-            <button onClick={runMatching} disabled={generating}
-              className="px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 disabled:opacity-50 transition shadow-lg">
-              {generating ? '匹配中...' : '🎁 开始匹配'}
-            </button>
+          <div className="space-y-6">
+            {/* ── 手动指定匹配 ── */}
+            <div className="glass-card rounded-3xl p-8">
+              <h2 className="text-xl font-bold text-gray-800 mb-1">🔗 手动指定匹配</h2>
+              <p className="text-sm text-gray-400 mb-6">选择两个已完成问卷的用户进行配对，用于测试或特殊情况</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                {/* User A */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">用户 A</label>
+                  <select value={manualUserA} onChange={e => setManualUserA(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300">
+                    <option value="">— 选择用户 —</option>
+                    {matchUsersForSelect.map((u: any) => (
+                      <option key={u.id} value={u.id} disabled={Number(manualUserB) === u.id}>
+                        {u.nickname} ({GENDER_LABELS[u.gender] || '?'}){Number(manualUserB) === u.id ? ' ← 已选为B' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* User B */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">用户 B</label>
+                  <select value={manualUserB} onChange={e => setManualUserB(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300">
+                    <option value="">— 选择用户 —</option>
+                    {matchUsersForSelect.map((u: any) => (
+                      <option key={u.id} value={u.id} disabled={Number(manualUserA) === u.id}>
+                        {u.nickname} ({GENDER_LABELS[u.gender] || '?'}){Number(manualUserA) === u.id ? ' ← 已选为A' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Date (optional) */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">匹配时间（可选）</label>
+                  <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                    placeholder="留空 = 本周" />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button onClick={runManualMatching}
+                  disabled={manualMatching || !manualUserA || !manualUserB}
+                  className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition ${
+                    manualMatching || !manualUserA || !manualUserB
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:opacity-90 shadow-md'
+                  }`}>
+                  {manualMatching ? '⏳ 匹配中...' : '🔗 立即配对'}
+                </button>
+                {manualDate && (
+                  <span className="text-xs text-gray-400">将写入 {manualDate} 所属周 ({(() => {
+                    const d = new Date(manualDate + 'T00:00:00')
+                    const start = new Date(d.getFullYear(), 0, 1)
+                    const diff = d.getTime() - start.getTime()
+                    return `${d.getFullYear()}-W${String(Math.ceil(diff / (7*24*60*60*1000))).padStart(2,'0')}`
+                  })()})</span>
+                )}
+                {!manualDate && (
+                  <span className="text-xs text-green-500">✓ 立即生效（本周）</span>
+                )}
+              </div>
+            </div>
+
+            {/* 分割线 */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 font-medium">或使用全自动匹配</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {/* ── 原有：自动匹配 ── */}
+            <div className="glass-card rounded-3xl p-10 text-center">
+              <div className="text-6xl mb-4">💌</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">执行本周匹配</h2>
+              <p className="text-gray-500 mb-6">将为所有完成问卷且开启匹配的用户进行匹配<br />支持性别偏好过滤 + 五维度加权评分 + 冲突类型分析</p>
+              <button onClick={runMatching} disabled={generating}
+                className="px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 disabled:opacity-50 transition shadow-lg">
+                {generating ? '匹配中...' : '🎁 开始匹配'}
+              </button>
             {matchResult && (
               <div className="mt-8 bg-gray-50 rounded-2xl p-6 text-left">
                 <h3 className="font-bold text-gray-800 mb-3">匹配结果</h3>
