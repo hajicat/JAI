@@ -9,16 +9,13 @@ interface MatchData {
   id: number; partnerId: number; partnerNickname: string
   score: number; dimScores: DimScore[] | null; reasons: string[]
   weekKey: string; iRevealed: boolean; partnerRevealed: boolean
-  partnerConflictType: string | null
   contact: { type: string; info: string } | null
 }
 
 const DIM_COLORS: Record<string, string> = {
-  '安全联结': 'from-blue-400 to-cyan-400',
+  '价值观': 'from-purple-400 to-violet-400',
   '互动模式': 'from-green-400 to-emerald-400',
-  '意义系统': 'from-purple-400 to-violet-400',
-  '动力发展': 'from-orange-400 to-amber-400',
-  '日常系统': 'from-pink-400 to-rose-400',
+  '日常节奏': 'from-blue-400 to-cyan-400',
 }
 
 // 从 cookie 获取 CSRF Token
@@ -172,9 +169,6 @@ export default function MatchPage() {
                 {match.partnerNickname[0]}
               </div>
               <h3 className="text-xl font-bold text-gray-800">{match.partnerNickname}</h3>
-              {match.partnerConflictType && (
-                <p className="text-sm text-gray-500 mt-1">{match.partnerConflictType}</p>
-              )}
               <div className="flex items-center justify-center gap-2 mt-2">
                 <div className="text-3xl font-bold gradient-text">{match.score}%</div>
                 <span className="text-gray-400 text-sm">契合度</span>

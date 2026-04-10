@@ -87,9 +87,6 @@ export async function GET(req: NextRequest) {
         weekKey: String(match.week_key),
         iRevealed: !!match.i_revealed,
         partnerRevealed: !!match.partner_revealed,
-        partnerConflictType: match.partner_conflict_type
-          ? CONFLICT_NAMES[String(match.partner_conflict_type)] || String(match.partner_conflict_type)
-          : null,
         contact: partnerContact,
       },
     })
