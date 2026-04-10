@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get survey answers
-    let surveyAnswers = null
+    let surveyAnswers: Record<string, string> | null = null
     if (userRow.survey_completed) {
       const surveyResult = await db.execute({
         sql: `SELECT q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
         surveyAnswers = {}
         for (let i = 1; i <= 31; i++) {
           const val = (surveyResult.rows[0] as any)[`q${i}`]
-          if (val) surveyAnswers[`q${i}`] = val
+          if (val) (surveyAnswers as Record<string, string>)[`q${i}`] = String(val)
         }
         ;(surveyAnswers as any).updatedAt = (surveyResult.rows[0] as any).updated_at
       }
