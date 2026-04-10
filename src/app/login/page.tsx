@@ -20,6 +20,17 @@ function LoginForm() {
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
   const [gpsMsg, setGpsMsg] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [gpsRequired, setGpsRequired] = useState(true)
+
+  // 加载系统设置（GPS是否必需）
+  useEffect(() => {
+    fetch('/api/public-settings')
+      .then(r => r.json())
+      .then(d => {
+        if (typeof d.gpsRequired === 'boolean') setGpsRequired(d.gpsRequired)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
@@ -84,7 +95,7 @@ function LoginForm() {
     e.preventDefault()
     setError('')
 
-    if (isRegister && gpsStatus !== 'ok') {
+    if (isRegister && gpsRequired && gpsStatus !== 'ok') {
       setError('请先完成GPS定位验证')
       return
     }
@@ -159,7 +170,8 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isRegister && (
               <>
-                {/* GPS Verification */}
+                {/* GPS Verification (only shown when required) */}
+                {gpsRequired && (
                 <div className="bg-gray-50 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-600">📍 GPS 校内验证</span>
@@ -182,6 +194,8 @@ function LoginForm() {
                     {gpsStatus === 'checking' ? '定位中...' : gpsStatus === 'ok' ? '重新验证' : '点击验证位置'}
                   </button>
                 </div>
+                )}
+                {/* End GPS Verification */}
 
                 {/* Gender Selection */}
                 <div>

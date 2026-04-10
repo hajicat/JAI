@@ -102,11 +102,15 @@ export async function initDb(): Promise<void> {
   // Seed admin if not exists
   const adminRow = await db.execute('SELECT id FROM users WHERE is_admin = 1')
   if (adminRow.rows.length === 0) {
-    const crypto = await import('crypto')
+    // 使用 Web Crypto API（兼容 Edge Runtime）
     const { hashPassword, generateInviteCode } = await import('./security')
 
     const adminCode = generateInviteCode()
-    const adminPassword = crypto.randomBytes(12).toString('base64url')
+    
+    // 使用 Web Crypto API 生成随机密码
+    const pwdBytes = new Uint8Array(12)
+    crypto.getRandomValues(pwdBytes)
+    const adminPassword = Array.from(pwdBytes, b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
     const pwHash = await hashPassword(adminPassword)
 
     await db.execute({
