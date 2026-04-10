@@ -75,7 +75,7 @@ export async function initDb(): Promise<void> {
       q16 TEXT, q17 TEXT, q18 TEXT, q19 TEXT, q20 TEXT,
       q21 TEXT, q22 TEXT, q23 TEXT, q24 TEXT, q25 TEXT,
       q26 TEXT, q27 TEXT, q28 TEXT, q29 TEXT, q30 TEXT,
-      q31 TEXT,
+      q31 TEXT, q32 TEXT, q33 TEXT, q34 TEXT, q35 TEXT,
       updated_at TEXT DEFAULT (datetime('now', 'localtime')),
       UNIQUE(user_id)
     );
@@ -161,6 +161,9 @@ export async function initDb(): Promise<void> {
     `ALTER TABLE survey_responses ADD COLUMN q30 TEXT`,
     `ALTER TABLE survey_responses ADD COLUMN q31 TEXT`,
     `ALTER TABLE survey_responses ADD COLUMN q32 TEXT`,
+    `ALTER TABLE survey_responses ADD COLUMN q33 TEXT`,
+    `ALTER TABLE survey_responses ADD COLUMN q34 TEXT`,
+    `ALTER TABLE survey_responses ADD COLUMN q35 TEXT`,
   ]
   for (const sql of alterStatements) {
     try {

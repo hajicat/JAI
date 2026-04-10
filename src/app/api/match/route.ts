@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
 
     const match = matchResult.rows[0] as any
     let partnerContact = null
+    let partnerSurvey: any = null
 
     if (match.i_revealed && match.partner_revealed) {
       const partnerResult = await db.execute({
@@ -79,6 +80,17 @@ export async function GET(req: NextRequest) {
       } else {
         partnerContact = { type: null, info: null, empty: true }
       }
+
+      // 获取对方的问卷回答（双方确认后可见）
+      const surveyResult = await db.execute({
+        sql: `SELECT s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
+                      s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
+                      s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
+                      s.q31,s.q32,s.q33,s.q34,s.q35
+               FROM survey_responses s WHERE s.user_id = ?`,
+        args: [match.partner_id],
+      })
+      partnerSurvey = surveyResult.rows[0] as any || null
     }
 
     // 检查当前用户是否填写了联系方式
@@ -108,6 +120,7 @@ export async function GET(req: NextRequest) {
         partnerRevealed: !!match.partner_revealed,
         contact: partnerContact,
         selfHasContact,
+        partnerSurvey,
       },
     })
   } catch (error: any) {

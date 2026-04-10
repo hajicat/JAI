@@ -11,6 +11,7 @@ interface MatchData {
   weekKey: string; iRevealed: boolean; partnerRevealed: boolean
   contact: { type: string | null; info: string | null; decryptError?: boolean; empty?: boolean } | null
   selfHasContact?: boolean
+  partnerSurvey?: any // 对方的问卷回答（双方确认后返回）
 }
 
 const DIM_COLORS: Record<string, string> = {
@@ -270,6 +271,11 @@ export default function MatchPage() {
                 <p className="text-xs text-green-500 mt-3">去加好友吧！聊聊看合不合拍 ☕</p>
               </div>
             ) : null}
+
+            {/* Partner Survey Answers — 双方确认后可见 */}
+            {match.iRevealed && match.partnerRevealed && match.partnerSurvey && (
+              <PartnerAnswers survey={match.partnerSurvey} nickname={match.partnerNickname} />
+            )}
           </div>
         ) : (
           <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
@@ -328,6 +334,73 @@ export default function MatchPage() {
           <ContactSettings user={user} />
         </div>
       </div>
+    </div>
+  )
+}
+
+// === 对方问卷回答展示组件（双方确认后可见） ===
+const PARTNER_QUESTIONS = [
+  { key: 'q33', label: '✨ TA 的优点', type: 'multi' as const },
+  { key: 'q34', label: '🌱 TA 认为自己的缺点', type: 'multi' as const },
+  { key: 'q35', label: '🍜 TA 用什么食物比喻恋爱关系', type: 'text' as const },
+]
+
+function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string }) {
+  const [expanded, setExpanded] = useState(false)
+
+  // 解析多选答案
+  const parseMulti = (val: string | null | undefined): string[] => {
+    if (!val) return []
+    try { return JSON.parse(val) } catch { return [] }
+  }
+
+  const hasContent = PARTNER_QUESTIONS.some(q => {
+    if (q.type === 'multi') return parseMulti(survey[q.key]).length > 0
+    return !!survey[q.key]?.trim()
+  })
+
+  if (!hasContent) return null
+
+  return (
+    <div className="mt-6 border-t border-gray-100 pt-6">
+      <button onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between text-left group">
+        <h4 className="text-sm font-medium text-gray-500 group-hover:text-pink-600 transition">
+          📝 查看{nickname}的问卷回答
+        </h4>
+        <span className={`text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-4 space-y-4 animate-fade-in">
+          {PARTNER_QUESTIONS.map(q => {
+            if (q.type === 'multi') {
+              const items = parseMulti(survey[q.key])
+              if (items.length === 0) return null
+              return (
+                <div key={q.key} className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-2">{q.label}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {items.map((item, i) => (
+                      <span key={i} className="px-3 py-1.5 bg-white rounded-lg text-sm text-pink-600 font-medium shadow-sm border border-pink-100">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            }
+            const val = survey[q.key]
+            if (!val?.trim()) return null
+            return (
+              <div key={q.key} className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs font-medium text-gray-500 mb-2">{q.label}</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{val}</p>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

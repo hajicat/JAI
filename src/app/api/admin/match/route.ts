@@ -454,13 +454,13 @@ async function handleManualMatch(body: any) {
                     s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
                     s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
                     s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
-                    s.q31,s.q32
+                    s.q31,s.q32,s.q33,s.q34,s.q35
              FROM users u JOIN survey_responses s ON u.id = s.user_id WHERE u.id = ?`, args: [userAId] }),
     db.execute({ sql: `SELECT u.id, u.nickname, u.gender, u.preferred_gender,
                     s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
                     s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
                     s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
-                    s.q31,s.q32
+                    s.q31,s.q32,s.q33,s.q34,s.q35
              FROM users u JOIN survey_responses s ON u.id = s.user_id WHERE u.id = ?`, args: [userBId] }),
   ])
 
@@ -541,7 +541,7 @@ export async function POST(req: NextRequest) {
                    s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
                    s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
                    s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
-                   s.q31,s.q32
+                   s.q31,s.q32,s.q33,s.q34,s.q35
             FROM users u
             JOIN survey_responses s ON u.id = s.user_id
             WHERE u.survey_completed = 1 AND u.match_enabled = 1

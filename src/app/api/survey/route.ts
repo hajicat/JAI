@@ -50,6 +50,10 @@ const VALID_OPTIONS: Record<string, string[]> = {
   q30: ['很整洁，东西最好归位', '大致整洁就行', '乱一点也能接受', '真的很讨厌打扫，希望别人搞定'],
   q31: ['顺其自然，别算太死', '设共同预算会更安心', '比较偏向清楚AA', '我会期待一方明显多承担一些'],
   q32: ['比较外放，喜欢热闹和新鲜局', '有局会去，但也需要独处', '小圈子就够了，不爱太多社交', '很看对象，跟合拍的人才会打开'],
+
+  // F. 个人画像开放题 (q33-q35) — multi-select 选项白名单
+  q33: ['真诚善良', '幽默风趣', '聪明机智', '细心体贴', '独立自主', '乐观开朗', '靠谱负责', '善解人意', '有上进心', '情绪稳定'],
+  q34: ['容易焦虑', '有点拖延', '不太会表达', '有时固执', '容易吃醋', '有点懒散', '三分钟热度', '过于敏感', '不善拒绝', '脾气急躁'],
 }
 
 // Map answer letter (A/B/C/D) to numeric index for scoring
@@ -86,19 +90,57 @@ export async function POST(req: NextRequest) {
 
     const db = getDb()
 
-    const TOTAL_QUESTIONS = 32
+    const TOTAL_QUESTIONS = 35
     const fields = Array.from({ length: TOTAL_QUESTIONS }, (_, i) => `q${i + 1}`)
     const values: string[] = []
 
+    // Multi-select questions: validate JSON array against whitelist
+    const MULTI_SELECT_QUESTIONS = ['q33', 'q34']
+    // Free-text questions
+    const TEXT_QUESTIONS = ['q35']
+
     for (const f of fields) {
-      const val = sanitizeString(String(answers[f] || ''), 200)
-      if (val && VALID_OPTIONS[f] && !VALID_OPTIONS[f].includes(val)) {
-        return NextResponse.json({ error: `第${f.slice(1)}题答案不合法` }, { status: 400 })
+      const rawVal = answers[f]
+
+      if (TEXT_QUESTIONS.includes(f)) {
+        // Free text question — sanitize and store as-is
+        const val = sanitizeString(typeof rawVal === 'string' ? rawVal : '', 200)
+        values.push(val)
+      } else if (MULTI_SELECT_QUESTIONS.includes(f)) {
+        // Multi-select question — expect JSON array of strings
+        if (!rawVal || typeof rawVal !== 'string') {
+          values.push('')
+          continue
+        }
+        try {
+          const arr = JSON.parse(rawVal)
+          if (!Array.isArray(arr)) {
+            return NextResponse.json({ error: `第${f.slice(1)}题格式错误，请选择选项` }, { status: 400 })
+          }
+          if (arr.length > 3) {
+            return NextResponse.json({ error: `第${f.slice(1)}题最多选3项` }, { status: 400 })
+          }
+          const whitelist = VALID_OPTIONS[f]
+          for (const item of arr) {
+            if (typeof item !== 'string' || !whitelist.includes(item)) {
+              return NextResponse.json({ error: `第${f.slice(1)}题包含无效选项` }, { status: 400 })
+            }
+          }
+          values.push(rawVal) // Store as JSON array string
+        } catch {
+          return NextResponse.json({ error: `第${f.slice(1)}题格式错误` }, { status: 400 })
+        }
+      } else {
+        // Original single-choice question
+        const val = sanitizeString(String(rawVal || ''), 200)
+        if (val && VALID_OPTIONS[f] && !VALID_OPTIONS[f].includes(val)) {
+          return NextResponse.json({ error: `第${f.slice(1)}题答案不合法` }, { status: 400 })
+        }
+        values.push(val)
       }
-      values.push(val)
     }
 
-    // Check all 32 questions answered
+    // Check all 35 questions answered
     const unanswered = values.filter(v => !v).length
     if (unanswered > 0) {
       return NextResponse.json({ error: `请回答所有${TOTAL_QUESTIONS}道题目（还有${unanswered}题未答）` }, { status: 400 })
