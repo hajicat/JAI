@@ -37,7 +37,7 @@ export default function MatchPage() {
         const meRes = await fetch('/api/auth/me')
         const meData = await meRes.json()
         if (!meData.user) { router.push('/login'); return }
-        if (!meData.user.surveyCompleted) { router.push('/survey'); return }
+        if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
         setUser(meData.user)
         setMatchEnabled(meData.user.matchEnabled)
 
