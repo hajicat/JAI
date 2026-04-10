@@ -185,7 +185,7 @@ export default function SurveyPage() {
       const csrfToken = document.cookie
         .split('; ')
         .find(row => row.startsWith('csrf-token='))
-        ?.split('=')[1) || ''
+        ?.split('=')[1] || ''
       const res = await fetch('/api/survey', {
         method: 'POST',
         headers: {
