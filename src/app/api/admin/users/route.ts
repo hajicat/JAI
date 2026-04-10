@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         sql: `SELECT u.id, u.nickname, u.email, u.gender, u.preferred_gender, u.conflict_type,
                 u.survey_completed, u.match_enabled, u.is_admin,
                 u.created_at, u.invited_by,
-                (SELECT COUNT(*) FROM invitation_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
+                (SELECT COUNT(*) FROM invite_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
                 inv.nickname as invited_by_name
               FROM users u LEFT JOIN users inv ON u.invited_by = inv.id
               ORDER BY u.created_at DESC`,
