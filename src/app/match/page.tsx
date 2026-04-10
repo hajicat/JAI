@@ -146,6 +146,10 @@ export default function MatchPage() {
             className={`text-xs text-pink-500 hover:text-pink-600 px-3 py-1.5 border border-pink-200 rounded-full hover:bg-pink-50 transition ${refreshing ? 'animate-spin' : ''}`}>
             {refreshing ? '刷新中...' : '🔄 刷新'}
           </button>
+          <Link href="/survey"
+            className="text-xs text-purple-500 hover:text-purple-600 px-3 py-1.5 border border-purple-200 rounded-full hover:bg-purple-50 transition">
+            📝 重新测试
+          </Link>
           <button onClick={handleLogout}
             className="px-3 py-1.5 text-sm text-gray-400 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-600 transition">
             退出
