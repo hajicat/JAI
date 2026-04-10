@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const nickname = sanitizeString(body.nickname || '', 20)
     const email = sanitizeString(body.email || '', 254).toLowerCase()
     const password = body.password || ''
-    const inviteCode = sanitizeString(body.inviteCode || '', 20).toUpperCase()
+    const inviteCode = (typeof body.inviteCode === 'string' ? body.inviteCode.trim() : '').toUpperCase()
     const gender = sanitizeString(body.gender || '', 10)
     const preferredGender = sanitizeString(body.preferredGender || '', 20)
     const latitude = body.latitude
