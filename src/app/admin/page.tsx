@@ -194,13 +194,13 @@ export default function AdminPage() {
           {toast.msg}
         </div>
       )}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎁</span>
-          <span className="font-bold text-xl gradient-text">管理后台</span>
+      <nav className="flex items-center justify-between px-4 py-3 max-w-5xl mx-auto gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xl shrink-0">🎁</span>
+          <span className="font-bold text-lg gradient-text truncate">管理后台</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/match" className="text-sm text-pink-500 hover:underline">← 返回首页</Link>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link href="/match" className="text-xs text-pink-500 hover:underline whitespace-nowrap">← 返回</Link>
           <button onClick={async () => {
             try {
               await fetch('/api/auth/logout', {
@@ -209,7 +209,7 @@ export default function AdminPage() {
               })
             } catch { /* ignore */ }
             router.push('/login')
-          }} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 border border-gray-200 rounded-full hover:bg-gray-50 transition">
+          }} className="text-xs text-gray-400 hover:text-gray-600 px-2.5 py-1 border border-gray-200 rounded-full hover:bg-gray-50 transition">
             退出
           </button>
         </div>

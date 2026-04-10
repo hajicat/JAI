@@ -72,15 +72,15 @@ export default function Home() {
         <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '2s' }} />
       </div>
 
-      <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎁</span>
-          <span className="font-bold text-xl gradient-text">吉动盲盒</span>
+      <nav className="relative z-10 flex items-center justify-between px-4 py-3 max-w-6xl mx-auto gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xl shrink-0">🎁</span>
+          <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {user ? (
             <>
-              <span className="text-sm text-gray-500">Hi, {user.nickname}</span>
+              <span className="text-xs text-gray-500 hidden sm:inline">Hi, {user.nickname}</span>
               <button onClick={async () => {
                 try {
                   await fetch('/api/auth/logout', {
@@ -89,16 +89,16 @@ export default function Home() {
                   })
                 } catch { /* ignore */ }
                 router.push('/login')
-              }} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 border border-gray-200 rounded-full hover:bg-gray-50 transition">
+              }} className="text-xs text-gray-400 hover:text-gray-600 px-2.5 py-1 border border-gray-200 rounded-full hover:bg-gray-50 transition">
                 退出
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="px-5 py-2 text-sm font-medium text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">
+              <Link href="/login" className="px-3 py-1.5 text-sm font-medium text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">
                 登录
               </Link>
-              <Link href="/login?mode=register" className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition">
+              <Link href="/login?mode=register" className="px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition">
                 注册
               </Link>
             </>

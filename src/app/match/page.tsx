@@ -132,26 +132,26 @@ export default function MatchPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-      <nav className="flex items-center justify-between px-6 py-4 max-w-4xl mx-auto">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎁</span>
-          <span className="font-bold text-xl gradient-text">吉动盲盒</span>
+      <nav className="flex items-center justify-between px-4 py-3 max-w-4xl mx-auto gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xl shrink-0">🎁</span>
+          <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {user?.isAdmin && (
-            <Link href="/admin" className="px-4 py-1.5 text-sm text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理后台</Link>
+            <Link href="/admin" className="hidden sm:inline-flex px-3 py-1 text-xs text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理</Link>
           )}
-          <span className="text-sm text-gray-500">Hi, {user?.nickname}</span>
+          <span className="text-xs text-gray-500 hidden sm:inline">Hi, {user?.nickname}</span>
           <button onClick={handleRefresh}
-            className={`text-xs text-pink-500 hover:text-pink-600 px-3 py-1.5 border border-pink-200 rounded-full hover:bg-pink-50 transition ${refreshing ? 'animate-spin' : ''}`}>
-            {refreshing ? '刷新中...' : '🔄 刷新'}
+            className={`text-xs text-pink-500 hover:text-pink-600 px-2.5 py-1 border border-pink-200 rounded-full hover:bg-pink-50 transition ${refreshing ? 'animate-spin' : ''}`}>
+            {refreshing ? '...' : '🔄'}
           </button>
           <Link href="/survey"
-            className="text-xs text-purple-500 hover:text-purple-600 px-3 py-1.5 border border-purple-200 rounded-full hover:bg-purple-50 transition">
-            📝 重新测试
+            className="text-xs text-purple-500 hover:text-purple-600 px-2.5 py-1 border border-purple-200 rounded-full hover:bg-purple-50 transition">
+            📝
           </Link>
           <button onClick={handleLogout}
-            className="px-3 py-1.5 text-sm text-gray-400 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-600 transition">
+            className="px-2.5 py-1 text-xs text-gray-400 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-600 transition">
             退出
           </button>
         </div>

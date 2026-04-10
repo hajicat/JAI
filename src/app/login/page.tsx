@@ -118,14 +118,31 @@ function LoginForm() {
           }
         : { email: form.email, password: form.password }
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
+      let res: Response
+      try {
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      } catch (netErr) {
+        setError('网络连接失败，请检查网络后重试')
+        return
+      }
 
-      const data = await res.json()
-      if (!res.ok) { setError(data.error); return }
+      // 安全解析 JSON，防止非 JSON 响应导致二次异常
+      let data: any
+      try {
+        data = await res.json()
+      } catch {
+        setError('服务器响应异常，请稍后重试')
+        return
+      }
+
+      if (!res.ok) {
+        setError(data.error || `请求失败（${res.status}）`)
+        return
+      }
 
       if (isRegister) router.push('/survey')
       else {
@@ -133,8 +150,9 @@ function LoginForm() {
         else if (!data.user.surveyCompleted) router.push('/survey')
         else router.push('/match')
       }
-    } catch {
-      setError('网络错误，请重试')
+    } catch (err) {
+      console.error('Auth error:', err)
+      setError('操作失败，请重试')
     } finally {
       setLoading(false)
     }
@@ -266,14 +284,15 @@ function LoginForm() {
               <label className="block text-sm font-medium text-gray-600 mb-1">邮箱</label>
               <input type="email" placeholder="你的邮箱（用于登录）"
                 value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required />
+                className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required autoComplete="email" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">密码</label>
               <input type="password" placeholder={isRegister ? "设置密码（至少8位，含字母和数字）" : "请输入密码"}
                 value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
-                className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required minLength={8} />
+                className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition"
+                required minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} />
             </div>
 
             <button type="submit" disabled={loading}

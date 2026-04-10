@@ -194,12 +194,12 @@ export default function SurveyPage() {
       <>
       <div className="relative z-10 max-w-2xl mx-auto px-6 py-10">
         <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎁</span>
-          <span className="font-bold text-xl gradient-text">吉动盲盒</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xl shrink-0">🎁</span>
+          <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/match" className="text-sm text-gray-400 hover:text-gray-600 hover:underline">← 返回</Link>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link href={alreadyCompleted ? '/match' : '/'} className="text-xs text-gray-400 hover:text-gray-600 hover:underline whitespace-nowrap">← 返回</Link>
           <button onClick={async () => {
             try {
               await fetch('/api/auth/logout', {
@@ -208,7 +208,7 @@ export default function SurveyPage() {
               })
             } catch { /* ignore */ }
             router.push('/login')
-          }} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 border border-gray-200 rounded-full hover:bg-gray-50 transition">
+          }} className="text-xs text-gray-400 hover:text-gray-600 px-2.5 py-1 border border-gray-200 rounded-full hover:bg-gray-50 transition">
             退出
           </button>
         </div>
