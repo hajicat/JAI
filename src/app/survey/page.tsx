@@ -77,13 +77,23 @@ export default function SurveyPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [alreadyCompleted, setAlreadyCompleted] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
       if (!data.user) { router.push('/login'); return }
-      if (data.user.surveyCompleted) router.push('/match')
+      if (data.user.surveyCompleted) setAlreadyCompleted(true)
     }).catch(() => router.push('/login'))
+    .finally(() => setLoading(false))
   }, [router])
+
+  /** 重填问卷：清除已有记录，从头开始 */
+  const handleRetake = () => {
+    setAlreadyCompleted(false)
+    setAnswers({})
+    setStep(0)
+  }
 
   const currentQ = QUESTIONS[step]
   const progress = ((step + 1) / QUESTIONS.length) * 100
@@ -137,6 +147,42 @@ export default function SurveyPage() {
         <div className="absolute bottom-20 left-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '1s' }} />
       </div>
 
+      {/* Loading state */}
+      {loading && (
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="text-gray-400">加载中...</div>
+        </div>
+      )}
+
+      {/* Already completed → show retake prompt */}
+      {!loading && alreadyCompleted && (
+        <div className="relative z-10 max-w-lg mx-auto px-6 py-16 text-center">
+          <div className="mb-6 text-5xl">🎁</div>
+          <h1 className="text-2xl font-bold gradient-text mb-3">吉动盲盒</h1>
+          <p className="text-gray-500 mb-2">你已完成过问卷</p>
+          <div className="bg-pink-50 rounded-2xl p-6 mb-8 text-sm text-gray-600 leading-relaxed">
+            <p className="font-medium text-gray-700 mb-2">📋 题库已全新升级</p>
+            <ul className="text-left space-y-2 mt-3">
+              <li>🛡️ 新增安全门槛题——先筛"会不会伤人"</li>
+              <li>🔍 真实性检测——防"太会演"的人</li>
+              <li>💬 匹配核心改为互动模式——找能咬合的齿轮</li>
+              <li>🏠 日常节奏更精准</li>
+            </ul>
+          </div>
+          <button onClick={handleRetake}
+            className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition mb-4 w-full">
+            🔄 重新填写问卷
+          </button>
+          <button onClick={() => router.push('/match')}
+            className="px-6 py-2 text-gray-400 hover:text-gray-600 transition text-sm">
+            查看当前匹配结果 →
+          </button>
+        </div>
+      )}
+
+      {/* Survey form */}
+      {!loading && !alreadyCompleted && (
+      <>
       <div className="relative z-10 max-w-2xl mx-auto px-6 py-10">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
@@ -219,6 +265,8 @@ export default function SurveyPage() {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }
