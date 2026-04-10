@@ -24,7 +24,8 @@ function LoginForm() {
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
       if (data.user) {
-        if (!data.user.surveyCompleted) router.push('/survey')
+        if (data.user.isAdmin) router.push('/admin')
+        else if (!data.user.surveyCompleted) router.push('/survey')
         else router.push('/match')
       }
     }).catch(() => {})
@@ -117,7 +118,8 @@ function LoginForm() {
 
       if (isRegister) router.push('/survey')
       else {
-        if (!data.user.surveyCompleted) router.push('/survey')
+        if (data.user.isAdmin) router.push('/admin')
+        else if (!data.user.surveyCompleted) router.push('/survey')
         else router.push('/match')
       }
     } catch {
