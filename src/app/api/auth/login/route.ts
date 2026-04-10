@@ -3,7 +3,7 @@ import { getDb, initDb } from '@/lib/db'
 import { verifyPassword, createToken } from '@/lib/auth'
 import { validateEmail, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, LOGIN_LIMITER } from '@/lib/rate-limit'
-import { getClientIp, setCsrfCookie, validateCsrfToken } from '@/lib/csrf'
+import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
