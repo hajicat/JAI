@@ -11,10 +11,19 @@ function getJwtSecret(): string {
     _cachedJwtSecret = process.env.JWT_SECRET
   }
   if (!_cachedJwtSecret) {
+    // 开发环境允许随机生成，生产环境必须设置环境变量
+    const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
+    if (!isDev) {
+      throw new Error(
+        'CRITICAL: JWT_SECRET 环境变量未设置！' +
+        '请在 Cloudflare Pages 设置中添加 JWT_SECRET（至少64位随机字符串）。' +
+        '未设置此变量会导致每次部署后所有用户被强制登出。'
+      )
+    }
     const bytes = new Uint8Array(64)
     crypto.getRandomValues(bytes)
     _cachedJwtSecret = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-    console.warn('[SECURITY] JWT_SECRET not set! Generated ephemeral secret. Set env var for production.')
+    console.warn('[SECURITY] ⚠️ JWT_SECRET 未设置，使用临时随机值（仅开发模式）')
   }
   return _cachedJwtSecret
 }
@@ -25,10 +34,19 @@ function getEncryptKey(): string {
     _cachedEncryptKey = process.env.ENCRYPT_SECRET
   }
   if (!_cachedEncryptKey) {
+    // 开发环境允许随机生成，生产环境必须设置环境变量
+    const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
+    if (!isDev) {
+      throw new Error(
+        'CRITICAL: ENCRYPT_SECRET 环境变量未设置！' +
+        '请在 Cloudflare Pages 设置中添加 ENCRYPT_SECRET（至少32位随机十六进制字符串）。' +
+        '未设置此变量将导致所有已存储的联系方式无法解密！'
+      )
+    }
     const bytes = new Uint8Array(32)
     crypto.getRandomValues(bytes)
     _cachedEncryptKey = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-    console.warn('[SECURITY] ENCRYPT_SECRET not set! Generated ephemeral key. Set env var for production.')
+    console.warn('[SECURITY] ⚠️ ENCRYPT_SECRET 未设置，使用临时随机值（仅开发模式）')
   }
   return _cachedEncryptKey
 }

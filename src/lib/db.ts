@@ -131,14 +131,9 @@ export async function initDb(): Promise<void> {
       })
     }
 
-    console.log('========================================')
-    console.log('  管理员初始凭据（请立即修改密码）')
-    console.log('========================================')
-    console.log(`  邮箱: admin@jlai.local`)
-    console.log(`  密码: ${adminPassword}`)
-    console.log(`  邀请码: ${adminCode}`)
-    console.log('========================================')
-    console.log('⚠️  请立即记录以上信息！')
+    // ⚠️ 管理员初始凭据（请使用 /api/reset-admin 重置或查看日志）
+    // 注意：出于安全考虑，密码不会输出到控制台
+    // 建议通过环境变量 JWT_SECRET / ENCRYPT_SECRET 配置后使用 /api/auth/change-password 修改
   }
 
   // Add columns if migrating from old schema (ignore errors)
