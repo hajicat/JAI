@@ -4,6 +4,19 @@ import { verifyToken } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { getCookieName } from '@/lib/csrf'
 
+// Helper: attempt to decrypt contact info, return raw on failure
+async function safeDecryptContact(encrypted: string | null | undefined, contactType: string | null): Promise<{ type: string | null; info: string | null }> {
+  if (!encrypted || !contactType) return { type: null, info: null }
+  try {
+    const info = await decrypt(String(encrypted))
+    return { type: contactType, info }
+  } catch {
+    // Decryption failed — return raw prefix for debugging
+    const preview = String(encrypted).substring(0, 20) + '...'
+    return { type: contactType, info: `[解密失败] 原文:${preview}` }
+  }
+}
+
 export const runtime = 'edge';
 
 /**
@@ -28,29 +41,38 @@ export async function GET(req: NextRequest) {
       const result = await db.execute({
         sql: `SELECT u.id, u.nickname, u.email, u.gender, u.preferred_gender,
                 u.survey_completed, u.match_enabled, u.is_admin,
-                u.created_at, u.invited_by,
+                u.created_at, u.invited_by, u.contact_type, u.contact_info,
                 (SELECT COUNT(*) FROM invite_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
                 inv.nickname as invited_by_name
               FROM users u LEFT JOIN users inv ON u.invited_by = inv.id
               ORDER BY u.created_at DESC`,
         args: [],
       })
-      return NextResponse.json({
-        users: result.rows.map((row: any) => ({
-          id: row.id,
-          nickname: row.nickname,
-          email: row.email,
-          gender: row.gender,
-          preferred_gender: row.preferred_gender,
-          safety_level: 'normal',  // 安全等级在匹配引擎中动态计算
-          survey_completed: !!row.survey_completed,
-          match_enabled: !!row.match_enabled,
-          is_admin: !!row.is_admin,
-          remaining_codes: Number(row.remaining_codes) || 0,
-          invited_by_name: row.invited_by_name,
-          created_at: row.created_at,
-        })),
-      })
+
+      // Decrypt contact info for all users in parallel (admin can see everything)
+      const usersWithContact = await Promise.all(
+        result.rows.map(async (row: any) => {
+          const contact = await safeDecryptContact(row.contact_info, row.contact_type)
+          return {
+            id: row.id,
+            nickname: row.nickname,
+            email: row.email,
+            gender: row.gender,
+            preferred_gender: row.preferred_gender,
+            safety_level: 'normal',
+            survey_completed: !!row.survey_completed,
+            match_enabled: !!row.match_enabled,
+            is_admin: !!row.is_admin,
+            remaining_codes: Number(row.remaining_codes) || 0,
+            invited_by_name: row.invited_by_name,
+            created_at: row.created_at,
+            contactType: contact.type,
+            contactInfo: contact.info,
+          }
+        })
+      )
+
+      return NextResponse.json({ users: usersWithContact })
     }
 
     const uid = Number(userId)
@@ -69,22 +91,10 @@ export async function GET(req: NextRequest) {
     if (!userRow) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
 
     // Get contact info (decrypted)
-    let contactInfo = null
-    if (userRow.contact_type && !userRow.is_admin) {
-      // Need to get encrypted contact_info separately since it's not in the SELECT above
-      const contactResult = await db.execute({
-        sql: 'SELECT contact_info FROM users WHERE id = ?',
-        args: [uid],
-      })
-      const encryptedContact = (contactResult.rows[0] as any)?.contact_info
-      if (encryptedContact) {
-        try {
-          contactInfo = await decrypt(String(encryptedContact))
-        } catch {
-          contactInfo = '[解密失败]'
-        }
-      }
-    }
+    const contact = await safeDecryptContact(
+      (await db.execute({ sql: 'SELECT contact_info FROM users WHERE id = ?', args: [uid] })).rows[0]?.contact_info,
+      userRow.contact_type
+    )
 
     // Get survey answers
     let surveyAnswers: Record<string, string> | null = null
@@ -117,8 +127,8 @@ export async function GET(req: NextRequest) {
         isAdmin: !!userRow.is_admin,
         surveyCompleted: !!userRow.survey_completed,
         matchEnabled: !!userRow.match_enabled,
-        contactType: userRow.contact_type,
-        contactInfo: contactInfo,
+        contactType: contact.type,
+        contactInfo: contact.info,
         createdAt: userRow.created_at,
       },
       survey: surveyAnswers,

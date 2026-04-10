@@ -303,6 +303,7 @@ export default function AdminPage() {
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">安全等级</th>
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">参与匹配</th>
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">剩余邀请码</th>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium">联系方式</th>
                     <th className="px-4 py-3 text-left text-gray-500 font-medium">邀请人</th>
                     <th className="px-4 py-3 text-left text-gray-500 font-medium">注册时间</th>
                   </tr>
@@ -325,13 +326,22 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-center">{u.match_enabled ? '🟢' : '⏸️'}</td>
                         <td className="px-4 py-3 text-center">{u.remaining_codes}</td>
+                        <td className="px-4 py-3 text-center">
+                          {u.contactInfo ? (
+                            <span className="font-mono text-xs">
+                              {u.contactType === 'wechat' ? '微信' : u.contactType === 'qq' ? 'QQ' : ''} {u.contactInfo}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-gray-400">{u.invited_by_name || '管理员'}</td>
                         <td className="px-4 py-3 text-gray-400">{u.created_at}</td>
                       </tr>
                       {/* Expanded detail row */}
                       {expandedUserId === u.id && (
                         <tr key={`${u.id}-detail`}>
-                          <td colSpan={8} className="px-0 py-0 bg-pink-50/30">
+                          <td colSpan={9} className="px-0 py-0 bg-pink-50/30">
                             <div className="p-5 border-t border-pink-100">
                               {loadingDetail ? (
                                 <p className="text-center text-gray-400 py-4">加载中...</p>
@@ -444,7 +454,7 @@ export default function AdminPage() {
                     </>
                   ))}
                   {users.length === 0 && (
-                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>
+                    <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>
                   )}
                 </tbody>
               </table>
