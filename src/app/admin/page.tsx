@@ -587,14 +587,14 @@ export default function AdminPage() {
                 {matchResult.error ? (
                   <p className="text-red-500">{matchResult.error}</p>
                 ) : matchResult.manual ? (
-                  // 手动匹配结果
+                  /* 手动匹配结果 */
                   <div className="space-y-2 text-sm">
                     <p>📅 匹配周：<strong>{matchResult.weekKey}</strong></p>
                     <p>🔗 <strong>{matchResult.match?.userAName}</strong> ↔ <strong>{matchResult.match?.userBName}</strong></p>
                     <p>💯 契合度：<strong className="text-pink-600">{matchResult.match?.score}%</strong></p>
                   </div>
                 ) : (
-                  // 自动匹配结果
+                  /* 自动匹配结果 */
                   <div className="space-y-2 text-sm">
                     <p>📅 匹配轮次：<strong>{matchResult.weekKey}</strong></p>
                     <p>👥 参与人数：<strong>{matchResult.totalEligible}</strong> 人</p>
