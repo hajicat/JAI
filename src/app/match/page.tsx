@@ -38,32 +38,41 @@ export default function MatchPage() {
   const [showInvite, setShowInvite] = useState(false)
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
   const [matchEnabled, setMatchEnabled] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const loadData = async () => {
+    try {
+      const meRes = await fetch('/api/auth/me')
+      const meData = await meRes.json()
+      if (!meData.user) { router.push('/login'); return }
+      if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
+      setUser(meData.user)
+      setMatchEnabled(meData.user.matchEnabled)
+
+      const matchRes = await fetch('/api/match')
+      const matchData = await matchRes.json()
+      if (matchData.match) setMatch(matchData.match)
+
+      const inviteRes = await fetch('/api/invite')
+      const inviteData = await inviteRes.json()
+      setInviteCodes(inviteData.available || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
 
   useEffect(() => {
-    async function load() {
-      try {
-        const meRes = await fetch('/api/auth/me')
-        const meData = await meRes.json()
-        if (!meData.user) { router.push('/login'); return }
-        if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
-        setUser(meData.user)
-        setMatchEnabled(meData.user.matchEnabled)
-
-        const matchRes = await fetch('/api/match')
-        const matchData = await matchRes.json()
-        if (matchData.match) setMatch(matchData.match)
-
-        const inviteRes = await fetch('/api/invite')
-        const inviteData = await inviteRes.json()
-        setInviteCodes(inviteData.available || [])
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
+    loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadData()
+  }
 
   const handleReveal = async () => {
     if (!match) return
@@ -136,6 +145,10 @@ export default function MatchPage() {
             <Link href="/admin" className="px-4 py-1.5 text-sm text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理后台</Link>
           )}
           <span className="text-sm text-gray-500">Hi, {user?.nickname}</span>
+          <button onClick={handleRefresh}
+            className={`text-xs text-pink-500 hover:text-pink-600 px-3 py-1.5 border border-pink-200 rounded-full hover:bg-pink-50 transition ${refreshing ? 'animate-spin' : ''}`}>
+            {refreshing ? '刷新中...' : '🔄 刷新'}
+          </button>
           <button onClick={handleLogout}
             className="px-3 py-1.5 text-sm text-gray-400 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-600 transition">
             退出

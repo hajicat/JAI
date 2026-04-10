@@ -33,6 +33,11 @@ export default function AdminPage() {
   const [savingSettings, setSavingSettings] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
+  // User detail expansion state
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null)
+  const [userDetail, setUserDetail] = useState<any>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+
   useEffect(() => {
     async function load() {
       const res = await fetch('/api/auth/me')
@@ -54,6 +59,20 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/users')
     const data = await res.json()
     setUsers(data.users || [])
+  }
+
+  const loadUserDetail = async (userId: number) => {
+    // Toggle if already expanded
+    if (expandedUserId === userId) { setExpandedUserId(null); return }
+    setExpandedUserId(userId)
+    setLoadingDetail(true)
+    setUserDetail(null)
+    try {
+      const res = await fetch(`/api/admin/users?id=${userId}`)
+      const data = await res.json()
+      setUserDetail(data)
+    } catch { /* ignore */ }
+    finally { setLoadingDetail(false) }
   }
 
   const loadCodes = async () => {
@@ -188,16 +207,131 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {users.map((u: any) => (
-                    <tr key={u.id} className="border-t border-gray-100 hover:bg-pink-50/50 transition">
-                      <td className="px-4 py-3 font-medium text-gray-800">{u.nickname}</td>
-                      <td className="px-4 py-3 text-center">{GENDER_LABELS[u.gender] || '-'}</td>
-                      <td className="px-4 py-3 text-center">{u.survey_completed ? '✅' : '❌'}</td>
-                      <td className="px-4 py-3 text-center">{CONFLICT_LABELS[u.conflict_type] || '-'}</td>
-                      <td className="px-4 py-3 text-center">{u.match_enabled ? '🟢' : '⏸️'}</td>
-                      <td className="px-4 py-3 text-center">{u.remaining_codes}</td>
-                      <td className="px-4 py-3 text-gray-400">{u.invited_by_name || '管理员'}</td>
-                      <td className="px-4 py-3 text-gray-400">{u.created_at}</td>
-                    </tr>
+                    <>
+                      <tr key={u.id} onClick={() => loadUserDetail(u.id)}
+                        className={`border-t border-gray-100 cursor-pointer transition ${expandedUserId === u.id ? 'bg-pink-50' : 'hover:bg-pink-50/50'}`}>
+                        <td className="px-4 py-3 font-medium text-gray-800 flex items-center gap-2">
+                          {u.nickname}
+                          {expandedUserId === u.id && (
+                            <span className="text-xs text-pink-400">▼ 详情已展开</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">{GENDER_LABELS[u.gender] || '-'}</td>
+                        <td className="px-4 py-3 text-center">{u.survey_completed ? '✅' : '❌'}</td>
+                        <td className="px-4 py-3 text-center">{CONFLICT_LABELS[u.conflict_type] || '-'}</td>
+                        <td className="px-4 py-3 text-center">{u.match_enabled ? '🟢' : '⏸️'}</td>
+                        <td className="px-4 py-3 text-center">{u.remaining_codes}</td>
+                        <td className="px-4 py-3 text-gray-400">{u.invited_by_name || '管理员'}</td>
+                        <td className="px-4 py-3 text-gray-400">{u.created_at}</td>
+                      </tr>
+                      {/* Expanded detail row */}
+                      {expandedUserId === u.id && (
+                        <tr key={`${u.id}-detail`}>
+                          <td colSpan={8} className="px-0 py-0 bg-pink-50/30">
+                            <div className="p-5 border-t border-pink-100">
+                              {loadingDetail ? (
+                                <p className="text-center text-gray-400 py-4">加载中...</p>
+                              ) : userDetail?.error ? (
+                                <p className="text-red-500 text-center py-2">{userDetail.error}</p>
+                              ) : userDetail?.user ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  {/* Left: Basic info & contact */}
+                                  <div className="space-y-4">
+                                    <h4 className="font-bold text-gray-700 text-sm border-b pb-2">基本信息 & 联系方式</h4>
+
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      <div><span className="text-gray-400">邮箱：</span>{userDetail.user.email}</div>
+                                      <div><span className="text-gray-400">想匹配：</span>{GENDER_LABELS[userDetail.user.preferredGender]}</div>
+                                      <div><span className="text-gray-400">注册时间：</span>{userDetail.user.createdAt}</div>
+                                    </div>
+
+                                    {userDetail.user.contactInfo ? (
+                                      <div className="mt-2 p-3 bg-white rounded-xl border border-green-200">
+                                        <p className="text-xs text-green-600 font-medium mb-1">📱 联系方式（解密）</p>
+                                        <p className="font-mono text-sm text-gray-800">
+                                          {userDetail.user.contactType === 'wechat' ? '微信号：'
+                                            : userDetail.user.contactType === 'qq' ? 'QQ号：'
+                                            : ''}{userDetail.user.contactInfo}
+                                        </p>
+                                        <button onClick={() => navigator.clipboard.writeText(userDetail.user.contactInfo)}
+                                          className="mt-1 text-xs text-green-500 hover:underline">复制</button>
+                                      </div>
+                                    ) : (
+                                      <div className="mt-2 p-3 bg-gray-100 rounded-xl text-sm text-gray-400">
+                                        暂未设置联系方式
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Right: Survey answers */}
+                                  <div className="space-y-4">
+                                    <h4 className="font-bold text-gray-700 text-sm border-b pb-2">问卷答题记录
+                                      <span className="ml-2 text-xs font-normal text-gray-400">
+                                        {userDetail.survey ? `共 ${Object.keys(userDetail.survey).filter(k => k.startsWith('q')).length}/31 题` : '未完成'}
+                                      </span>
+                                    </h4>
+
+                                    {!userDetail.survey ? (
+                                      <p className="text-gray-400 text-sm">用户尚未完成问卷</p>
+                                    ) : (
+                                      <div className="max-h-[360px] overflow-y-auto space-y-1.5 pr-1">
+                                        {/* Group by dimension */}
+                                        {(function() {
+                                          const DIMS = [
+                                            { name: '🛡️ 安全联结', qs: ['q1','q2','q3','q4','q5','q6'] },
+                                            { name: '💬 互动模式', qs: ['q7','q8','q9','q10','q11','q12'] },
+                                            { name: '🧭 意义系统', qs: ['q13','q14','q15','q16','q17','q18'] },
+                                            { name: '🚀 动力发展', qs: ['q19','q20','q21','q22','q23','q24'] },
+                                            { name: '🏠 日常系统', qs: ['q25','q26','q27','q28','q29','q30','q31'] },
+                                          ]
+                                          const Q_TEXTS: Record<string, string> = {
+                                            q1:'你最认同哪种「爱的安全感」来源？', q2:'以下哪个瞬间最让你感到「被爱」？',
+                                            q3:'当感觉对方在疏远你时，你通常会？', q4:'你对「过去的感情经历」的态度是？',
+                                            q5:'你的回复速度通常是？', q6:'和喜欢的人在一起时你更享受？',
+                                            q7:'面对冲突时，你更像哪种动物？⭐(决定冲突类型)', q8:'吵架时你最容易脱口而出的话是？',
+                                            q9:'你心情不好时最希望伴侣怎么做？', q10:'你对「冷战」的态度是？',
+                                            q11:'你对「分享日常」的态度是？', q12:'你对「说我爱你」的频率期待是？',
+                                            q13:'在关系中你最看重对方给你的？', q14:'以下哪句话最能打动你？',
+                                            q15:'你对「三观一致」的看法是？', q16:'你的人生优先级是？',
+                                            q17:'你对「门当户对」的看法是？', q18:'你愿意为伴侣改变自己吗？',
+                                            q19:'当你压力很大时，你最需要伴侣？', q20:'你对「两个人一起成长」的期待是？',
+                                            q21:'你对「金钱观」的态度是？', q22:'你介意伴侣的消费习惯和你不同吗？',
+                                            q23:'你更喜欢和什么样的人相处？', q24:'你理想的关系模式是？',
+                                            q25:'你的日常作息是？', q26:'周末你更喜欢？',
+                                            q27:'你对卫生整洁的要求？', q28:'你对饮食的态度是？',
+                                            q29:'生活习惯差异对恋爱的影响？', q30:'你对手机依赖的看法？',
+                                            q31:'当有重要的事想和对方说，你更倾向于？',
+                                          }
+                                          return DIMS.map(dim => {
+                                            const answered = dim.qs.filter(q => userDetail.survey[q])
+                                            if (answered.length === 0) return null
+                                            return (
+                                              <details key={dim.name} className="group" open>
+                                                <summary className="cursor-pointer text-xs font-semibold text-gray-600 hover:text-pink-500 transition select-none">
+                                                  {dim.name} ({answered.length}/{dim.qs.length})
+                                                </summary>
+                                                <div className="pl-3 mt-1 space-y-1.5">
+                                                  {dim.qs.map(q => !userDetail.survey[q] ? null : (
+                                                    <div key={q} className="text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
+                                                      <p className="text-gray-400 mb-0.5">{Q_TEXTS[q]?.replace(/⭐.*$/, '')}</p>
+                                                      <p className="font-medium text-gray-700">{userDetail.survey[q]}</p>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </details>
+                                            )
+                                          })
+                                        })()}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))}
                   {users.length === 0 && (
                     <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>
