@@ -107,6 +107,10 @@ export async function initDb(): Promise<void> {
 
     const adminCode = generateInviteCode()
     
+    // 管理员邮箱从环境变量读取，避免硬编码泄露
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@jlai.local'
+    const adminNickname = process.env.ADMIN_NICKNAME || '管理员'
+    
     // 使用 Web Crypto API 生成随机密码
     const pwdBytes = new Uint8Array(12)
     crypto.getRandomValues(pwdBytes)
@@ -116,11 +120,11 @@ export async function initDb(): Promise<void> {
     await db.execute({
       sql: `INSERT INTO users (nickname, email, password_hash, invite_code, is_admin, gender, preferred_gender)
             VALUES (?, ?, ?, ?, 1, 'other', 'all')`,
-      args: ['管理员', 'admin@jlai.local', pwHash, adminCode],
+      args: [adminNickname, adminEmail, pwHash, adminCode],
     })
 
     // Get the admin ID
-    const adminResult = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: ['admin@jlai.local'] })
+    const adminResult = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [adminEmail] })
     const adminId = Number(adminResult.rows[0].id)
 
     for (let i = 0; i < 10; i++) {
