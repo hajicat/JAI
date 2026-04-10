@@ -405,7 +405,7 @@ export default function SurveyPage() {
               className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 disabled:opacity-50 transition">
               下一题 →
             </button>
-          ) : null
+          ) : null}
           {/* 选择题点击选项自动跳转，不需要按钮 */}
         </div>
 
