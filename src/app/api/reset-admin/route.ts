@@ -8,7 +8,10 @@ import { hashPassword, generateInviteCode } from '@/lib/security'
 export async function GET() {
   try {
     const db = await getDb()
-    const crypto = await import('crypto')
+    // 生成随机密码（兼容 Edge Runtime）
+    const array = new Uint8Array(12)
+    crypto.getRandomValues(array)
+    const randomPwd = Array.from(array, b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
 
     // 查找管理员
     const result = await db.execute('SELECT id, email FROM users WHERE is_admin = 1 LIMIT 1')
@@ -19,7 +22,7 @@ export async function GET() {
     if (result.rows.length === 0) {
       // 管理员不存在 → 创建一个（数据库未初始化的情况）
       const adminCode = generateInviteCode()
-      const newPassword = crypto.randomBytes(12).toString('base64url')
+      const newPassword = randomPwd
       const pwHash = await hashPassword(newPassword)
 
       await db.execute({
@@ -52,7 +55,7 @@ export async function GET() {
     }
 
     // 管理员已存在 → 重置密码
-    const newPassword = crypto.randomBytes(12).toString('base64url')
+    const newPassword = randomPwd
     const pwHash = await hashPassword(newPassword)
     adminId = result.rows[0].id as number
     email = result.rows[0].email as string
