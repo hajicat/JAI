@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --campus-primary: #e85d75;
+  --campus-secondary: #f8a4b5;
+  --campus-bg: #fef7f8;
+}
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--campus-bg);
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--campus-primary), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #f9a8d4;
+  border-radius: 3px;
+}
+
+/* Pulse animation for match card */
+@keyframes matchPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 117, 0.3); }
+  50% { box-shadow: 0 0 0 15px rgba(232, 93, 117, 0); }
+}
+
+.match-card {
+  animation: matchPulse 2s ease-in-out infinite;
+}
+
+/* Survey radio buttons */
+.survey-option input[type="radio"]:checked + label {
+  background: linear-gradient(135deg, var(--campus-primary), #a855f7);
+  color: white;
+  border-color: transparent;
+}
+
+/* Float animation (used by animate-float in tailwind) */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Floating particles */
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+  50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+}
+
+.particle {
+  animation: float-particle 4s ease-in-out infinite;
+}
