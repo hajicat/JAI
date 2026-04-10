@@ -49,13 +49,26 @@ export function validateInviteCode(code: string): ValidationResult {
 
 export function sanitizeString(input: string, maxLength: number = 500): string {
   if (typeof input !== 'string') return ''
-  // Remove null bytes and control characters (except newline/tab)
   return input
     .replace(/\0/g, '')
     // eslint-disable-next-line no-control-regex
     .replace(/[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
     .slice(0, maxLength)
     .trim()
+}
+
+/**
+ * Sanitize for display in JSX — returns safe string already escaped.
+ * Use this for all user-provided text that will be rendered.
+ */
+export function escapeHtml(input: string, maxLength: number = 500): string {
+  return sanitizeString(input, maxLength)
 }
 
 export function validateContactInfo(info: string): ValidationResult {
