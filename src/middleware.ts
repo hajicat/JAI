@@ -20,15 +20,13 @@ export function middleware(request: NextRequest) {
   // Permissions Policy - restrict browser features
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
 
-  // Content Security Policy
+  // Content Security Policy - relaxed for Cloudflare Pages compatibility
   const isDev = process.env.NODE_ENV !== 'production'
   response.headers.set(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      isDev
-        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-        : "script-src 'self' 'unsafe-inline' 'strict-dynamic'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
