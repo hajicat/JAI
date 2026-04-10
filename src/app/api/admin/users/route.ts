@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     // No id → return user list
     if (!userId) {
       const result = await db.execute({
-        sql: `SELECT u.id, u.nickname, u.email, u.gender, u.preferred_gender, u.conflict_type,
+        sql: `SELECT u.id, u.nickname, u.email, u.gender, u.preferred_gender,
                 u.survey_completed, u.match_enabled, u.is_admin,
                 u.created_at, u.invited_by,
                 (SELECT COUNT(*) FROM invite_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
           email: row.email,
           gender: row.gender,
           preferred_gender: row.preferred_gender,
-          conflict_type: row.conflict_type,
+          safety_level: 'normal',  // 安全等级在匹配引擎中动态计算
           survey_completed: !!row.survey_completed,
           match_enabled: !!row.match_enabled,
           is_admin: !!row.is_admin,
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
       })
       if (surveyResult.rows.length > 0) {
         surveyAnswers = {}
-        for (let i = 1; i <= 31; i++) {
+        for (let i = 1; i <= 32; i++) {
           const val = (surveyResult.rows[0] as any)[`q${i}`]
           if (val) (surveyAnswers as Record<string, string>)[`q${i}`] = String(val)
         }
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
         email: userRow.email,
         gender: userRow.gender,
         preferredGender: userRow.preferred_gender,
-        conflictType: userRow.conflict_type,
+        safetyLevel: 'normal',
         isAdmin: !!userRow.is_admin,
         surveyCompleted: !!userRow.survey_completed,
         matchEnabled: !!userRow.match_enabled,

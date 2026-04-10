@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 const GENDER_LABELS: Record<string, string> = { male: '男', female: '女', other: '其他' }
-const CONFLICT_LABELS: Record<string, string> = {
-  dolphin: '🐬海豚', cat: '🐱猫', dog: '🐕犬', shark: '🦈鲨鱼'
+const SAFETY_LABELS: Record<string, { label: string; color: string }> = {
+  normal:   { label: '✅ 正常', color: 'text-green-600' },
+  restricted: { label: '⚠️ 受限', color: 'text-yellow-600' },
+  blocked:  { label: '🚫 封禁', color: 'text-red-600' },
 }
 
 // 从 cookie 获取 CSRF Token
@@ -32,6 +34,11 @@ export default function AdminPage() {
   const [gpsRequired, setGpsRequired] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  // 改密码状态
+  const [currentPw, setCurrentPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [changingPw, setChangingPw] = useState(false)
 
   // User detail expansion state
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null)
@@ -147,6 +154,29 @@ export default function AdminPage() {
     finally { setSavingSettings(false) }
   }
 
+  // 修改密码
+  const handleChangePassword = async () => {
+    if (!currentPw || !newPw) { setToast({ msg: '请填写当前密码和新密码', type: 'error' }); return }
+    if (newPw.length < 8) { setToast({ msg: '新密码至少8个字符', type: 'error' }); return }
+    setChangingPw(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setToast({ msg: '✅ 密码修改成功，请重新登录', type: 'success' })
+        setCurrentPw(''); setNewPw('')
+      } else {
+        setToast({ msg: data.error || '修改失败', type: 'error' })
+      }
+    } catch { setToast({ msg: '网络错误', type: 'error' }) }
+    finally { setChangingPw(false) }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-purple-50">
@@ -198,7 +228,7 @@ export default function AdminPage() {
                     <th className="px-4 py-3 text-left text-gray-500 font-medium">昵称</th>
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">性别</th>
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">问卷</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium">冲突类型</th>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium">安全等级</th>
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">参与匹配</th>
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">剩余邀请码</th>
                     <th className="px-4 py-3 text-left text-gray-500 font-medium">邀请人</th>
@@ -218,7 +248,9 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-center">{GENDER_LABELS[u.gender] || '-'}</td>
                         <td className="px-4 py-3 text-center">{u.survey_completed ? '✅' : '❌'}</td>
-                        <td className="px-4 py-3 text-center">{CONFLICT_LABELS[u.conflict_type] || '-'}</td>
+                        <td className={`px-4 py-3 text-center font-medium ${SAFETY_LABELS[u.safety_level || 'normal']?.color || ''}`}>
+                          {SAFETY_LABELS[u.safety_level || 'normal']?.label || '-'}
+                        </td>
                         <td className="px-4 py-3 text-center">{u.match_enabled ? '🟢' : '⏸️'}</td>
                         <td className="px-4 py-3 text-center">{u.remaining_codes}</td>
                         <td className="px-4 py-3 text-gray-400">{u.invited_by_name || '管理员'}</td>
@@ -446,6 +478,26 @@ export default function AdminPage() {
                 <p className="text-sm text-yellow-700">
                   💡 关闭 GPS 验证后，任何人都可以注册。建议仅在测试或非校园场景下关闭。
                 </p>
+              </div>
+            </div>
+
+            {/* 修改密码 */}
+            <div className="glass-card rounded-2xl p-6 mt-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">🔐 修改管理员密码</h3>
+              <div className="space-y-3 max-w-md">
+                <input type="password" placeholder="当前密码" value={currentPw}
+                  onChange={e => setCurrentPw(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  disabled={changingPw} />
+                <input type="password" placeholder="新密码（至少8位，含字母和数字）" value={newPw}
+                  onChange={e => setNewPw(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  disabled={changingPw} />
+                <button onClick={handleChangePassword}
+                  disabled={changingPw || !currentPw || !newPw}
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 disabled:opacity-50 transition">
+                  {changingPw ? '修改中...' : '确认修改密码'}
+                </button>
               </div>
             </div>
           </div>
