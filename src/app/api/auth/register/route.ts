@@ -41,18 +41,31 @@ export async function POST(req: NextRequest) {
     const latitude = body.latitude
     const longitude = body.longitude
 
-    // --- GPS Verification ---
-    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-      return NextResponse.json({ error: '请允许获取位置信息以验证在校身份' }, { status: 400 })
+    // --- GPS Verification (可由管理员在后台开关) ---
+    // 检查 GPS 是否必需
+    let gpsEnabled = true
+    try {
+      const settingsRow = await db.execute("SELECT value FROM settings WHERE key = 'gpsRequired'")
+      if (settingsRow.rows.length > 0) {
+        gpsEnabled = settingsRow.rows[0].value !== '0' && settingsRow.rows[0].value !== 'false'
+      }
+    } catch {
+      /* 表不存在则默认开启 */
     }
-    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-      return NextResponse.json({ error: '坐标范围无效' }, { status: 400 })
-    }
-    const distance = haversineDistance(latitude, longitude, CAMPUS_LAT, CAMPUS_LNG)
-    if (distance > CAMPUS_RADIUS_KM) {
-      return NextResponse.json({
-        error: `你不在吉林动画学院附近（距离约${Math.round(distance * 100) / 100}km，需要在${CAMPUS_RADIUS_KM}km内）`,
-      }, { status: 403 })
+
+    if (gpsEnabled) {
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return NextResponse.json({ error: '请允许获取位置信息以验证在校身份' }, { status: 400 })
+      }
+      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return NextResponse.json({ error: '坐标范围无效' }, { status: 400 })
+      }
+      const distance = haversineDistance(latitude, longitude, CAMPUS_LAT, CAMPUS_LNG)
+      if (distance > CAMPUS_RADIUS_KM) {
+        return NextResponse.json({
+          error: `你不在吉林动画学院附近（距离约${Math.round(distance * 100) / 100}km，需要在${CAMPUS_RADIUS_KM}km内）`,
+        }, { status: 403 })
+      }
     }
 
     // --- Input Validation ---

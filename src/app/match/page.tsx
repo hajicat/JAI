@@ -21,6 +21,14 @@ const DIM_COLORS: Record<string, string> = {
   '日常系统': 'from-pink-400 to-rose-400',
 }
 
+// 从 cookie 获取 CSRF Token
+function getCsrfToken(): string {
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf-token='))
+    ?.split('=')[1] || ''
+}
+
 export default function MatchPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -61,8 +69,13 @@ export default function MatchPage() {
     if (!match) return
     setRevealing(true)
     try {
+      const csrfToken = getCsrfToken()
       await fetch('/api/match', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ matchId: match.id })
       })
       const res = await fetch('/api/match')
@@ -75,8 +88,13 @@ export default function MatchPage() {
   const toggleMatch = async (enabled: boolean) => {
     setMatchEnabled(enabled)
     try {
+      const csrfToken = getCsrfToken()
       await fetch('/api/auth/me', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ contactType: user?.contactType || 'wechat', contactInfo: '', matchEnabled: enabled })
       })
     } catch (e) { /* ignore */ }
@@ -258,8 +276,13 @@ function ContactSettings({ user }: { user: any }) {
     if (!contactInfo.trim()) return
     setSaving(true)
     try {
+      const csrfToken = getCsrfToken()
       await fetch('/api/auth/me', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ contactType, contactInfo, matchEnabled: true })
       })
       setSaved(true)

@@ -49,9 +49,15 @@ export async function POST(req: NextRequest) {
     // Use constant-time approach: always hash even if user doesn't exist
     // to prevent timing-based user enumeration
     if (!user) {
-      // Dummy hash to prevent timing attacks
-      const crypto = await import('crypto')
-      crypto.scryptSync(password, 'dummysaltfordelay', 64)
+      // Dummy hash to prevent timing attacks（使用 PBKDF2 兼容 Edge Runtime）
+      const dummyKey = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(password), 
+        { name: 'PBKDF2' }, false, ['deriveBits']
+      )
+      await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: new TextEncoder().encode('dummysaltfordelay'), iterations: 100000, hash: 'SHA-512' },
+        dummyKey, 512
+      )
       return NextResponse.json({ error: '邮箱或密码错误' }, { status: 401 })
     }
 

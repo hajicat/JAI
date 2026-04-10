@@ -9,16 +9,28 @@ const CONFLICT_LABELS: Record<string, string> = {
   dolphin: '🐬海豚', cat: '🐱猫', dog: '🐕犬', shark: '🦈鲨鱼'
 }
 
+// 从 cookie 获取 CSRF Token
+function getCsrfToken(): string {
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf-token='))
+    ?.split('=')[1] || ''
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [tab, setTab] = useState<'users' | 'codes' | 'match'>('users')
+  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings'>('users')
   const [users, setUsers] = useState<any[]>([])
   const [codes, setCodes] = useState<any[]>([])
   const [matchResult, setMatchResult] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [newCodeCount, setNewCodeCount] = useState(5)
+
+  // 系统设置状态
+  const [gpsRequired, setGpsRequired] = useState(true)
+  const [savingSettings, setSavingSettings] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -52,12 +64,18 @@ export default function AdminPage() {
   const generateCodes = async () => {
     setGenerating(true)
     try {
+      const csrfToken = getCsrfToken()
       const res = await fetch('/api/admin/codes', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ count: newCodeCount })
       })
       const data = await res.json()
       if (data.success) { loadCodes(); alert(`已生成 ${data.codes.length} 个邀请码`) }
+      else alert(data.error || '生成失败')
     } catch { alert('生成失败') }
     finally { setGenerating(false) }
   }
@@ -66,11 +84,47 @@ export default function AdminPage() {
     if (!confirm('确定执行本周匹配？匹配后不可撤销。')) return
     setGenerating(true)
     try {
-      const res = await fetch('/api/admin/match', { method: 'POST' })
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/match', { 
+        method: 'POST',
+        headers: { 'x-csrf-token': csrfToken },
+      })
       const data = await res.json()
       setMatchResult(data)
     } catch { alert('匹配失败') }
     finally { setGenerating(false) }
+  }
+
+  // 加载系统设置
+  useEffect(() => {
+    if (loading || tab !== 'settings') return
+    fetch('/api/admin/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (d.gpsRequired !== undefined) setGpsRequired(d.gpsRequired)
+      })
+      .catch(() => {})
+  }, [tab, loading])
+
+  // 保存 GPS 设置
+  const toggleGpsRequired = async () => {
+    setSavingSettings(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const newValue = !gpsRequired
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({ gpsRequired: newValue })
+      })
+      const data = await res.json()
+      if (data.success) setGpsRequired(newValue)
+      else alert(data.error || '保存失败')
+    } catch { alert('保存失败') }
+    finally { setSavingSettings(false) }
   }
 
   if (loading) {
@@ -97,6 +151,7 @@ export default function AdminPage() {
             { key: 'users', label: '👥 用户管理', count: users.length },
             { key: 'codes', label: '📨 邀请码', count: codes.length },
             { key: 'match', label: '💌 执行匹配', count: null },
+            { key: 'settings', label: '⚙️ 系统设置', count: null },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium transition ${
@@ -210,6 +265,41 @@ export default function AdminPage() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* 系统设置 */}
+        {tab === 'settings' && (
+          <div className="space-y-4">
+            <div className="glass-card rounded-2xl p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">⚙️ 注册设置</h3>
+
+              <div className="flex items-center justify-between py-4 border-b border-gray-100">
+                <div>
+                  <p className="font-medium text-gray-800">📍 GPS 校内验证</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    开启后，注册时必须在吉林动画学院附近（{gpsRequired ? '当前已开启' : '当前已关闭'}）
+                  </p>
+                </div>
+                <button
+                  onClick={toggleGpsRequired}
+                  disabled={savingSettings}
+                  className={`w-14 h-8 rounded-full transition-colors ${gpsRequired ? 'bg-pink-500' : 'bg-gray-300'}`}
+                >
+                  <div
+                    className={`w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                      gpsRequired ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="mt-4 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                <p className="text-sm text-yellow-700">
+                  💡 关闭 GPS 验证后，任何人都可以注册。建议仅在测试或非校园场景下关闭。
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
