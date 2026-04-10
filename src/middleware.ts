@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Max request body size: 1MB (prevent DoS / large payload attacks)
+const MAX_BODY_SIZE = 1024 * 1024
+
 export function middleware(request: NextRequest) {
-  const response = NextResponse.next()
+  // ---- Request Body Size Limit ----
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && Number(contentLength) > MAX_BODY_SIZE) {
+    return new NextResponse(
+      JSON.stringify({ error: '请求体过大' }),
+      {
+        status: 413,
+        headers: { 'content-type': 'application/json' },
+      }
+    )
+  }
 
   // ---- Security Headers ----
+  const response = NextResponse.next()
 
   // Prevent clickjacking
   response.headers.set('X-Frame-Options', 'DENY')
@@ -34,6 +48,10 @@ export function middleware(request: NextRequest) {
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      // Restrict object/embed/plugin sources to prevent Flash/PDF-based attacks
+      "object-src 'none'",
+      // Block mixed content in production
+      ...(process.env.NODE_ENV === 'production' ? ["upgrade-insecure-requests"] : []),
     ].join('; ')
   )
 
