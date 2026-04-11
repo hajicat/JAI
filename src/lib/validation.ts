@@ -95,14 +95,22 @@ export function sanitizeForStorage(input: string, maxLength: number = 500): stri
     .replace(/'/g, '&#x27;')
 }
 
+// 联系方式白名单：允许微信/QQ/手机号格式字符
+// 微信：字母数字下划线连字符（2-20字符）
+// QQ：纯数字（5-11位）
+// 手机号：纯数字（11位）
+// 统一允许：字母、数字、中文、下划线、连字符、空格
+const CONTACT_INFO_WHITELIST = /^[a-zA-Z0-9\u4e00-\u9fa5_\- ]+$/
+
 export function validateContactInfo(info: string): ValidationResult {
   if (!info || typeof info !== 'string') return { valid: false, error: '联系方式不能为空' }
   const trimmed = info.trim()
   if (trimmed.length < 2) return { valid: false, error: '联系方式太短' }
   if (trimmed.length > 19) return { valid: false, error: '联系方式过长' }
-  // No scripts or HTML
-  if (/<[^>]*>/.test(trimmed) || /javascript:/i.test(trimmed)) {
-    return { valid: false, error: '联系方式包含非法内容' }
+  // 白名单校验：只允许字母/数字/中文/下划线/连字符/空格
+  // 拒绝所有特殊字符（< > " ' / \ ; & 等），从根本上杜绝 XSS 注入
+  if (!CONTACT_INFO_WHITELIST.test(trimmed)) {
+    return { valid: false, error: '联系方式包含非法字符' }
   }
   return { valid: true }
 }
