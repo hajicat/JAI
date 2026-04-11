@@ -36,7 +36,7 @@ function getCsrfToken(): string {
 export default function AdminPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings' | 'seed'>('users')
+  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings'>('users')
   const [users, setUsers] = useState<any[]>([])
   const [codes, setCodes] = useState<any[]>([])
   const [matchResult, setMatchResult] = useState<any>(null)
@@ -98,11 +98,7 @@ export default function AdminPage() {
   const MATCH_PAGE_SIZE = 10
   const [loadingMatchDetails, setLoadingMatchDetails] = useState(false)
 
-  // 模拟用户管理状态
-  const [seedCount, setSeedCount] = useState(100)
-  const [seedStats, setSeedStats] = useState<{ total: number; males: number; females: number; others: number } | null>(null)
-  const [seeding, setSeeding] = useState(false)
-  const [deletingSeeds, setDeletingSeeds] = useState(false)
+  // 手动匹配状态
 
   useEffect(() => {
     async function load() {
@@ -120,7 +116,6 @@ export default function AdminPage() {
     if (tab === 'users') loadUsers()
     if (tab === 'codes') loadCodes()
     if (tab === 'match') loadMatchUsers()
-    if (tab === 'seed') loadSeedStats()
   }, [tab, loading])
 
   // 检查是否已设置二级密码（页面首次加载时）
@@ -390,61 +385,8 @@ export default function AdminPage() {
 
   const matchTotalPages = Math.ceil(matchTotalPairs / MATCH_PAGE_SIZE)
 
-  // ── 模拟用户管理（seed）──
-  const loadSeedStats = async () => {
-    try {
-      const res = await fetch('/api/admin/seed-users')
-      const data = await res.json()
-      setSeedStats({ total: data.total || 0, males: data.males || 0, females: data.females || 0, others: data.others || 0 })
-    } catch { /* ignore */ }
-  }
+  // ── 匹配结果详情（需二级密码验证 + 分页）──
 
-  const handleSeedUsers = async () => {
-    if (!confirm(`确定要生成 ${seedCount} 个模拟用户吗？\n\n每个用户将：\n✅ 随机昵称、性别\n✅ 完成35道问卷（随机作答）\n✅ 获得专属邀请码\n✅ 默认开启匹配`)) return
-    setSeeding(true)
-    try {
-      const csrfToken = getCsrfToken()
-      const res = await fetch('/api/admin/seed-users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-        body: JSON.stringify({ count: seedCount }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setToast({ msg: `✅ ${data.message}（共 ${data.totalSeeds} 个模拟用户）`, type: 'success' })
-        setSeedStats(null)
-        loadSeedStats() // 刷新统计
-        loadUsers(1) // 刷新用户列表
-      } else {
-        setToast({ msg: data.error || '生成失败', type: 'error' })
-      }
-    } catch { setToast({ msg: '网络错误', type: 'error' }) }
-    finally { setSeeding(false) }
-  }
-
-  const handleDeleteSeeds = async () => {
-    if (!confirm('⚠️ 确定要删除所有模拟用户吗？\n\n这将同时删除：\n• 所有模拟用户的问卷数据\n• 模拟用户生成的邀请码\n• 涉及模拟用户的匹配记录\n\n此操作不可撤销！')) return
-    setDeletingSeeds(true)
-    try {
-      const csrfToken = getCsrfToken()
-      const res = await fetch('/api/admin/seed-users', {
-        method: 'DELETE',
-        headers: { 'x-csrf-token': csrfToken },
-      })
-      const data = await res.json()
-      if (data.success) {
-        setToast({ msg: `🗑️ ${data.message}`, type: 'success' })
-        setSeedStats(null)
-        loadSeedStats()
-        loadUsers(1)
-      } else {
-        setToast({ msg: data.error || '删除失败', type: 'error' })
-      }
-    } catch { setToast({ msg: '网络错误', type: 'error' }) }
-    finally { setDeletingSeeds(false) }
-  }
-
-  // 加载系统设置 + 二级密码状态
   useEffect(() => {
     if (loading || tab !== 'settings') return
     fetch('/api/admin/settings')
@@ -549,7 +491,6 @@ export default function AdminPage() {
             { key: 'users', label: '👥 用户管理', count: totalUserCount || users.length },
             { key: 'codes', label: '📨 邀请码', count: codes.length },
             { key: 'match', label: '💌 执行匹配', count: null },
-            { key: 'seed', label: '🤖 模拟用户', count: seedStats?.total || null },
             { key: 'settings', label: '⚙️ 系统设置', count: null },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
@@ -1035,80 +976,6 @@ export default function AdminPage() {
                 )}
               </div>
             )}
-            </div>
-          </div>
-        )}
-
-        {/* 模拟用户管理 */}
-        {tab === 'seed' && (
-          <div className="space-y-6">
-            <div className="glass-card rounded-3xl p-8">
-              <h2 className="text-xl font-bold text-gray-800 mb-1">🤖 模拟用户管理</h2>
-              <p className="text-sm text-gray-400 mb-6">批量生成已答完问卷的模拟真实用户，用于测试匹配算法或演示功能</p>
-
-              {/* 统计信息 */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                <div className={`bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-4 text-center border border-blue-100`}>
-                  <p className="text-2xl font-bold text-blue-600">{seedStats?.total ?? '...'}</p>
-                  <p className="text-xs text-gray-500 mt-1">总数量</p>
-                </div>
-                <div className={`bg-gradient-to-br from-sky-50 to-indigo-50 rounded-2xl p-4 text-center border border-sky-100`}>
-                  <p className="text-2xl font-bold text-sky-600">{seedStats?.males ?? '...'}</p>
-                  <p className="text-xs text-gray-500 mt-1">👨 男性</p>
-                </div>
-                <div className={`bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-4 text-center border border-pink-100`}>
-                  <p className="text-2xl font-bold text-pink-600">{seedStats?.females ?? '...'}</p>
-                  <p className="text-xs text-gray-500 mt-1">👩 女性</p>
-                </div>
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 text-center border border-amber-100">
-                  <p className="text-lg font-mono font-bold text-amber-600 mt-1">Seed123456</p>
-                  <p className="text-xs text-gray-500 mt-1">统一密码</p>
-                </div>
-              </div>
-
-              {/* 操作区 */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 mb-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">生成数量</label>
-                  <input type="number" value={seedCount} onChange={e => setSeedCount(Math.max(1, Math.min(500, Number(e.target.value) || 100)))}
-                    min={1} max={500}
-                    className="w-full px-4 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-300" />
-                </div>
-                <button onClick={handleSeedUsers} disabled={seeding}
-                  className={`px-7 py-2.5 text-sm font-semibold rounded-xl transition ${
-                    seeding ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:opacity-90 shadow-md'
-                  }`}>
-                  {seeding ? '⏳ 生成中...' : `🌱 一键生成 ${seedCount} 个`}
-                </button>
-                <button onClick={handleDeleteSeeds} disabled={deletingSeeds || !seedStats || seedStats.total === 0}
-                  className={`px-7 py-2.5 text-sm font-semibold rounded-xl transition ${
-                    deletingSeeds || !seedStats || seedStats.total === 0
-                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:opacity-90 shadow-md'
-                  }`}>
-                  {deletingSeeds ? '删除中...' : '🗑️ 全部删除'}
-                </button>
-              </div>
-
-              {/* 提示信息 */}
-              <div className="space-y-3">
-                <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                  <p className="text-sm text-green-700 font-medium mb-1">✅ 每个模拟用户自动包含：</p>
-                  <ul className="text-xs text-green-600 space-y-0.5 ml-3 list-disc">
-                    <li>随机中文昵称 + 真实性别（男女约各50%）</li>
-                    <li>35道问卷全部随机作答（符合白名单规则）</li>
-                    <li>自动标记为 survey_completed=1，match_enabled=1</li>
-                    <li>每个用户获得 3 个邀请码</li>
-                    <li>统一登录密码：<code className="font-mono bg-white px-1.5 py-0.5 rounded text-green-800">Seed123456</code></li>
-                  </ul>
-                </div>
-                <div className="bg-red-50 rounded-xl p-4 border border-red-100">
-                  <p className="text-xs text-red-600">
-                    ⚠️ 删除操作会同时清除：模拟用户的问卷数据、邀请码、匹配记录。此操作不可撤销。
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         )}
