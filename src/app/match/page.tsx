@@ -28,7 +28,7 @@ function getCsrfToken(): string {
     ?.split('=')[1] || ''
 }
 
-// 倒计时到下一个周日 20:00
+// 倒计时到下一个周日 12:00（北京时间）
 function MatchCountdown() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
 
@@ -38,7 +38,7 @@ function MatchCountdown() {
       const nextSunday = new Date(now)
       const daysUntilSunday = (7 - now.getDay()) % 7 || 7
       nextSunday.setDate(now.getDate() + daysUntilSunday)
-      nextSunday.setHours(20, 0, 0, 0)
+      nextSunday.setHours(12, 0, 0, 0)
       if (nextSunday <= now) nextSunday.setDate(nextSunday.getDate() + 7)
 
       const diff = nextSunday.getTime() - now.getTime()
@@ -115,8 +115,46 @@ export default function MatchPage() {
 
   useEffect(() => {
     loadData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
+
+  // ── 自动匹配触发 ──
+  // 周日北京时间12:00之后（UTC 04:00+），第一个打开页面的已完成问卷用户触发匹配
+  useEffect(() => {
+    const tryAutoMatch = async () => {
+      if (!user?.surveyCompleted) return
+
+      // 检查是否在匹配窗口内（UTC 周日 04:00+ = 北京时间 12:00+）
+      const now = new Date()
+      const utcDay = now.getUTCDay()
+      const utcHours = now.getUTCHours()
+      if (utcDay !== 0 || utcHours < 4) return
+
+      try {
+        const csrfToken = getCsrfToken()
+
+        const res = await fetch('/api/match/auto', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': csrfToken },
+        })
+        const data = await res.json()
+
+        if (data.status === 'done' || data.status === 'already_done') {
+          // 匹配完成或之前已完成 → 刷新页面展示结果
+          window.location.reload()
+        } else if (data.status === 'in_progress') {
+          // 别人正在跑 → 3秒后刷新再试
+          setTimeout(() => window.location.reload(), 3000)
+        }
+        // status === 'not_yet' 不处理（理论上不会走到这里因为上面已检查时间窗口）
+      } catch {
+        // 网络错误不影响使用，用户可以手动刷新页面
+      }
+    }
+
+    const timer = setTimeout(tryAutoMatch, 2000) // 延迟2秒等主数据加载完
+    return () => clearTimeout(timer)
+  }, [user?.surveyCompleted])
 
   const handleRefresh = async () => {
     setRefreshing(true)
@@ -332,11 +370,11 @@ export default function MatchPage() {
             <div className="text-6xl mb-4">🔮</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>
             <p className="text-gray-500 mb-6 leading-relaxed">
-              问卷已提交，系统会在每周日 20:00 自动匹配<br />
+              问卷已提交，系统会在每周日 12:00 自动匹配<br />
               在此之前，不如先去认识几个新朋友？
             </p>
 
-            {/* 倒计时到下一个周日 20:00 */}
+            {/* 倒计时到下一个周日 12:00 */}
             <MatchCountdown />
 
             <div className="mt-8 flex items-center justify-center gap-4">
