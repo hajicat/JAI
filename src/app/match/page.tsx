@@ -35,14 +35,28 @@ function MatchCountdown() {
   useEffect(() => {
     function update() {
       const now = new Date()
-      const nextSunday = new Date(now)
-      const daysUntilSunday = (7 - now.getDay()) % 7 || 7
-      nextSunday.setDate(now.getDate() + daysUntilSunday)
-      // 北京时间周日 20:00 揭晓匹配结果
-      nextSunday.setHours(20, 0, 0, 0)
-      if (nextSunday <= now) nextSunday.setDate(nextSunday.getDate() + 7)
 
-      const diff = nextSunday.getTime() - now.getTime()
+      // 目标：北京时间本周日或下周日 20:00
+      // 周日 00:00~19:59 → 今天 20:00（当天揭晓）
+      // 周日 20:00+     → 下周日 20:00
+      // 非周日         → 本周日 20:00
+      const target = new Date(now)
+      const utcDay = now.getUTCDay()
+      const utcHours = now.getUTCHours()
+
+      // 北京时间 20:00 = UTC 12:00
+      // 如果是 UTC 周日且已经过了 12:00（北京20:00），跳到下个周日
+      if (utcDay === 0 && utcHours >= 12) {
+        target.setUTCDate(target.getUTCDate() + 7)
+        target.setUTCHours(12, 0, 0, 0)
+      } else {
+        // 否则算到这个周日的 UTC 12:00
+        const daysToAdd = (7 - now.getDay()) % 7 // 周日返回 0
+        target.setDate(target.getDate() + daysToAdd)
+        target.setHours(20, 0, 0, 0)
+      }
+
+      const diff = target.getTime() - now.getTime()
       setCountdown({
         days: Math.floor(diff / (1000 * 60 * 60 * 24)),
         hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
