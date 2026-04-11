@@ -51,7 +51,7 @@ function FlipBoardCount({ value, loading }: { value: number; loading: boolean })
       }, 120)
       return () => clearInterval(interval)
     }
-  }, [value, loading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value, loading, digits.length]) // 包含 digits.length 防止位数变化时边界渲染闪烁
 
   return (
     <span className="inline-flex font-mono">
@@ -208,7 +208,7 @@ export default function Home() {
           {[
             {
               num: '01', title: '完成深度问卷', icon: '📝',
-              desc: '涵盖安全联结、互动模式、意义系统、动力发展、日常系统五大维度，31道题，大约10分钟',
+              desc: '涵盖性格底色、自我观察、人生方向、相处之道、生活节奏、个人画像六大维度，35道题，大约15分钟',
               detail: '你最认同哪种「爱的安全感」来源？\nA. 事事有回应  B. 我的后盾与港湾\nC. 自由的牵挂  D. 共同进步的战友'
             },
             {

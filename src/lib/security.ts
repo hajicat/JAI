@@ -206,6 +206,13 @@ export async function verifyToken(token: string): Promise<{ id: number; email: s
     if (parts.length !== 3) return null
 
     const [header, body, signature] = parts
+    
+    // 验证 JWT header 的 alg 字段必须是 HS256，防止算法混淆攻击
+    try {
+      const headerObj = JSON.parse(base64urlDecode(header))
+      if (headerObj.alg !== 'HS256') return null
+    } catch { return null }
+    
     const expectedSig = await hmacSha256(jwtSecret, `${header}.${body}`)
 
     if (!timingSafeEqualStr(signature, expectedSig)) return null

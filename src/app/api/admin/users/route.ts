@@ -4,16 +4,15 @@ import { verifyToken } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { getCookieName } from '@/lib/csrf'
 
-// Helper: attempt to decrypt contact info, return raw on failure
+// Helper: attempt to decrypt contact info, safe on failure
 async function safeDecryptContact(encrypted: string | null | undefined, contactType: string | null): Promise<{ type: string | null; info: string | null }> {
   if (!encrypted || !contactType) return { type: null, info: null }
   try {
     const info = await decrypt(String(encrypted))
     return { type: contactType, info }
   } catch {
-    // Decryption failed — return raw prefix for debugging
-    const preview = String(encrypted).substring(0, 20) + '...'
-    return { type: contactType, info: `[解密失败] 原文:${preview}` }
+    // 解密失败时不泄露任何加密原文片段，只返回通用提示
+    return { type: contactType, info: `[解密失败，请检查 ENCRYPT_SECRET 配置]` }
   }
 }
 

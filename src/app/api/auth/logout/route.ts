@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { validateCsrfToken } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
-export async function POST(req: Request) {
-  // CSRF protection - prevent cross-site logout attacks
-  const csrfHeader = req.headers.get('x-csrf-token')
-  if (!csrfHeader) {
+export async function POST(req: NextRequest) {
+  // CSRF protection — 必须与 cookie 值比对，防止伪造请求强制登出
+  if (!validateCsrfToken(req)) {
     return NextResponse.json({ error: '安全验证失败' }, { status: 403 })
   }
   const response = NextResponse.json({ success: true })

@@ -54,15 +54,14 @@ export async function POST(req: NextRequest) {
     // Use constant-time approach: always hash even if user doesn't exist
     // to prevent timing-based user enumeration
     if (!user) {
-      // Dummy hash to prevent timing attacks（使用 PBKDF2 兼容 Edge Runtime）
-      const dummyKey = await crypto.subtle.importKey(
-        'raw', new TextEncoder().encode(password), 
-        { name: 'PBKDF2' }, false, ['deriveBits']
-      )
-      await crypto.subtle.deriveBits(
-        { name: 'PBKDF2', salt: new TextEncoder().encode('dummysaltfordelay'), iterations: 100000, hash: 'SHA-512' },
-        dummyKey, 512
-      )
+      // Dummy hash to prevent timing attacks
+      // 使用 SHA-256 循环（~10-50ms），避免 PBKDF2×100k 触发 CF CPU 上限(502) + 防止状态码枚举
+      const dummyInput = new TextEncoder().encode(password + ':dummy_delay')
+      let hash = new Uint8Array(dummyInput)
+      for (let i = 0; i < 500; i++) {
+        const buf = await crypto.subtle.digest('SHA-256', hash)
+        hash = new Uint8Array(buf)
+      }
       return NextResponse.json({ error: '邮箱或密码错误' }, { status: 401 })
     }
 

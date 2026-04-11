@@ -9,10 +9,14 @@ export const runtime = 'edge';
 //  工具函数
 // ─────────────────────────────────────────────
 
+// ISO 8601 周数计算：周四所在的周为该年的第几周
 function getWeekKey(): string {
   const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 1)
-  const diff = now.getTime() - start.getTime()
+  const dayOfWeek = now.getDay() || 7 // 周日=7，周一=1...
+  const thursday = new Date(now)
+  thursday.setDate(now.getDate() - dayOfWeek + 4) // 本周四
+  const yearStart = new Date(thursday.getFullYear(), 0, 1)
+  const diff = thursday.getTime() - yearStart.getTime()
   const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
   return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
 }
@@ -429,8 +433,11 @@ function genderCompatible(userA: any, userB: any): boolean {
 function dateToWeekKey(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   if (isNaN(d.getTime())) return getWeekKey() // fallback to current
-  const start = new Date(d.getFullYear(), 0, 1)
-  const diff = d.getTime() - start.getTime()
+  const dayOfWeek = d.getDay() || 7
+  const thursday = new Date(d)
+  thursday.setDate(d.getDate() - dayOfWeek + 4)
+  const yearStart = new Date(thursday.getFullYear(), 0, 1)
+  const diff = thursday.getTime() - yearStart.getTime()
   const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
   return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
 }
@@ -577,7 +584,6 @@ export async function POST(req: NextRequest) {
     const shuffled = [...safeUsers].sort(() => Math.random() - 0.5)
 
     const MATCH_THRESHOLD = 76
-    const SAFE_THRESHOLD = 68
 
     for (let i = 0; i < shuffled.length; i++) {
       if (matched.has(Number(shuffled[i].user.id))) continue

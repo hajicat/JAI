@@ -310,7 +310,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {users.map((u: any) => (
-                    <>
+                    <React.Fragment key={u.id}>
                       <tr key={u.id} onClick={() => loadUserDetail(u.id)}
                         className={`border-t border-gray-100 cursor-pointer transition ${expandedUserId === u.id ? 'bg-pink-50' : 'hover:bg-pink-50/50'}`}>
                         <td className="px-4 py-3 font-medium text-gray-800 flex items-center gap-2">
@@ -451,7 +451,7 @@ export default function AdminPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   ))}
                   {users.length === 0 && (
                     <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>

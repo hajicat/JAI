@@ -66,9 +66,9 @@ export async function GET(req: Request) {
       user,
     }, {
       headers: {
-        // Cache public stats for 30s, but user info varies per user
-        // Vercel/Cloudflare edge will respect s-maxage
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        // 有用户私有数据时必须用 private，防止 CDN 缓存导致数据泄露
+        ...(user ? { 'Cache-Control': 'private, no-store' } : { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }),
+        'Vary': 'Cookie',
       },
     })
   } catch (error: any) {

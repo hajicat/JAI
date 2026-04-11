@@ -2,6 +2,7 @@ import { createClient, type Client } from '@libsql/client'
 
 let client: Client | null = null
 let dbInitialized = false
+let initPromise: Promise<void> | null = null
 
 export function getDb(): Client {
   if (!client) {
@@ -32,6 +33,15 @@ export const CAMPUS_RADIUS_KM = 1.0
 
 export async function initDb(): Promise<void> {
   if (dbInitialized) return
+  // 防止并发请求重复执行初始化：复用同一个 Promise
+  if (initPromise) { await initPromise; return }
+  
+  initPromise = doInit()
+  try { await initPromise }
+  catch { initPromise = null; throw } // 失败后允许重试
+}
+
+async function doInit(): Promise<void> {
   const db = getDb()
 
   await db.executeMultiple(`
@@ -93,6 +103,12 @@ export async function initDb(): Promise<void> {
       b_revealed INTEGER DEFAULT 0,
       UNIQUE(user_a, week_key),
       UNIQUE(user_b, week_key)
+    );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

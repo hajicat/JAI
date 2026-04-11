@@ -414,7 +414,7 @@ export default function SurveyPage() {
           <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-200">
             <p className="text-sm text-blue-700 font-medium mb-1">🔒 隐私说明</p>
             <p className="text-xs text-blue-600 leading-relaxed">
-              你的答题内容会在<strong>双方都确认交换联系方式后</strong>展示给匹配对象。前 32 题为选择题，最后 3 题为开放式「个人画像」——这部分最能体现你的个性，也会帮助对方更快了解真实的你。
+              你的答题内容会在<strong>双方都确认交换联系方式后</strong>展示给匹配对象。本问卷共 6 大维度 35 题，前 32 题为选择题/多选题，最后 3 题为开放式「个人画像」——这部分最能体现你的个性，也会帮助对方更快了解真实的你。
               {step > 0 && (
                 <button onClick={() => setShowPrivacyNote(false)} className="ml-2 underline text-blue-500">收起</button>
               )}

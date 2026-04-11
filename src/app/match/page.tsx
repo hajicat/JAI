@@ -41,19 +41,22 @@ export default function MatchPage() {
 
   const loadData = async () => {
     try {
-      const meRes = await fetch('/api/auth/me')
-      const meData = await meRes.json()
+      // 并行请求3个API，减少冷启动等待时间（~2400ms → ~800ms）
+      const [meRes, matchRes, inviteRes] = await Promise.all([
+        fetch('/api/auth/me'),
+        fetch('/api/match'),
+        fetch('/api/invite'),
+      ])
+      const [meData, matchData, inviteData] = await Promise.all([
+        meRes.json(),
+        matchRes.json(),
+        inviteRes.json(),
+      ])
       if (!meData.user) { router.push('/login'); return }
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
       setUser(meData.user)
       setMatchEnabled(meData.user.matchEnabled)
-
-      const matchRes = await fetch('/api/match')
-      const matchData = await matchRes.json()
       if (matchData.match) setMatch(matchData.match)
-
-      const inviteRes = await fetch('/api/invite')
-      const inviteData = await inviteRes.json()
       setInviteCodes(inviteData.available || [])
     } catch (err) {
       console.error(err)

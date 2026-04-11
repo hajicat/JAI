@@ -7,10 +7,16 @@ import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
+// ISO 8601 周数计算：周四所在的周为该年的第几周
 function getWeekKey(): string {
   const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 1)
-  const diff = now.getTime() - start.getTime()
+  // 找到本周四
+  const dayOfWeek = now.getDay() || 7 // 周日=7，周一=1...
+  const thursday = new Date(now)
+  thursday.setDate(now.getDate() - dayOfWeek + 4) // 本周四
+  // 周四所在年份的第一天
+  const yearStart = new Date(thursday.getFullYear(), 0, 1)
+  const diff = thursday.getTime() - yearStart.getTime()
   const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
   return now.getFullYear() + '-W' + String(weekNum).padStart(2, '0')
 }
