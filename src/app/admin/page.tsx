@@ -102,6 +102,15 @@ export default function AdminPage() {
     if (tab === 'match') loadMatchUsers()
   }, [tab, loading])
 
+  // 检查是否已设置二级密码（页面首次加载时）
+  const [viewPwChecked, setViewPwChecked] = useState(false)
+  useEffect(() => {
+    fetch('/api/admin/set-view-password')
+      .then(r => r.json())
+      .then(data => { if (data.ok) { setHasViewPassword(data.hasPassword); setViewPwChecked(true) } })
+      .catch(() => {})
+  }, [])
+
   const loadUsers = async (page: number = 1) => {
     const res = await fetch(`/api/admin/users?page=${page}`)
     const data = await res.json()
@@ -116,9 +125,17 @@ export default function AdminPage() {
     setUserDetail(null)
   }
 
-  /** 触发查看用户详情：先弹出二级密码验证 */
+  /** 触发查看用户详情：先检查是否已设置二级密码 */
   const requestUserDetail = async (userId: number) => {
     if (expandedUserId === userId) { setExpandedUserId(null); return }
+
+    // 还没设置二级密码 → 直接跳到系统设置页提示去设置
+    if (!hasViewPassword) {
+      setTab('settings')
+      setToast({ msg: '⚠️ 请先在下方「查看详情二级密码」区域设置密码', type: 'error' })
+      return
+    }
+
     setPendingUserId(userId)
     setVerifyPassword('')
     setVerifyError('')
