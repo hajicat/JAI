@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
 
     // Get contact info (decrypted)
     const contact = await safeDecryptContact(
-      (await db.execute({ sql: 'SELECT contact_info FROM users WHERE id = ?', args: [uid] })).rows[0]?.contact_info,
+      (await db.execute({ sql: 'SELECT contact_info FROM users WHERE id = ?', args: [uid] })).rows[0]?.contact_info as string | null,
       userRow.contact_type
     )
 
