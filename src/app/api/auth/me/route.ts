@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req)
-    const rateResult = checkRateLimit(ip, API_LIMITER, 'me-post')
+    const rateResult = await checkRateLimit(ip, API_LIMITER, 'me-post')
     if (!rateResult.allowed) {
       return NextResponse.json({ error: '操作太频繁' }, { status: 429 })
     }

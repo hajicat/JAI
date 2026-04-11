@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req)
-    const rateResult = checkRateLimit(ip, REGISTER_LIMITER, 'register')
+    const rateResult = await checkRateLimit(ip, REGISTER_LIMITER, 'register')
     if (!rateResult.allowed) {
       return NextResponse.json(
         { error: '注册太频繁，请稍后再试' },

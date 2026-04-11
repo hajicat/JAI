@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limiting by IP
     const ip = getClientIp(req)
-    const rateResult = checkRateLimit(ip, LOGIN_LIMITER, 'login')
+    const rateResult = await checkRateLimit(ip, LOGIN_LIMITER, 'login')
     if (!rateResult.allowed) {
       return NextResponse.json(
         { error: '登录尝试过于频繁，请15分钟后再试' },
@@ -54,14 +54,16 @@ export async function POST(req: NextRequest) {
     // Use constant-time approach: always hash even if user doesn't exist
     // to prevent timing-based user enumeration
     if (!user) {
-      // Dummy hash to prevent timing attacks
-      // 使用 SHA-256 循环（~10-50ms），避免 PBKDF2×100k 触发 CF CPU 上限(502) + 防止状态码枚举
+      // Dummy hash + simulated lock-check delay to match real user path
+      // 使用 SHA-256 循环（~10-50ms），避免 PBKDF2×5000 触发 CF CPU 上限(502)
       const dummyInput = new TextEncoder().encode(password + ':dummy_delay')
       let hash = new Uint8Array(dummyInput)
       for (let i = 0; i < 500; i++) {
         const buf = await crypto.subtle.digest('SHA-256', hash)
         hash = new Uint8Array(buf)
       }
+      // 模拟数据库查询锁定状态的额外延迟（与第69行真实查询对齐）
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 5))
       return NextResponse.json({ error: '邮箱或密码错误' }, { status: 401 })
     }
 

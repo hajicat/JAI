@@ -190,10 +190,15 @@ export async function createToken(payload: { id: number; email: string; isAdmin:
   const jwtSecret = getJwtSecret()
   const header = base64urlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
   const now = Math.floor(Date.now() / 1000)
+  // 生成随机 JWT ID 用于未来 token 吊销/追踪
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  const jti = bytesToHex(bytes)
   const body = base64urlEncode(JSON.stringify({
     ...payload,
     iss: 'jlai-dating',
     aud: 'jlai-dating',
+    jti,
     iat: now,
     exp: now + 7 * 24 * 60 * 60,
   }))
@@ -202,6 +207,10 @@ export async function createToken(payload: { id: number; email: string; isAdmin:
   return `${header}.${body}.${signature}`
 }
 
+/**
+ * 基础 token 验证（仅校验签名、过期、iss/aud）
+ * 用于公开接口（如 home-data）
+ */
 export async function verifyToken(token: string): Promise<{ id: number; email: string; isAdmin: boolean } | null> {
   try {
     const jwtSecret = getJwtSecret()
@@ -227,6 +236,51 @@ export async function verifyToken(token: string): Promise<{ id: number; email: s
 
     return { id: payload.id, email: payload.email, isAdmin: payload.isAdmin }
   } catch {
+    return null
+  }
+}
+
+/**
+ * 安全 token 验证（用于敏感操作接口）
+ * 额外校验：token 签发时间(iat)必须晚于用户密码修改时间
+ * 即：用户改密码后，所有旧 token 立即失效
+ */
+export async function verifyTokenSafe(
+  token: string,
+  dbClient?: { execute(sql: { sql: string; args: (number | string)[] }): Promise<{ rows: any[] }> }
+): Promise<{ id: number; email: string; isAdmin: boolean } | null> {
+  const result = await verifyToken(token)
+  if (!result) return null
+
+  // 无数据库客户端时回退到基础验证（如 home-data 接口）
+  if (!dbClient) return result
+
+  try {
+    const userResult = await dbClient.execute({
+      sql: 'SELECT password_changed_at FROM users WHERE id = ?',
+      args: [result.id],
+    })
+    const row = userResult.rows[0] as any
+    const changedAt = row?.password_changed_at
+    if (!changedAt) return result // 从未改过密码，放行
+
+    // 解析 JWT payload 拿 iat
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(base64urlDecode(parts[1]))
+    const iat = payload.iat as number
+
+    // password_changed_at 是 ISO 时间字符串，转为 Unix 秒
+    const changedTs = Math.floor(new Date(changedAt).getTime() / 1000)
+
+    // 如果 token 在修改之前签发的 → 失效
+    if (iat < changedTs) {
+      return null
+    }
+
+    return result
+  } catch {
+    // 出错时安全起见拒绝
     return null
   }
 }

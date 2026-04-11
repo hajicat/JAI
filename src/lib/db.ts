@@ -164,6 +164,7 @@ async function doInit(): Promise<void> {
     `ALTER TABLE users ADD COLUMN preferred_gender TEXT`,
     `ALTER TABLE users ADD COLUMN conflict_type TEXT`,
     `ALTER TABLE users ADD COLUMN match_enabled INTEGER DEFAULT 1`,
+    `ALTER TABLE users ADD COLUMN password_changed_at TEXT`,
     `ALTER TABLE matches ADD COLUMN dim_scores TEXT`,
     `ALTER TABLE survey_responses ADD COLUMN q21 TEXT`,
     `ALTER TABLE survey_responses ADD COLUMN q22 TEXT`,

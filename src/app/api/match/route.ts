@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyToken, verifyTokenSafe } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
@@ -140,7 +140,10 @@ export async function POST(req: NextRequest) {
     const cookieName = getCookieName('token')
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
-    const decoded = await verifyToken(token)
+
+    const db = getDb()
+    // reveal 是敏感操作，用 verifyTokenSafe 校验密码修改时间
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     // CSRF validation
@@ -149,7 +152,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req)
-    const rateResult = checkRateLimit(ip, API_LIMITER, 'match-reveal')
+    const rateResult = await checkRateLimit(ip, API_LIMITER, 'match-reveal')
     if (!rateResult.allowed) {
       return NextResponse.json({ error: '操作太频繁' }, { status: 429 })
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { verifyToken, verifyPassword, hashPassword } from '@/lib/auth'
+import { verifyToken, verifyTokenSafe, verifyPassword, hashPassword } from '@/lib/auth'
 import { validatePassword, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const decoded = await verifyTokenSafe(token, getDb())
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     // CSRF validation
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limit
     const ip = getClientIp(req)
-    const rateResult = checkRateLimit(ip, API_LIMITER, 'change-pw')
+    const rateResult = await checkRateLimit(ip, API_LIMITER, 'change-pw')
     if (!rateResult.allowed) {
       return NextResponse.json({ error: '操作太频繁' }, { status: 429 })
     }
@@ -54,11 +54,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '当前密码错误' }, { status: 400 })
     }
 
-    // Update password
+    // Update password + invalidate old tokens by setting password_changed_at
     const newHash = await hashPassword(newPassword)
+    const changedAt = new Date().toISOString()
     await db.execute({
-      sql: 'UPDATE users SET password_hash = ? WHERE id = ?',
-      args: [newHash, decoded.id],
+      sql: 'UPDATE users SET password_hash = ?, password_changed_at = ? WHERE id = ?',
+      args: [newHash, changedAt, decoded.id],
     })
 
     return NextResponse.json({ success: true, message: '密码修改成功' })

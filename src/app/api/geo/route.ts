@@ -9,7 +9,7 @@ export const runtime = 'edge';
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIp(req)
-    const rateResult = checkRateLimit(ip, API_LIMITER, 'geo')
+    const rateResult = await checkRateLimit(ip, API_LIMITER, 'geo')
     if (!rateResult.allowed) {
       return NextResponse.json({ error: '请求太频繁' }, { status: 429 })
     }

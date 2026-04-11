@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { sanitizeString, sanitizeForStorage } from '@/lib/validation'
 import { checkRateLimit, SURVEY_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     // CSRF validation
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req)
-    const rateResult = checkRateLimit(ip, SURVEY_LIMITER, 'survey')
+    const rateResult = await checkRateLimit(ip, SURVEY_LIMITER, 'survey')
     if (!rateResult.allowed) {
       return NextResponse.json({ error: '提交太频繁' }, { status: 429 })
     }
