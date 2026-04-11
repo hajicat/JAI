@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { verifyToken, generateInviteCode } from '@/lib/auth'
+import { verifyTokenSafe, generateInviteCode } from '@/lib/auth'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
 
@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
-    const db = getDb()
     const result = await db.execute(`
       SELECT ic.id, ic.code, ic.current_uses, ic.max_uses, ic.created_at,
         u.nickname as created_by_name,
@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
     // CSRF validation
@@ -56,7 +57,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const count = Math.min(Math.max(Number(body.count) || 5, 1), 20)
 
-    const db = getDb()
     const newCodes: string[] = []
     for (let i = 0; i < count; i++) {
       const code = generateInviteCode()

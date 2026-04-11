@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { validateCsrfToken, getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
@@ -517,7 +517,8 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
     if (!validateCsrfToken(req)) {
@@ -532,7 +533,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 自动匹配模式（原有逻辑）──
-    const db = getDb()
     const weekKey = getWeekKey()
 
     const usersResult = await db.execute({

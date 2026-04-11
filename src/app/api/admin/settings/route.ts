@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { getDb } from '@/lib/db'
 import { validateCsrfToken, getCookieName } from '@/lib/csrf'
 
@@ -40,11 +40,11 @@ export async function GET(req: NextRequest) {
     const cookieName = getCookieName('token')
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
-    
-    const decoded = await verifyToken(token)
-    if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
     const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
+    if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
+
     const settings = await loadSettings(db)
     
     return NextResponse.json(settings)
@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
     const cookieName = getCookieName('token')
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
-    
-    const decoded = await verifyToken(token)
+
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
     if (!validateCsrfToken(req)) {
@@ -67,7 +68,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const db = getDb()
 
     if (typeof body.gpsRequired === 'boolean') {
       await db.execute({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken, hashPassword, verifyPassword } from '@/lib/auth'
+import { verifyTokenSafe, hashPassword, verifyPassword } from '@/lib/auth'
 import { validatePassword } from '@/lib/validation'
 import { getCookieName } from '@/lib/csrf'
 
@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '未登录' }, { status: 401 })
     if (!decoded.isAdmin) return NextResponse.json({ error: '无权限' }, { status: 403 })
 
@@ -44,7 +45,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: pwCheck.error }, { status: 400 })
     }
 
-    const db = getDb()
     await initDb()
 
     // 查询是否已有密码
@@ -95,10 +95,10 @@ export async function GET(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '无权限' }, { status: 403 })
 
-    const db = getDb()
     await initDb()
 
     const result = await db.execute({

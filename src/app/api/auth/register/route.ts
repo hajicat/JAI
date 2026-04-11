@@ -95,9 +95,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
     }
 
-    // Check email exists
+    // Check email exists (case-insensitive)
     const existingResult = await db.execute({
-      sql: 'SELECT id FROM users WHERE email = ?',
+      sql: "SELECT id FROM users WHERE LOWER(email) = ?",
       args: [email],
     })
     if (existingResult.rows.length > 0) {

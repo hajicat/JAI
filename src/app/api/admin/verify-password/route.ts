@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken, verifyPassword } from '@/lib/auth'
+import { verifyTokenSafe, verifyPassword } from '@/lib/auth'
 import { getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge'
@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '未登录' }, { status: 401 })
     if (!decoded.isAdmin) return NextResponse.json({ error: '无权限' }, { status: 403 })
 
@@ -26,7 +27,6 @@ export async function POST(req: NextRequest) {
     const password = (body.password || '').trim()
     if (!password) return NextResponse.json({ valid: false, needSetup: false }, { status: 400 })
 
-    const db = getDb()
     await initDb()
 
     // 查询独立的查看详情密码哈希
