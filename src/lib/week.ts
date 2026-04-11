@@ -63,6 +63,17 @@ export function isMatchingWindow(): boolean {
 }
 
 /**
+ * 判断当前是否已过揭晓时间（北京时间周日 20:00 = UTC 周日 12:00 之后）
+ * 匹配在周日 12:00 执行，但结果要等到 20:00 才向用户展示
+ */
+export function isRevealWindow(): boolean {
+  const now = new Date()
+  const utcDay = now.getUTCDay()
+  const utcHours = now.getUTCHours()
+  return utcDay === 0 && utcHours >= 12
+}
+
+/**
  * 从日期字符串计算 week_key（管理员手动指定匹配日期时使用）
  * 与 getWeekKey 使用相同的 UTC 基准和周边界规则
  */

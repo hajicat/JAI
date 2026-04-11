@@ -28,7 +28,7 @@ function getCsrfToken(): string {
     ?.split('=')[1] || ''
 }
 
-// 倒计时到下一个周日 12:00（北京时间）
+// 倒计时到下一个周日 20:00（北京时间）—— 匹配结果揭晓时刻
 function MatchCountdown() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
 
@@ -38,7 +38,8 @@ function MatchCountdown() {
       const nextSunday = new Date(now)
       const daysUntilSunday = (7 - now.getDay()) % 7 || 7
       nextSunday.setDate(now.getDate() + daysUntilSunday)
-      nextSunday.setHours(12, 0, 0, 0)
+      // 北京时间周日 20:00 揭晓匹配结果
+      nextSunday.setHours(20, 0, 0, 0)
       if (nextSunday <= now) nextSunday.setDate(nextSunday.getDate() + 7)
 
       const diff = nextSunday.getTime() - now.getTime()
@@ -85,6 +86,7 @@ export default function MatchPage() {
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
   const [matchEnabled, setMatchEnabled] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [pendingReveal, setPendingReveal] = useState(false) // 匹配完成但未到揭晓时间
 
   const loadData = async () => {
     try {
@@ -103,7 +105,13 @@ export default function MatchPage() {
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
       setUser(meData.user)
       setMatchEnabled(meData.user.matchEnabled)
-      if (matchData.match) setMatch(matchData.match)
+      if (matchData.status === 'pending_reveal') {
+        // 匹配已完成，但还没到揭晓时间（周日20:00前）
+        setPendingReveal(true)
+        setMatch(null)
+      } else if (matchData.match) {
+        setMatch(matchData.match)
+      }
       setInviteCodes(inviteData.available || [])
     } catch (err) {
       console.error(err)
@@ -365,16 +373,30 @@ export default function MatchPage() {
               <PartnerAnswers survey={match.partnerSurvey} nickname={match.partnerNickname} />
             )}
           </div>
+        ) : pendingReveal ? (
+          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
+            <div className="text-6xl mb-4">🎊</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">匹配已完成</h2>
+            <p className="text-gray-500 mb-4 leading-relaxed">
+              你的本周匹配结果正在加密锁定中<br />
+              每周日 <span className="font-bold text-pink-600">20:00</span> 准时揭晓
+            </p>
+
+            {/* 倒计时到揭晓时刻 */}
+            <MatchCountdown />
+
+            <p className="text-xs text-gray-400 mt-6">到时间后刷新页面即可查看结果 ✨</p>
+          </div>
         ) : (
           <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
             <div className="text-6xl mb-4">🔮</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>
             <p className="text-gray-500 mb-6 leading-relaxed">
               问卷已提交，系统会在每周日 12:00 自动匹配<br />
-              在此之前，不如先去认识几个新朋友？
+              匹配结果将在每周日 20:00 准时揭晓
             </p>
 
-            {/* 倒计时到下一个周日 12:00 */}
+            {/* 倒计时到揭晓时刻（周日 20:00 北京时间） */}
             <MatchCountdown />
 
             <div className="mt-8 flex items-center justify-center gap-4">

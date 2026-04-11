@@ -4,6 +4,7 @@ import { verifyToken, verifyTokenSafe } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
+import { isRevealWindow } from '@/lib/week'
 
 export const runtime = 'edge';
 
@@ -57,10 +58,27 @@ export async function GET(req: NextRequest) {
     })
 
     if (matchResult.rows.length === 0) {
+      // 检查是否匹配已执行但还没到揭晓时间（周日12:00~20:00之间）
+      const pendingCheck = await db.execute({
+        sql: 'SELECT COUNT(*) as cnt FROM matches WHERE (user_a = ? OR user_b = ?) AND week_key = ?',
+        args: [uid, uid, weekKey],
+      })
+      const hasPendingMatch = Number((pendingCheck.rows[0] as any).cnt) > 0
+
+      if (hasPendingMatch && !isRevealWindow()) {
+        return NextResponse.json({ match: null, status: 'pending_reveal', message: '匹配已完成，等待揭晓' })
+      }
+
       return NextResponse.json({ match: null, message: '本周匹配尚未完成，请等待周日匹配' })
     }
 
     const match = matchResult.rows[0] as any
+
+    // 未到揭晓时间（北京时间周日20:00前）→ 不返回匹配详情
+    if (!isRevealWindow()) {
+      return NextResponse.json({ match: null, status: 'pending_reveal', message: '匹配已完成，等待揭晓' })
+    }
+
     let partnerContact = null
     let partnerSurvey: any = null
 
