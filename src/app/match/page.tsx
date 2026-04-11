@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -339,12 +339,6 @@ export default function MatchPage() {
 }
 
 // === 对方问卷回答展示组件（双方确认后可见） ===
-const PARTNER_QUESTIONS = [
-  { key: 'q33', label: '✨ TA 的优点', type: 'multi' as const },
-  { key: 'q34', label: '🌱 TA 认为自己的缺点', type: 'multi' as const },
-  { key: 'q35', label: '🍜 TA 用什么食物比喻恋爱关系', type: 'text' as const },
-]
-
 function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -354,7 +348,41 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
     try { return JSON.parse(val) } catch { return [] }
   }
 
-  const hasContent = PARTNER_QUESTIONS.some(q => {
+  // 生成所有35个问题的配置
+  const questions = useMemo(() => {
+    const dimRanges = [
+      { dim: '性格底色', start: 1, end: 8 },
+      { dim: '自我观察', start: 9, end: 14 },
+      { dim: '人生方向', start: 15, end: 21 },
+      { dim: '相处之道', start: 22, end: 28 },
+      { dim: '生活节奏', start: 29, end: 32 },
+      { dim: '个人画像', start: 33, end: 35 },
+    ]
+    const result = []
+    for (let i = 1; i <= 35; i++) {
+      let dim = '未知'
+      for (const range of dimRanges) {
+        if (i >= range.start && i <= range.end) {
+          dim = range.dim
+          break
+        }
+      }
+      let type: 'choice' | 'multi' | 'text' = 'choice'
+      if (i === 33 || i === 34) type = 'multi'
+      else if (i === 35) type = 'text'
+      
+      // 为q33、q34、q35保留原有定制标签
+      let label = `${dim} - 问题${i}`
+      if (i === 33) label = '✨ TA 的优点'
+      else if (i === 34) label = '🌱 TA 认为自己的缺点'
+      else if (i === 35) label = '🍜 TA 用什么食物比喻恋爱关系'
+      
+      result.push({ key: `q${i}`, label, type })
+    }
+    return result
+  }, [])
+
+  const hasContent = questions.some(q => {
     if (q.type === 'multi') return parseMulti(survey[q.key]).length > 0
     return !!survey[q.key]?.trim()
   })
@@ -373,7 +401,7 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
 
       {expanded && (
         <div className="mt-4 space-y-4 animate-fade-in">
-          {PARTNER_QUESTIONS.map(q => {
+          {questions.map(q => {
             if (q.type === 'multi') {
               const items = parseMulti(survey[q.key])
               if (items.length === 0) return null
@@ -406,11 +434,21 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
 }
 
 function ContactSettings({ user }: { user: any }) {
-  const [contactType, setContactType] = useState('wechat')
-  const [contactInfo, setContactInfo] = useState('')
+  const [contactType, setContactType] = useState(user?.contactType || 'wechat')
+  const [contactInfo, setContactInfo] = useState(user?.contactInfo || '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+
+  // 当 user 更新时（例如重新获取数据），同步联系方式
+  useEffect(() => {
+    if (user?.contactType) {
+      setContactType(user.contactType)
+    }
+    if (user?.contactInfo) {
+      setContactInfo(user.contactInfo)
+    }
+  }, [user])
 
   const handleSave = async () => {
     if (!contactInfo.trim()) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
-import { encrypt } from '@/lib/crypto'
+import { encrypt, decrypt } from '@/lib/crypto'
 import { validateContactInfo, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
@@ -38,6 +38,17 @@ export async function GET(req: NextRequest) {
       args: [decoded.id],
     })
 
+    // 解密联系方式（如果有）
+    let contactInfo = ''
+    if (user.contact_info) {
+      try {
+        contactInfo = await decrypt(String(user.contact_info))
+      } catch (error) {
+        console.error('[me GET] decrypt contact info failed:', error)
+        // 解密失败时返回空字符串
+      }
+    }
+
     return NextResponse.json({
       user: {
         id: Number(user.id),
@@ -45,6 +56,7 @@ export async function GET(req: NextRequest) {
         isAdmin: !!user.is_admin,
         surveyCompleted: !!user.survey_completed,
         hasContactInfo: !!user.contact_info,
+        contactInfo: contactInfo,
         contactType: user.contact_type,
         gender: user.gender,
         preferredGender: user.preferred_gender,
