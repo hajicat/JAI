@@ -108,7 +108,7 @@ export default function AdminPage() {
   useEffect(() => {
     fetch('/api/admin/set-view-password')
       .then(r => r.json())
-      .then(data => { if (data.ok) { setHasViewPassword(data.hasPassword); setViewPwChecked(true) } })
+      .then(data => { if ('hasPassword' in data) { setHasViewPassword(data.hasPassword); setViewPwChecked(true) } })
       .catch(() => {})
   }, [])
 
