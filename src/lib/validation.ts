@@ -75,11 +75,31 @@ export function escapeHtml(input: string, maxLength: number = 500): string {
     .replace(/\//g, '&#x2F;')
 }
 
+/**
+ * Sanitize for storage: strip control chars AND escape HTML entities.
+ * Use this for free-text fields (contact info, open-ended answers)
+ * before storing in DB. Do NOT use for whitelist-validated fields (q1-q34).
+ *
+ * Why a separate function? sanitizeString alone doesn't HTML-encode,
+ * so XSS payloads like <script> would survive into the database layer.
+ * JSX auto-escape protects rendering today, but future features
+ * (email templates, PDF export, dangerouslySetInnerHTML) need DB-level safety.
+ */
+export function sanitizeForStorage(input: string, maxLength: number = 500): string {
+  const cleaned = sanitizeString(input, maxLength)
+  return cleaned
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
 export function validateContactInfo(info: string): ValidationResult {
   if (!info || typeof info !== 'string') return { valid: false, error: '联系方式不能为空' }
   const trimmed = info.trim()
   if (trimmed.length < 2) return { valid: false, error: '联系方式太短' }
-  if (trimmed.length > 100) return { valid: false, error: '联系方式过长' }
+  if (trimmed.length > 19) return { valid: false, error: '联系方式过长' }
   // No scripts or HTML
   if (/<[^>]*>/.test(trimmed) || /javascript:/i.test(trimmed)) {
     return { valid: false, error: '联系方式包含非法内容' }

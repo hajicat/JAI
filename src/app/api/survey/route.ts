@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
-import { sanitizeString } from '@/lib/validation'
+import { sanitizeString, sanitizeForStorage } from '@/lib/validation'
 import { checkRateLimit, SURVEY_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
 
@@ -103,8 +103,8 @@ export async function POST(req: NextRequest) {
       const rawVal = answers[f]
 
       if (TEXT_QUESTIONS.includes(f)) {
-        // Free text question — sanitize and store as-is
-        const val = sanitizeString(typeof rawVal === 'string' ? rawVal : '', 200)
+        // Free text question — sanitize with HTML entity escape for storage safety
+        const val = sanitizeForStorage(typeof rawVal === 'string' ? rawVal : '', 200)
         values.push(val)
       } else if (MULTI_SELECT_QUESTIONS.includes(f)) {
         // Multi-select question — expect JSON array of strings

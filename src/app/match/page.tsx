@@ -590,6 +590,7 @@ function ContactSettings({ user }: { user: any }) {
         </select>
         <input type="text" placeholder="输入你的联系方式" value={contactInfo}
           onChange={e => setContactInfo(e.target.value)}
+          maxLength={19}
           className="flex-1 min-w-0 px-4 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300" />
         <button onClick={handleSave} disabled={saving}
           className="w-full sm:w-auto px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition whitespace-nowrap">

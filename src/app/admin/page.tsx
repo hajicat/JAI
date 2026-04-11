@@ -59,6 +59,13 @@ export default function AdminPage() {
   const [userDetail, setUserDetail] = useState<any>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
 
+  // 二级密码验证弹窗状态
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [pendingUserId, setPendingUserId] = useState<number | null>(null)
+  const [verifyPassword, setVerifyPassword] = useState('')
+  const [verifyingPw, setVerifyingPw] = useState(false)
+  const [verifyError, setVerifyError] = useState('')
+
   // 手动匹配状态
   const [manualUserA, setManualUserA] = useState<number | ''>('')
   const [manualUserB, setManualUserB] = useState<number | ''>('')
@@ -90,9 +97,17 @@ export default function AdminPage() {
     setUsers(data.users || [])
   }
 
-  const loadUserDetail = async (userId: number) => {
-    // Toggle if already expanded
+  /** 触发查看用户详情：先弹出二级密码验证 */
+  const requestUserDetail = async (userId: number) => {
     if (expandedUserId === userId) { setExpandedUserId(null); return }
+    setPendingUserId(userId)
+    setVerifyPassword('')
+    setVerifyError('')
+    setShowPasswordModal(true)
+  }
+
+  /** 密码验证通过后，真正加载用户详情 */
+  const loadUserDetail = async (userId: number) => {
     setExpandedUserId(userId)
     setLoadingDetail(true)
     setUserDetail(null)
@@ -102,6 +117,32 @@ export default function AdminPage() {
       setUserDetail(data)
     } catch { /* ignore */ }
     finally { setLoadingDetail(false) }
+  }
+
+  /** 提交密码验证 */
+  const handleVerifyPassword = async () => {
+    if (!verifyPassword.trim()) { setVerifyError('请输入密码'); return }
+    setVerifyingPw(true)
+    setVerifyError('')
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ password: verifyPassword }),
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setShowPasswordModal(false)
+        if (pendingUserId !== null) loadUserDetail(pendingUserId)
+      } else {
+        setVerifyError('密码错误')
+      }
+    } catch {
+      setVerifyError('网络错误，请重试')
+    } finally {
+      setVerifyingPw(false)
+    }
   }
 
   const loadCodes = async () => {
@@ -308,25 +349,25 @@ export default function AdminPage() {
         {tab === 'users' && (
           <div className="glass-card rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed" style={{ minWidth: '900px' }}>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium">昵称</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium">性别</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium">问卷</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium">安全等级</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium">参与匹配</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium">剩余邀请码</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium">联系方式</th>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium">邀请人</th>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium">注册时间</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'12%'}}>昵称</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'5%'}}>性别</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'5%'}}>问卷</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'7%'}}>安全等级</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'6%'}}>参与匹配</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'8%'}}>剩余邀请码</th>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium" style={{width:'22%'}}>联系方式</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'12%'}}>邀请人</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'15%'}}>注册时间</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u: any) => (
                     <Fragment key={u.id}>
 
-                      <tr key={u.id} onClick={() => loadUserDetail(u.id)}
+                      <tr key={u.id} onClick={() => requestUserDetail(u.id)}
                         className={`border-t border-gray-100 cursor-pointer transition ${expandedUserId === u.id ? 'bg-pink-50' : 'hover:bg-pink-50/50'}`}>
                         <td className="px-4 py-3 font-medium text-gray-800 flex items-center gap-2">
                           {u.nickname}
@@ -341,9 +382,9 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-center">{u.match_enabled ? '🟢' : '⏸️'}</td>
                         <td className="px-4 py-3 text-center">{u.remaining_codes}</td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-3 text-center" style={{maxWidth:'200px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                           {u.contactInfo ? (
-                            <span className="font-mono text-xs">
+                            <span className="font-mono text-xs" title={`${u.contactType === 'wechat' ? '微信' : u.contactType === 'qq' ? 'QQ' : ''} ${u.contactInfo}`}>
                               {u.contactType === 'wechat' ? '微信' : u.contactType === 'qq' ? 'QQ' : ''} {u.contactInfo}
                             </span>
                           ) : (
@@ -686,6 +727,41 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* 二级密码验证弹窗 */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)}>
+          <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800 mb-2">🔐 安全验证</h3>
+            <p className="text-sm text-gray-400 mb-5">查看用户详情需要验证管理员密码</p>
+            <input
+              type="password"
+              value={verifyPassword}
+              onChange={e => { setVerifyPassword(e.target.value); setVerifyError('') }}
+              onKeyDown={e => { if (e.key === 'Enter') handleVerifyPassword() }}
+              placeholder="请输入当前密码"
+              autoFocus
+              className={`w-full px-4 py-3 bg-white/60 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
+                verifyError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-pink-300'
+              }`}
+              disabled={verifyingPw}
+            />
+            {verifyError && <p className="text-xs text-red-500 mt-1.5">{verifyError}</p>}
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowPasswordModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                取消
+              </button>
+              <button onClick={handleVerifyPassword} disabled={verifyingPw || !verifyPassword.trim()}
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition ${
+                  verifyingPw || !verifyPassword.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                }`}>
+                {verifyingPw ? '验证中...' : '确认'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
