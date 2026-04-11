@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken, hashPassword } from '@/lib/auth'
+import { verifyToken, verifyPassword } from '@/lib/auth'
 import { getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge'
@@ -45,15 +45,15 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 比对
-    const inputHash = await hashPassword(password)
-    if (inputHash === row.value) {
+    // 比对（用 verifyPassword 正确提取盐值再哈希）
+    const valid = await verifyPassword(password, row.value)
+    if (valid) {
       return NextResponse.json({ valid: true })
     }
 
     return NextResponse.json({ valid: false, needSetup: false, message: '密码错误' })
-  } catch (error: any) {
-    console.error('[admin verify-password]', error?.message || error)
+  } catch (error) {
+    console.error('[admin verify-password]', (error as any)?.message || error)
     return NextResponse.json({ error: '验证失败', valid: false }, { status: 500 })
   }
 }

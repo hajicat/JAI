@@ -74,6 +74,7 @@ export default function AdminPage() {
   // 独立二级密码设置状态（系统设置tab）
   const [viewPwInput, setViewPwInput] = useState('')
   const [viewPwConfirm, setViewPwConfirm] = useState('')
+  const [viewPwCurrent, setViewPwCurrent] = useState('') // 当前密码（修改时需要）
   const [settingViewPw, setSettingViewPw] = useState(false)
   const [hasViewPassword, setHasViewPassword] = useState<boolean | null>(null) // null=未加载
 
@@ -190,20 +191,24 @@ export default function AdminPage() {
   const handleSetViewPassword = async () => {
     if (!viewPwInput) { setToast({ msg: '请输入密码', type: 'error' }); return }
     if (viewPwInput.length < 8) { setToast({ msg: '密码至少8位，含字母和数字', type: 'error' }); return }
+    if (hasViewPassword && !viewPwCurrent) { setToast({ msg: '请输入当前密码', type: 'error' }); return }
     if (hasViewPassword && !viewPwConfirm) { setToast({ msg: '请确认新密码', type: 'error' }); return }
-    if (viewPwInput !== viewPwConfirm && hasViewPassword) { setToast({ msg: '两次密码不一致', type: 'error' }); return }
+    if (viewPwInput !== viewPwConfirm && hasViewPassword) { setToast({ msg: '两次新密码不一致', type: 'error' }); return }
     setSettingViewPw(true)
     try {
       const csrfToken = getCsrfToken()
       const res = await fetch('/api/admin/set-view-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-        body: JSON.stringify({ password: viewPwInput }),
+        body: JSON.stringify({
+          password: viewPwInput,
+          ...(hasViewPassword ? { currentPassword: viewPwCurrent } : {}),
+        }),
       })
       const data = await res.json()
       if (data.success) {
         setToast({ msg: hasViewPassword ? '✅ 二级密码已更新' : '✅ 二级密码已设置', type: 'success' })
-        setViewPwInput(''); setViewPwConfirm('')
+        setViewPwInput(''); setViewPwConfirm(''); setViewPwCurrent('')
         setHasViewPassword(true)
       } else {
         setToast({ msg: data.error || '设置失败', type: 'error' })
@@ -835,6 +840,15 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-300">加载中...</p>
               ) : (
                 <div className="space-y-3 max-w-md">
+                  {hasViewPassword && (
+                    <input
+                      type="password"
+                      placeholder="当前密码"
+                      value={viewPwCurrent}
+                      onChange={e => setViewPwCurrent(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      disabled={settingViewPw} />
+                  )}
                   <input
                     type="password"
                     placeholder={hasViewPassword ? '新的查看详情密码' : '设置查看详情密码（至少8位，含字母和数字）'}
@@ -853,7 +867,7 @@ export default function AdminPage() {
                       disabled={settingViewPw} />
                   )}
                   <button onClick={handleSetViewPassword}
-                    disabled={settingViewPw || !viewPwInput || (hasViewPassword && !viewPwConfirm)}
+                    disabled={settingViewPw || !viewPwInput || (hasViewPassword && (!viewPwCurrent || !viewPwConfirm))}
                     className={`px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl hover:opacity-90 disabled:opacity-50 transition`}>
                     {settingViewPw ? '保存中...' : (hasViewPassword ? '更新二级密码' : '设置二级密码')}
                   </button>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken, hashPassword } from '@/lib/auth'
+import { verifyToken, hashPassword, verifyPassword } from '@/lib/auth'
 import { validatePassword } from '@/lib/validation'
 import { getCookieName } from '@/lib/csrf'
 
@@ -32,14 +32,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const password = (body.password || '').trim()
+    const newPassword = (body.password || '').trim()
 
-    if (!password) {
+    if (!newPassword) {
       return NextResponse.json({ error: '密码不能为空' }, { status: 400 })
     }
 
-    // 校验密码格式
-    const pwCheck = validatePassword(password)
+    // 校验新密码格式
+    const pwCheck = validatePassword(newPassword)
     if (!pwCheck.valid) {
       return NextResponse.json({ error: pwCheck.error }, { status: 400 })
     }
@@ -47,18 +47,37 @@ export async function POST(req: NextRequest) {
     const db = getDb()
     await initDb()
 
-    // 哈希并存储
-    const hashed = await hashPassword(password)
+    // 查询是否已有密码
+    const existing = await db.execute({
+      sql: "SELECT value FROM settings WHERE key = 'admin_view_password_hash'",
+      args: [],
+    })
+    const existingHash = (existing.rows[0] as any)?.value
+
+    // 已有密码 → 需要验证原密码
+    if (existingHash) {
+      const currentPw = (body.currentPassword || '').trim()
+      if (!currentPw) {
+        return NextResponse.json({ error: '修改密码需要输入当前密码', needCurrent: true }, { status: 400 })
+      }
+      const valid = await verifyPassword(currentPw, existingHash)
+      if (!valid) {
+        return NextResponse.json({ error: '当前密码错误', needCurrent: true }, { status: 403 })
+      }
+    }
+
+    // 哈希并存储新密码
+    const hashed = await hashPassword(newPassword)
     const now = new Date().toISOString()
 
-    // UPSERT
     await db.execute({
       sql: `INSERT INTO settings (key, value, updated_at) VALUES ('admin_view_password_hash', ?, ?)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       args: [hashed, now],
     })
 
-    return NextResponse.json({ success: true, message: '二级密码已设置' })
+    const msg = existingHash ? '二级密码已更新' : '二级密码已设置'
+    return NextResponse.json({ success: true, message: msg })
   } catch (error: any) {
     console.error('[admin set-view-password]', error?.message || error)
     return NextResponse.json({ error: '设置失败', success: false }, { status: 500 })
