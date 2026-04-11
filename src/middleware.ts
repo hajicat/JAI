@@ -35,6 +35,13 @@ export function middleware(request: NextRequest) {
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)')
 
   // Content Security Policy - hardened for production
+  // NOTE: script-src/style-src 的 unsafe-inline 是 Next.js hydration + 内联样式所需。
+  //       未来可考虑迁移到 nonce-based CSP（需要 next.config 配置 + 中间件注入）。
+  //       当前已通过以下多层防护降低风险：
+  //         1. 输入白名单校验（联系方式白名单、问卷选项严格匹配）
+  //         2. sanitizeForStorage（HTML 实体转义）
+  //         3. React JSX 自动转义
+  //         4. AES-256-GCM 加密存储敏感数据
   const isDev = process.env.NODE_ENV !== 'production'
   response.headers.set(
     'Content-Security-Policy',
