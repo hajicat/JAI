@@ -89,8 +89,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '数据格式错误' }, { status: 400 })
     }
 
-    const db = getDb()
-
     const TOTAL_QUESTIONS = 35
     const fields = Array.from({ length: TOTAL_QUESTIONS }, (_, i) => `q${i + 1}`)
     const values: string[] = []

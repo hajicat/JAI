@@ -164,7 +164,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '无效的匹配ID' }, { status: 400 })
     }
 
-    const db = getDb()
     const matchResult = await db.execute({
       sql: 'SELECT * FROM matches WHERE id = ? AND (user_a = ? OR user_b = ?)',
       args: [id, decoded.id, decoded.id],
