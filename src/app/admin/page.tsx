@@ -85,6 +85,19 @@ export default function AdminPage() {
   const [manualMatching, setManualMatching] = useState(false)
   const [matchUsersForSelect, setMatchUsersForSelect] = useState<any[]>([])
 
+  // 匹配结果详情（分页列表，需二级密码验证）
+  const [matchDetailVerified, setMatchDetailVerified] = useState(false)    // 是否已通过二级密码验证
+  const [showMatchPwModal, setShowMatchPwModal] = useState(false)          // 匹配详情密码弹窗
+  const [matchVerifyPassword, setMatchVerifyPassword] = useState('')
+  const [matchVerifyingPw, setMatchVerifyingPw] = useState(false)
+  const [matchVerifyError, setMatchVerifyError] = useState('')
+  const [matchPairs, setMatchPairs] = useState<any[]>([])
+  const [matchUnmatched, setMatchUnmatched] = useState<any[]>([])
+  const [matchTotalPairs, setMatchTotalPairs] = useState(0)
+  const [matchPage, setMatchPage] = useState(1)
+  const MATCH_PAGE_SIZE = 10
+  const [loadingMatchDetails, setLoadingMatchDetails] = useState(false)
+
   useEffect(() => {
     async function load() {
       const res = await fetch('/api/auth/me')
@@ -130,7 +143,13 @@ export default function AdminPage() {
   const requestUserDetail = async (userId: number) => {
     if (expandedUserId === userId) { setExpandedUserId(null); return }
 
-    // 还没设置二级密码 → 直接跳到系统设置页提示去设置
+    // 还在加载中（首次请求尚未返回）→ 等一下再判断
+    if (hasViewPassword === null) {
+      setToast({ msg: '⏳ 正在检查密码设置状态，请稍后再试', type: 'error' })
+      return
+    }
+
+    // 已确认没有设置二级密码 → 跳到系统设置页提示去设置
     if (!hasViewPassword) {
       setTab('settings')
       setToast({ msg: '⚠️ 请先在下方「查看详情二级密码」区域设置密码', type: 'error' })
@@ -309,6 +328,60 @@ export default function AdminPage() {
       setMatchUsersForSelect((data.users || []).filter((u: any) => u.survey_completed))
     } catch { /* ignore */ }
   }
+
+  // ── 匹配结果详情（需二级密码验证 + 分页）──
+  const requestMatchDetail = async () => {
+    if (matchDetailVerified) { setMatchDetailVerified(false); return }
+    if (!hasViewPassword) {
+      setTab('settings')
+      setToast({ msg: '⚠️ 请先设置查看详情二级密码', type: 'error' })
+      return
+    }
+    setMatchVerifyPassword('')
+    setMatchVerifyError('')
+    setShowMatchPwModal(true)
+  }
+
+  const handleMatchVerifyPassword = async () => {
+    if (!matchVerifyPassword.trim()) { setMatchVerifyError('请输入密码'); return }
+    setMatchVerifyingPw(true)
+    setMatchVerifyError('')
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ password: matchVerifyPassword }),
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setShowMatchPwModal(false)
+        setMatchDetailVerified(true)
+        setMatchPage(1)
+        await loadMatchDetails(1)
+      } else if (data.needSetup) {
+        setShowMatchPwModal(false); setTab('settings');
+        setToast({ msg: '⚠️ 请先设置查看详情密码', type: 'error' })
+      } else {
+        setMatchVerifyError(data.message || '密码错误')
+      }
+    } catch { setMatchVerifyError('网络错误，请重试') }
+    finally { setMatchVerifyingPw(false) }
+  }
+
+  const loadMatchDetails = async (page: number = 1) => {
+    setLoadingMatchDetails(true)
+    try {
+      const res = await fetch(`/api/admin/matches?page=${page}&limit=${MATCH_PAGE_SIZE}`)
+      const data = await res.json()
+      setMatchPairs(data.pairs || [])
+      setMatchUnmatched(data.unmatched || [])
+      setMatchTotalPairs(data.totalPairs || 0)
+    } catch { /* ignore */ }
+    finally { setLoadingMatchDetails(false) }
+  }
+
+  const matchTotalPages = Math.ceil(matchTotalPairs / MATCH_PAGE_SIZE)
 
   // 加载系统设置 + 二级密码状态
   useEffect(() => {
@@ -753,7 +826,17 @@ export default function AdminPage() {
               </button>
             {matchResult && (
               <div className="mt-8 bg-gray-50 rounded-2xl p-6 text-left">
-                <h3 className="font-bold text-gray-800 mb-3">匹配结果</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-gray-800">匹配结果</h3>
+                  <button onClick={requestMatchDetail}
+                    className={`text-xs px-3 py-1.5 rounded-lg transition ${
+                      matchDetailVerified
+                        ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
+                        : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                    }`}>
+                    {matchDetailVerified ? '🙈 隐藏详情' : '👁️ 查看匹配详情'}
+                  </button>
+                </div>
                 {matchResult.error ? (
                   <p className="text-red-500">{matchResult.error}</p>
                 ) : matchResult.manual ? (
@@ -768,6 +851,124 @@ export default function AdminPage() {
                     <p>👥 参与人数：<strong>{matchResult.totalEligible}</strong> 人</p>
                     <p>💌 成功匹配：<strong>{matchResult.matchedPairs}</strong> 对</p>
                     <p>😢 未匹配：<strong>{matchResult.unmatchedUsers}</strong> 人</p>
+                  </div>
+                )}
+
+                {/* ── 匹配结果详情列表（需二级密码验证 + 分页）── */}
+                {matchDetailVerified && (
+                  <div className="mt-6 pt-5 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-sm text-gray-700">
+                        💕 配对详情（共 {matchTotalPairs} 对）
+                      </h4>
+                      <span className="text-xs text-gray-400">
+                        第 {matchPage}/{matchTotalPages || 1} 页
+                      </span>
+                    </div>
+
+                    {loadingMatchDetails ? (
+                      <p className="text-center text-gray-400 py-8">加载匹配详情...</p>
+                    ) : matchPairs.length === 0 ? (
+                      <p className="text-center text-gray-400 py-8">暂无匹配记录</p>
+                    ) : (
+                      <>
+                        {/* 配对卡片列表 */}
+                        <div className="space-y-3">
+                          {matchPairs.map((pair: any) => (
+                            <div key={pair.id} className="bg-white rounded-xl p-4 border border-pink-100 shadow-sm">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  {/* 用户A */}
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-cyan-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                      {(pair.userA?.name || '?')[0]}
+                                    </span>
+                                    <div className="min-w-0">
+                                      <span className="text-sm font-medium text-gray-800 truncate block max-w-[120px]">
+                                        {pair.userA?.name || '-'}
+                                      </span>
+                                      <span className="text-xs text-gray-400">{GENDER_LABELS[pair.userA?.gender] || '-'}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* 契合度 */}
+                                  <div className="flex-shrink-0 px-3 py-1 bg-pink-50 rounded-full">
+                                    <span className="text-sm font-bold text-pink-600">{pair.score}%</span>
+                                  </div>
+
+                                  {/* 用户B */}
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="min-w-0 text-right">
+                                      <span className="text-sm font-medium text-gray-800 truncate block max-w-[120px]">
+                                        {pair.userB?.name || '-'}
+                                      </span>
+                                      <span className="text-xs text-gray-400">{GENDER_LABELS[pair.userB?.gender] || '-'}</span>
+                                    </div>
+                                    <span className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-400 to-purple-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                      {(pair.userB?.name || '?')[0]}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* 确认状态 */}
+                              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
+                                <span className={`text-xs ${pair.aRevealed ? 'text-green-500' : 'text-gray-400'}`}>
+                                  {pair.userA?.name}: {pair.aRevealed ? '✅ 已确认' : '⏳ 待确认'}
+                                </span>
+                                <span className="text-gray-200">|</span>
+                                <span className={`text-xs ${pair.bRevealed ? 'text-green-500' : 'text-gray-400'}`}>
+                                  {pair.userB?.name}: {pair.bRevealed ? '✅ 已确认' : '⏳ 待确认'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* 未匹配用户（仅第一页显示） */}
+                        {matchPage === 1 && matchUnmatched.length > 0 && (
+                          <div className="mt-5 pt-4 border-t border-gray-200">
+                            <h5 className="text-xs font-semibold text-gray-500 mb-2">😢 未匹配 ({matchUnmatched.length} 人)</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {matchUnmatched.map((u: any) => (
+                                <span key={u.id} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                                  {u.name} ({GENDER_LABELS[u.gender]})
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 分页导航 */}
+                        {matchTotalPages > 1 && (
+                          <div className="flex items-center justify-center gap-2 mt-5 pt-4 border-t border-gray-100">
+                            <button
+                              onClick={() => { setMatchPage(p => Math.max(1, p - 1)); loadMatchDetails(Math.max(1, matchPage - 1)) }}
+                              disabled={matchPage <= 1}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
+                              ← 上一页
+                            </button>
+                            {Array.from({ length: matchTotalPages }, (_, i) => i + 1).map(p => (
+                              <button
+                                key={p}
+                                onClick={() => { setMatchPage(p); loadMatchDetails(p) }}
+                                className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
+                                  p === matchPage
+                                    ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow'
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
+                                }`}>
+                                {p}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => { setMatchPage(p => Math.min(matchTotalPages, p + 1)); loadMatchDetails(Math.min(matchTotalPages, matchPage + 1)) }}
+                              disabled={matchPage >= matchTotalPages}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
+                              下一页 →
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -881,7 +1082,7 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* 二级密码验证弹窗 */}
+      {/* 二级密码验证弹窗（用户详情） */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)}>
           <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
@@ -910,6 +1111,41 @@ export default function AdminPage() {
                   verifyingPw || !verifyPassword.trim() ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                 {verifyingPw ? '验证中...' : '确认'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 二级密码验证弹窗（匹配详情） */}
+      {showMatchPwModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowMatchPwModal(false)}>
+          <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800 mb-2">🔐 查看匹配详情</h3>
+            <p className="text-sm text-gray-400 mb-5">查看匹配详情需要输入独立的查看详情二级密码</p>
+            <input
+              type="password"
+              value={matchVerifyPassword}
+              onChange={e => { setMatchVerifyPassword(e.target.value); setMatchVerifyError('') }}
+              onKeyDown={e => { if (e.key === 'Enter') handleMatchVerifyPassword() }}
+              placeholder="请输入查看详情密码"
+              autoFocus
+              className={`w-full px-4 py-3 bg-white/60 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
+                matchVerifyError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-purple-300'
+              }`}
+              disabled={matchVerifyingPw}
+            />
+            {matchVerifyError && <p className="text-xs text-red-500 mt-1.5">{matchVerifyError}</p>}
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowMatchPwModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                取消
+              </button>
+              <button onClick={handleMatchVerifyPassword} disabled={matchVerifyingPw || !matchVerifyPassword.trim()}
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl hover:opacity-90 transition ${
+                  matchVerifyingPw || !matchVerifyPassword.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                }`}>
+                {matchVerifyingPw ? '验证中...' : '确认'}
               </button>
             </div>
           </div>
