@@ -252,13 +252,9 @@ export default function Home() {
       {/* Pricing */}
       <section className="relative z-10 max-w-3xl mx-auto px-6 py-16 text-center">
         <div className="glass-card rounded-3xl p-10">
-          <div className="inline-block px-4 py-1 bg-pink-100 text-pink-600 rounded-full text-sm font-medium mb-4">限时免费</div>
           <h2 className="text-3xl font-bold text-gray-800 mb-3">完全免费，纯靠缘分</h2>
-          <p className="text-gray-500 mb-6">校内平台，不收任何费用。每周日20:00自动匹配。</p>
-          <div className="flex items-center justify-center gap-2 text-2xl font-bold gradient-text">
-            ¥ 0 <span className="text-sm text-gray-400 font-normal">/永久</span>
-          </div>
-          <Link href="/login?mode=register" className="inline-block mt-6 px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
+          <p className="text-gray-500 mb-8">校内平台，不收任何费用。每周日20:00自动匹配。</p>
+          <Link href="/login?mode=register" className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
             立即加入 →
           </Link>
         </div>
