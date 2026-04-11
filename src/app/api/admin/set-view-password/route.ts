@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     // CSRF check
     const csrfToken = req.headers.get('x-csrf-token')
     if (!csrfToken) return NextResponse.json({ error: '缺少CSRF Token' }, { status: 400 })
-    const cookieCsrf = req.cookies.get(getCookieName('csrf'))?.value
+    const cookieCsrf = req.cookies.get('csrf-token')?.value
     if (csrfToken !== cookieCsrf) {
       return NextResponse.json({ error: 'CSRF验证失败' }, { status: 403 })
     }
