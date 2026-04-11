@@ -185,63 +185,66 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // ── 批量写入：预分配自增ID，避免子查询在事务中看不到新行 ──
-    const BATCH_SIZE = 20 // 每批 20 个用户
+    // ── 批量写入：使用 db.batch() 将每批 SQL 合并成单次 HTTP 请求 ──
+    // 关键优化：db.batch() 把多条 SQL 打包成 1 次 Turso 网络请求，
+    // 避免 "Too many subrequests by single Worker invocation" 错误
+    const BATCH_SIZE = 20 // 每批 20 个用户（每批 = 1 次 HTTP 请求）
     const startId = baseOffset + 1 // 新用户从 maxId+1 开始
-    let totalCreated = 0
-    const createdUsers: Array<{ id: number; nickname: string; gender: string }> = []
 
     for (let batchStart = 0; batchStart < seedUsers.length; batchStart += BATCH_SIZE) {
       const batch = seedUsers.slice(batchStart, batchStart + BATCH_SIZE)
-      const sqlStatements: string[] = []
-      const sqlArgs: any[][] = []
+      // 构造该批所有 SQL 语句（含参数）
+      const batchStatements: Array<{ sql: string; args: any[] }> = []
+
+      // 开启事务
+      batchStatements.push({ sql: 'BEGIN TRANSACTION', args: [] })
 
       for (let bi = 0; bi < batch.length; bi++) {
         const u = batch[bi]
         // 预分配用户 ID（基于自增规律）
         const userId = startId + batchStart + bi
 
-        // INSERT 用户 — 显式指定 id，避免依赖 lastInsertRowid 子查询
-        sqlStatements.push(
-          `INSERT INTO users (id, nickname, email, password_hash, invite_code, invited_by,
-                              is_admin, gender, preferred_gender, survey_completed, match_enabled)
-           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 1, 1)`
-        )
-        sqlArgs.push([userId, u.nickname, u.email, pwHash, u.inviteCode, adminId, u.gender, u.preferredGender])
+        // INSERT 用户 — 显式指定 id
+        batchStatements.push({
+          sql: `INSERT INTO users (id, nickname, email, password_hash, invite_code, invited_by,
+                                  is_admin, gender, preferred_gender, survey_completed, match_enabled)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 1, 1)`,
+          args: [userId, u.nickname, u.email, pwHash, u.inviteCode, adminId, u.gender, u.preferredGender],
+        })
 
-        // INSERT 问卷答案 — 直接用预分配的 userId，不用子查询
+        // INSERT 问卷答案 — 直接用预分配的 userId
         const fields = Array.from({ length: 35 }, (_, idx) => `q${idx + 1}`)
         const values = fields.map(f => u.survey[f] || '')
-        sqlStatements.push(
-          `INSERT OR REPLACE INTO survey_responses (user_id, ${fields.join(', ')}, updated_at)
-           VALUES (?, ${values.map(() => '?').join(', ')}, datetime('now', 'localtime'))`
-        )
-        sqlArgs.push([userId, ...values])
+        batchStatements.push({
+          sql: `INSERT OR REPLACE INTO survey_responses (user_id, ${fields.join(', ')}, updated_at)
+                VALUES (?, ${values.map(() => '?').join(', ')}, datetime('now', 'localtime'))`,
+          args: [userId, ...values],
+        })
 
-        // INSERT 3 个邀请码 — 直接用预分配的 userId
+        // INSERT 3 个邀请码
         for (const code of u.extraCodes) {
-          sqlStatements.push(
-            'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)'
-          )
-          sqlArgs.push([code, userId])
+          batchStatements.push({
+            sql: 'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)',
+            args: [code, userId],
+          })
         }
       }
 
-      // 使用事务包裹整批写入
+      // 提交事务
+      batchStatements.push({ sql: 'COMMIT', args: [] })
+
+      // 🔑 核心：一次 db.batch() 调用 = 1 次 HTTP 请求到 Turso（包含整批所有 SQL）
       try {
-        await db.execute('BEGIN TRANSACTION')
-        for (let s = 0; s < sqlStatements.length; s++) {
-          await db.execute({ sql: sqlStatements[s], args: sqlArgs[s] })
-        }
-        await db.execute('COMMIT')
-      } catch (txErr) {
-        try { await db.execute('ROLLBACK') } catch (_) { /* ignore */ }
-        throw txErr
+        await db.batch(batchStatements as any)
+      } catch (batchErr: any) {
+        console.error(`[admin/seed-users] batch ${batchStart} failed:`, batchErr?.message)
+        throw new Error('批量写入失败: ' + (batchErr?.message || '未知错误'))
       }
     }
 
-    totalCreated = seedUsers.length
+    const totalCreated = seedUsers.length
     // 构建返回列表（用预分配的 ID）
+    const createdUsers: Array<{ id: number; nickname: string; gender: string }> = []
     for (let i = 0; i < Math.min(seedUsers.length, 10); i++) {
       createdUsers.push({
         id: startId + i,
