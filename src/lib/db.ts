@@ -38,7 +38,7 @@ export async function initDb(): Promise<void> {
   
   initPromise = doInit()
   try { await initPromise }
-  catch { initPromise = null; throw } // 失败后允许重试
+  catch (_e) { initPromise = null; throw } // 失败后允许重试
 }
 
 async function doInit(): Promise<void> {
