@@ -12,6 +12,21 @@ function getCsrfToken(): string {
     ?.split('=')[1] || ''
 }
 
+// 问卷草稿 localStorage key（前端暂存，不依赖后端 API）
+const DRAFT_KEY = 'jai-survey-draft'
+
+/** 将当前答题进度保存到 localStorage */
+function saveDraft(answers: Record<string, string>, step: number) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, step }))
+  } catch { /* storage full / private mode */ }
+}
+
+/** 清除草稿 */
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY) } catch {}
+}
+
 // === 题型定义 ===
 
 type QuestionType = 'choice' | 'multi' | 'text'
@@ -108,13 +123,26 @@ export default function SurveyPage() {
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
       if (!data.user) { router.push('/login'); return }
-      if (data.user.surveyCompleted) setAlreadyCompleted(true)
+      if (data.user.surveyCompleted) {
+        setAlreadyCompleted(true)
+        return
+      }
+      // 恢复本地草稿
+      try {
+        const saved = localStorage.getItem(DRAFT_KEY)
+        if (saved) {
+          const draft = JSON.parse(saved)
+          if (draft.answers) setAnswers(draft.answers)
+          if (typeof draft.step === 'number') setStep(draft.step)
+        }
+      } catch {}
     }).catch(() => router.push('/login'))
     .finally(() => setLoading(false))
   }, [router])
 
-  /** 重填问卷：清除已有记录，从头开始 */
+  /** 重填问卷：清除已有记录和草稿，从头开始 */
   const handleRetake = () => {
+    clearDraft()
     setAlreadyCompleted(false)
     setAnswers({})
     setStep(0)
@@ -134,7 +162,9 @@ export default function SurveyPage() {
   /** 选择题：选中一个选项 */
   const handleSelect = (option: string) => {
     const key = `q${step + 1}`
-    setAnswers({ ...answers, [key]: option })
+    const newAnswers = { ...answers, [key]: option }
+    setAnswers(newAnswers)
+    saveDraft(newAnswers, step)
     setTimeout(() => {
       if (step < QUESTIONS.length - 1) setStep(step + 1)
     }, 300)
@@ -153,13 +183,17 @@ export default function SurveyPage() {
       selected.push(option)
     }
     const newVal = JSON.stringify(selected)
-    setAnswers({ ...answers, [key]: newVal })
+    const newAnswers = { ...answers, [key]: newVal }
+    setAnswers(newAnswers)
+    saveDraft(newAnswers, step)
   }
 
   /** 文本题：更新文本 */
   const handleTextChange = (value: string) => {
     const key = `q${step + 1}`
-    setAnswers({ ...answers, [key]: value })
+    const newAnswers = { ...answers, [key]: value }
+    setAnswers(newAnswers)
+    saveDraft(newAnswers, step)
   }
 
   /** 进入下一步（多选和文本题需要手动点下一步） */
@@ -196,7 +230,8 @@ export default function SurveyPage() {
         body: JSON.stringify(answers)
       })
       if (res.ok) {
-        // 显示庆祝页，延迟跳转
+        // 清除草稿，显示庆祝页，延迟跳转
+        clearDraft()
         setSaving(false)
         setShowComplete(true)
         setTimeout(() => router.push('/match'), 3000)
