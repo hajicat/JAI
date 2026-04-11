@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
       },
       survey: surveyAnswers,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[admin/user-detail]', error?.message || error)
     return NextResponse.json({ error: '获取用户详情失败' }, { status: 500 })
   }
