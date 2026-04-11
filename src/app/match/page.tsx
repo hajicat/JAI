@@ -28,6 +28,53 @@ function getCsrfToken(): string {
     ?.split('=')[1] || ''
 }
 
+// 倒计时到下一个周日 20:00
+function MatchCountdown() {
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
+
+  useEffect(() => {
+    function update() {
+      const now = new Date()
+      const nextSunday = new Date(now)
+      const daysUntilSunday = (7 - now.getDay()) % 7 || 7
+      nextSunday.setDate(now.getDate() + daysUntilSunday)
+      nextSunday.setHours(20, 0, 0, 0)
+      if (nextSunday <= now) nextSunday.setDate(nextSunday.getDate() + 7)
+
+      const diff = nextSunday.getTime() - now.getTime()
+      setCountdown({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        mins: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+        secs: Math.floor((diff % (1000 * 60)) / 1000),
+      })
+    }
+
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <div className="inline-flex items-center gap-2 px-5 py-3 bg-pink-50 rounded-full">
+      {[
+        { val: countdown.days, label: '天' },
+        { val: countdown.hours, label: '时' },
+        { val: countdown.mins, label: '分' },
+        { val: countdown.secs, label: '秒' },
+      ].map((item, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <span className="text-lg font-bold text-pink-600 font-mono w-6 text-center">
+            {String(item.val).padStart(2, '0')}
+          </span>
+          <span className="text-xs text-gray-400">{item.label}</span>
+          {i < 3 && <span className="text-gray-300">:</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function MatchPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -282,10 +329,27 @@ export default function MatchPage() {
           </div>
         ) : (
           <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
-            <div className="text-6xl mb-4">🎁</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">等待本周匹配</h2>
-            <p className="text-gray-500 mb-6">每周日 20:00 进行匹配<br />你的问卷已完成，坐等缘分就好～</p>
-            <div className="inline-block px-6 py-3 bg-pink-50 rounded-full text-pink-600 text-sm">下周见 ✨</div>
+            <div className="text-6xl mb-4">🔮</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>
+            <p className="text-gray-500 mb-6 leading-relaxed">
+              问卷已提交，系统会在每周日 20:00 自动匹配<br />
+              在此之前，不如先去认识几个新朋友？
+            </p>
+
+            {/* 倒计时到下一个周日 20:00 */}
+            <MatchCountdown />
+
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <Link href="/survey"
+                className="text-sm text-purple-500 hover:underline">
+                📝 重新填写问卷
+              </Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/"
+                className="text-sm text-gray-400 hover:underline">
+                🏠 返回首页
+              </Link>
+            </div>
           </div>
         )}
 

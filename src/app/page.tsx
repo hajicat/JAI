@@ -129,7 +129,10 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           {!authChecked ? (
-            <span className="text-xs text-gray-400 px-3">加载中...</span>
+            <div className="flex items-center gap-2">
+              <div className="w-16 h-7 bg-gray-200 rounded-full animate-pulse" />
+              <div className="w-14 h-7 bg-gray-200 rounded-full animate-pulse" />
+            </div>
           ) : user ? (
             <>
               <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition px-4 py-1.5">

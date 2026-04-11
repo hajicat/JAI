@@ -25,6 +25,9 @@ function LoginForm() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [showRegSuccess, setShowRegSuccess] = useState(false)
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
   const [gpsMsg, setGpsMsg] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
@@ -113,6 +116,11 @@ function LoginForm() {
       return
     }
 
+    if (isRegister && !agreedToTerms) {
+      setError('请先同意用户协议和隐私政策')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -128,35 +136,50 @@ function LoginForm() {
 
       let res: Response
       try {
+        // 10秒超时控制
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
         res = await fetch(url, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify(body),
+          signal: controller.signal,
         })
-      } catch (netErr) {
-        setError('网络连接失败，请检查网络后重试')
+        clearTimeout(timeoutId)
+      } catch (netErr: any) {
+        if (netErr.name === 'AbortError') {
+          setError('请求超时，请检查网络后重试')
+        } else {
+          setError('网络连接失败，请检查网络后重试')
+        }
+        setLoading(false) // ← 关键修复：失败时解除 loading
         return
       }
 
-      // 安全解析 JSON，防止非 JSON 响应导致二次异常
       let data: any
       try {
         data = await res.json()
       } catch {
         setError('服务器响应异常，请稍后重试')
+        setLoading(false)
         return
       }
 
       if (!res.ok) {
         setError(data.error || `请求失败（${res.status}）`)
+        setLoading(false)
         return
       }
 
-      if (isRegister) router.push('/survey')
-      else {
+      if (isRegister) {
+        setLoading(false)
+        setShowRegSuccess(true)
+        setTimeout(() => router.push('/survey'), 2000)
+        return
+      } else {
         if (data.user.isAdmin) router.push('/admin')
         else if (!data.user.surveyCompleted) router.push('/survey')
         else router.push('/match')
@@ -175,6 +198,17 @@ function LoginForm() {
         <div className="absolute top-20 left-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" />
         <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
       </div>
+
+      {/* 注册成功提示 */}
+      {showRegSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="glass-card rounded-3xl p-10 text-center shadow-2xl animate-fade-in">
+            <div className="text-6xl mb-4 animate-bounce">🎁</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">注册成功！</h2>
+            <p className="text-gray-500">正在进入问卷...</p>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
@@ -199,7 +233,15 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isRegister && (
               <>
-                {/* GPS Verification (only shown when required) */}
+                {/* 昵称 — 放最前，降低心理门槛 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">昵称</label>
+                  <input type="text" placeholder="你想被叫什么？"
+                    value={form.nickname} onChange={e => setForm({ ...form, nickname: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required />
+                </div>
+
+                {/* GPS Verification */}
                 {gpsRequired && (
                 <div className="bg-gray-50 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -213,6 +255,7 @@ function LoginForm() {
                       {gpsStatus === 'ok' ? '已验证' : gpsStatus === 'fail' ? '验证失败' : gpsStatus === 'checking' ? '验证中' : '未验证'}
                     </span>
                   </div>
+                  <p className="text-xs text-gray-400 mb-2">仅用于校内身份验证，不存储原始位置信息</p>
                   {gpsMsg && <p className="text-xs text-gray-500 mb-2">{gpsMsg}</p>}
                   <button
                     type="button"
@@ -224,7 +267,6 @@ function LoginForm() {
                   </button>
                 </div>
                 )}
-                {/* End GPS Verification */}
 
                 {/* Gender Selection */}
                 <div>
@@ -273,14 +315,6 @@ function LoginForm() {
                   </div>
                 </div>
 
-                {/* Nickname */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">昵称</label>
-                  <input type="text" placeholder="你想被叫什么？"
-                    value={form.nickname} onChange={e => setForm({ ...form, nickname: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required />
-                </div>
-
                 {/* Invite Code */}
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">邀请码</label>
@@ -298,13 +332,44 @@ function LoginForm() {
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required autoComplete="email" />
             </div>
 
+            {/* 密码 + 显示/隐藏切换 */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">密码</label>
-              <input type="password" placeholder={isRegister ? "设置密码（至少8位，含字母和数字）" : "请输入密码"}
-                value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
-                className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition"
-                required minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  placeholder={isRegister ? "设置密码（至少8位，含字母和数字）" : "请输入密码"}
+                  value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+                  className="w-full px-4 py-3 pr-10 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition"
+                  required minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600 transition text-lg"
+                  tabIndex={-1}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
+
+            {/* 用户协议勾选 */}
+            {isRegister && (
+              <label className="flex items-start gap-2 text-xs text-gray-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={e => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 accent-pink-500"
+                />
+                <span>
+                  我已阅读并同意
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:underline mx-1">《用户协议》</a>
+                  和
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:underline mx-1">《隐私政策》</a>
+                </span>
+              </label>
+            )}
 
             <button type="submit" disabled={loading}
               className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition disabled:opacity-50">

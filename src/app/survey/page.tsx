@@ -103,6 +103,7 @@ export default function SurveyPage() {
   const [alreadyCompleted, setAlreadyCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showPrivacyNote, setShowPrivacyNote] = useState(false)
+  const [showComplete, setShowComplete] = useState(false)
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
@@ -194,8 +195,13 @@ export default function SurveyPage() {
         },
         body: JSON.stringify(answers)
       })
-      if (res.ok) router.push('/match')
-      else {
+      if (res.ok) {
+        // 显示庆祝页，延迟跳转
+        setSaving(false)
+        setShowComplete(true)
+        setTimeout(() => router.push('/match'), 3000)
+        return
+      } else {
         const data = await res.json()
         setError(data.error || '提交失败')
       }
@@ -214,6 +220,21 @@ export default function SurveyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+      {/* 问卷完成庆祝弹窗 */}
+      {showComplete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="glass-card rounded-3xl p-10 text-center shadow-2xl animate-fade-in max-w-sm mx-4">
+            <div className="text-6xl mb-4 animate-bounce">🎉</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">问卷完成！</h2>
+            <p className="text-gray-500 mb-4">
+              你的灵魂画像已记录<br />
+              每周日 20:00 自动匹配
+            </p>
+            <div className="text-sm text-gray-400">3 秒后跳转...</div>
+          </div>
+        </div>
+      )}
+
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 right-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
         <div className="absolute bottom-20 left-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '1s' }} />
