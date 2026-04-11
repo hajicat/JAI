@@ -11,6 +11,20 @@ const SAFETY_LABELS: Record<string, { label: string; color: string }> = {
   blocked:  { label: '🚫 封禁', color: 'text-red-600' },
 }
 
+// 将数据库 UTC 时间字符串转为北京时间（UTC+8）格式化显示
+function formatBeijingTime(utcStr: string | null | undefined): string {
+  if (!utcStr) return '-'
+  try {
+    const d = new Date(utcStr + (utcStr.endsWith('Z') ? '' : 'Z'))
+    if (isNaN(d.getTime())) return String(utcStr)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const bj = new Date(d.getTime() + 8 * 60 * 60 * 1000)
+    return `${bj.getUTCFullYear()}-${pad(bj.getUTCMonth() + 1)}-${pad(bj.getUTCDate())} ${pad(bj.getUTCHours())}:${pad(bj.getUTCMinutes())}:${pad(bj.getUTCSeconds())}`
+  } catch {
+    return String(utcStr)
+  }
+}
+
 // 从 cookie 获取 CSRF Token
 function getCsrfToken(): string {
   return document.cookie
@@ -337,7 +351,7 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-400">{u.invited_by_name || '管理员'}</td>
-                        <td className="px-4 py-3 text-gray-400">{u.created_at}</td>
+                        <td className="px-4 py-3 text-gray-400">{formatBeijingTime(u.created_at)}</td>
                       </tr>
                       {/* Expanded detail row */}
                       {expandedUserId === u.id && (
@@ -357,7 +371,7 @@ export default function AdminPage() {
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                       <div><span className="text-gray-400">邮箱：</span>{userDetail.user.email}</div>
                                       <div><span className="text-gray-400">想匹配：</span>{GENDER_LABELS[userDetail.user.preferredGender]}</div>
-                                      <div><span className="text-gray-400">注册时间：</span>{userDetail.user.createdAt}</div>
+                                      <div><span className="text-gray-400">注册时间：</span>{formatBeijingTime(userDetail.user.createdAt)}</div>
                                     </div>
 
                                     {userDetail.user.contactInfo ? (
@@ -497,7 +511,7 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-500">{c.created_by_name}</td>
                       <td className="px-4 py-3 text-gray-400">{c.used_by_name || '-'}</td>
-                      <td className="px-4 py-3 text-gray-400">{c.created_at}</td>
+                      <td className="px-4 py-3 text-gray-400">{formatBeijingTime(c.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
