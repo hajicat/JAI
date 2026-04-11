@@ -4,7 +4,14 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-// 从 cookie 获取 CSRF Token
+// ── 同步工具（纯字符串操作，无网络请求，渲染时即可调用）──
+
+/** 从 cookie 同步读取 token — 用于页面首帧判断登录状态 */
+function hasTokenCookie(): boolean {
+  if (typeof document === 'undefined') return false
+  return document.cookie.split(';').some(c => c.trim().startsWith('token='))
+}
+
 function getCsrfToken(): string {
   if (typeof document === 'undefined') return ''
   return document.cookie
@@ -13,7 +20,8 @@ function getCsrfToken(): string {
     ?.split('=')[1] || ''
 }
 
-// Airport-style flip board for the user count display
+// ── 翻牌数字动画组件 ──
+
 function FlipBoardCount({ value, loading }: { value: number; loading: boolean }) {
   const [display, setDisplay] = useState('0')
   // Each digit independently tracks its current shown value
@@ -77,8 +85,13 @@ export default function Home() {
   const router = useRouter()
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
   const [stats, setStats] = useState({ totalUsers: 0, completedSurvey: 0 })
+  // ── 关键改进：用 cookie 同步判断初始登录状态，首帧即可渲染正确按钮 ──
   const [user, setUser] = useState<any>(null)
-  const [authChecked, setAuthChecked] = useState(false)
+  // isLoggedIn 用于 UI 渲染：true = 已登录（cookie 有 token），false = 未登录
+  // API 返回后 user 会包含完整信息，但按钮跳转不需要等
+  const [isLoggedIn, setIsLoggedIn] = useState(hasTokenCookie())
+  // statsLoaded 仅用于翻牌动画
+  const [statsLoaded, setStatsLoaded] = useState(false)
 
   useEffect(() => {
     function updateCountdown() {
@@ -102,17 +115,23 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [])
 
-  // Single combined API call for stats + user info — much faster than 2 separate requests
+  // Single combined API call for stats + user info
+  // 注意：按钮跳转不再依赖此请求，cookie 同步判断已够用
   useEffect(() => {
     fetch('/api/home-data').then(r => r.json()).then(data => {
       setStats({ totalUsers: data.totalUsers || 0, completedSurvey: data.completedSurvey || 0 })
-      if (data.user) setUser(data.user)
+      if (data.user) {
+        setUser(data.user)
+        setIsLoggedIn(true)
+      } else {
+        setIsLoggedIn(false)
+      }
     }).catch(() => {})
-    .finally(() => setAuthChecked(true))
+    .finally(() => setStatsLoaded(true))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const displayCount = <FlipBoardCount value={stats.completedSurvey} loading={!authChecked} />
+  const displayCount = <FlipBoardCount value={stats.completedSurvey} loading={!statsLoaded} />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
@@ -128,12 +147,7 @@ export default function Home() {
           <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
         </div>
         <div className="flex items-center gap-2">
-          {!authChecked ? (
-            <div className="flex items-center gap-2">
-              <div className="w-16 h-7 bg-gray-200 rounded-full animate-pulse" />
-              <div className="w-14 h-7 bg-gray-200 rounded-full animate-pulse" />
-            </div>
-          ) : user ? (
+          {user ? (
             <>
               <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition px-4 py-1.5">
                 👤 个人信息
@@ -146,6 +160,7 @@ export default function Home() {
                   })
                 } catch { /* ignore */ }
                 setUser(null)
+                setIsLoggedIn(false)
               }} className="text-xs text-gray-500 hover:text-red-500 px-2.5 py-1.5 border border-gray-200 rounded-full hover:bg-red-50 hover:border-red-200 transition">
                 退出登录
               </button>
@@ -199,13 +214,9 @@ export default function Home() {
           </div>
         </div>
 
-        {!authChecked ? (
-          <div className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg animate-pulse opacity-80">
-            加载中...
-          </div>
-        ) : user ? (
-          <Link href={user.surveyCompleted ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-            {user.surveyCompleted ? '💌 查看匹配' : '🎁 继续测试'}
+        {isLoggedIn ? (
+          <Link href={user?.surveyCompleted ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+            {user?.surveyCompleted ? '💌 查看匹配' : '🎁 继续测试'}
           </Link>
         ) : (
           <Link href="/login?mode=register" className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
@@ -267,15 +278,9 @@ export default function Home() {
         <div className="glass-card rounded-3xl p-10">
           <h2 className="text-3xl font-bold text-gray-800 mb-3">完全免费，纯靠缘分</h2>
           <p className="text-gray-500 mb-8">校内平台，不收任何费用。每周日20:00自动匹配。</p>
-          {!authChecked ? (
-            <span className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium animate-pulse opacity-80 cursor-default">
-              加载中...
-            </span>
-          ) : (
-          <Link href={user ? (user.surveyCompleted ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
-            {user ? (user.surveyCompleted ? '查看匹配 →' : '继续测试 →') : '立即加入 →'}
+          <Link href={isLoggedIn ? (user?.surveyCompleted ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
+            {isLoggedIn ? (user?.surveyCompleted ? '查看匹配 →' : '继续测试 →') : '立即加入 →'}
           </Link>
-          )}
         </div>
       </section>
 
