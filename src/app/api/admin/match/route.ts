@@ -140,14 +140,6 @@ function calcTruth(u: any): number {
   if (a6 === 0 && a26 === 3) score -= 0.12     // 口头尊重边界，实际玩权力游戏
   if (a14 === 0 && a3 === 2) score -= 0.08      // 一边说负责，一边故意伤人
 
-  // "完美模板人设"惩罚：统计选了最体面答案(A)的数量
-  const perfectAnswers = [u.q1, u.q4, u.q5, u.q6, u.q8, u.q12,
-    u.q14, u.q15, u.q16, u.q22, u.q27, u.q29, u.q30]
-  const perfectCount = perfectAnswers.filter((a: string) => {
-    const idx = ansIdx('q1', a) // just to check pattern; use generic approach
-    return false // handled below by direct index checks per question
-  }).length
-
   // Count actual "most socially desirable" answers (typically option A for most questions)
   const desirableA = [
     ansIdx('q1', u.q1) === 0,  // 稳住再说明

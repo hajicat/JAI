@@ -95,7 +95,10 @@ function timingSafeEqualStr(a: string, b: string): boolean {
 // PASSWORD HASHING - PBKDF2 (Web Crypto API)
 // ============================================================
 
-const PBKDF2_ITERATIONS = 100000
+// CF Edge Runtime CPU 限制：100k 次迭代约 500ms 会超时（Free 计划 ~50ms 上限）
+// 降低到 5000 次，兼顾安全性与 CF 兼容性（~20-30ms）
+// 同时与登录接口的 SHA-256 dummy hash 耗时接近（~10-50ms），避免 timing attack
+const PBKDF2_ITERATIONS = 5000
 const KEY_LENGTH = 64 // 512 bits
 
 export async function hashPassword(password: string): Promise<string> {
@@ -124,7 +127,8 @@ export async function verifyPassword(password: string, stored: string): Promise<
     if (parts[0] === 'pbkdf2' && parts.length === 4) {
       const [, saltHex, expectedHash, paramStr] = parts
       const [iterationsStr] = paramStr.split('-')
-      const iterations = parseInt(iterationsStr, 10)
+      // 限制迭代次数防止 CF CPU 超时 + 避免 timing attack（与 dummy hash 耗时对齐）
+      const iterations = Math.min(parseInt(iterationsStr, 10), PBKDF2_ITERATIONS)
       const saltBytes = hexToBytes(saltHex)
 
       const keyMaterial = await crypto.subtle.importKey(
