@@ -185,8 +185,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // ── 批量写入：使用事务分组，每批处理一批用户以避免单次请求过大 ──
+    // ── 批量写入：预分配自增ID，避免子查询在事务中看不到新行 ──
     const BATCH_SIZE = 20 // 每批 20 个用户
+    const startId = baseOffset + 1 // 新用户从 maxId+1 开始
     let totalCreated = 0
     const createdUsers: Array<{ id: number; nickname: string; gender: string }> = []
 
@@ -195,39 +196,39 @@ export async function POST(req: NextRequest) {
       const sqlStatements: string[] = []
       const sqlArgs: any[][] = []
 
-      for (const u of batch) {
-        // INSERT 用户
-        sqlStatements.push(
-          `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by,
-                              is_admin, gender, preferred_gender, survey_completed, match_enabled)
-           VALUES (?, ?, ?, ?, ?, 0, ?, ?, 1, 1)`
-        )
-        sqlArgs.push([u.nickname, u.email, pwHash, u.inviteCode, adminId, u.gender, u.preferredGender])
+      for (let bi = 0; bi < batch.length; bi++) {
+        const u = batch[bi]
+        // 预分配用户 ID（基于自增规律）
+        const userId = startId + batchStart + bi
 
-        // INSERT 问卷答案
+        // INSERT 用户 — 显式指定 id，避免依赖 lastInsertRowid 子查询
+        sqlStatements.push(
+          `INSERT INTO users (id, nickname, email, password_hash, invite_code, invited_by,
+                              is_admin, gender, preferred_gender, survey_completed, match_enabled)
+           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 1, 1)`
+        )
+        sqlArgs.push([userId, u.nickname, u.email, pwHash, u.inviteCode, adminId, u.gender, u.preferredGender])
+
+        // INSERT 问卷答案 — 直接用预分配的 userId，不用子查询
         const fields = Array.from({ length: 35 }, (_, idx) => `q${idx + 1}`)
         const values = fields.map(f => u.survey[f] || '')
         sqlStatements.push(
           `INSERT OR REPLACE INTO survey_responses (user_id, ${fields.join(', ')}, updated_at)
-           VALUES ((SELECT id FROM users WHERE email = ?),
-                   ${values.map(() => '?').join(', ')}, datetime('now', 'localtime'))`
+           VALUES (?, ${values.map(() => '?').join(', ')}, datetime('now', 'localtime'))`
         )
-        sqlArgs.push([u.email, ...values])
+        sqlArgs.push([userId, ...values])
 
-        // INSERT 3 个邀请码
+        // INSERT 3 个邀请码 — 直接用预分配的 userId
         for (const code of u.extraCodes) {
           sqlStatements.push(
-            'INSERT INTO invite_codes (code, created_by) VALUES ((SELECT id FROM users WHERE email = ?), ?)'
+            'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)'
           )
-          sqlArgs.push([u.email, code])
+          sqlArgs.push([code, userId])
         }
       }
 
-      // 用 executeMultiple 批量执行（一次网络往返搞定整批）
-      // 构造带参数的 SQL：libsql 的 executeMultiple 不支持参数，改用逐条执行但用 transaction
-      // 回退方案：使用 libsql transaction
+      // 使用事务包裹整批写入
       try {
-        // 使用事务包裹整批
         await db.execute('BEGIN TRANSACTION')
         for (let s = 0; s < sqlStatements.length; s++) {
           await db.execute({ sql: sqlStatements[s], args: sqlArgs[s] })
@@ -239,17 +240,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 查询已创建的用户 ID 列表
-    const createdResult = await db.execute({
-      sql: `SELECT id, nickname, gender FROM users WHERE email LIKE 'seed_%@${SEED_EMAIL_DOMAIN}'
-            ORDER BY id DESC LIMIT ?`,
-      args: [count],
-    })
-    for (const row of createdResult.rows) {
-      const r = row as any
-      createdUsers.unshift({ id: Number(r.id), nickname: r.nickname, gender: r.gender })
+    totalCreated = seedUsers.length
+    // 构建返回列表（用预分配的 ID）
+    for (let i = 0; i < Math.min(seedUsers.length, 10); i++) {
+      createdUsers.push({
+        id: startId + i,
+        nickname: seedUsers[i].nickname,
+        gender: seedUsers[i].gender,
+      })
     }
-    totalCreated = createdUsers.length
 
     // 统计当前总模拟用户数
     const countResult = await db.execute({
