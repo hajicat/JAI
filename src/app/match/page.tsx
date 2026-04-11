@@ -392,8 +392,8 @@ export default function MatchPage() {
             <div className="text-6xl mb-4">🔮</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>
             <p className="text-gray-500 mb-6 leading-relaxed">
-              问卷已提交，系统会在每周日 12:00 自动匹配<br />
-              匹配结果将在每周日 20:00 准时揭晓
+              问卷已提交，系统正在为你寻找最佳匹配<br />
+              匹配结果将在每周日 <span className="font-bold text-pink-600">20:00</span> 准时揭晓
             </p>
 
             {/* 倒计时到揭晓时刻（周日 20:00 北京时间） */}

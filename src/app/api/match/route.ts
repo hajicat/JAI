@@ -58,14 +58,14 @@ export async function GET(req: NextRequest) {
     })
 
     if (matchResult.rows.length === 0) {
-      // 检查是否匹配已执行但还没到揭晓时间（周日12:00~20:00之间）
+      // 检查是否匹配已执行但还没到揭晓时间（非管理员用户需等到北京时间周日20:00）
       const pendingCheck = await db.execute({
         sql: 'SELECT COUNT(*) as cnt FROM matches WHERE (user_a = ? OR user_b = ?) AND week_key = ?',
         args: [uid, uid, weekKey],
       })
       const hasPendingMatch = Number((pendingCheck.rows[0] as any).cnt) > 0
 
-      if (hasPendingMatch && !isRevealWindow()) {
+      if (hasPendingMatch && !isRevealWindow() && !decoded.isAdmin) {
         return NextResponse.json({ match: null, status: 'pending_reveal', message: '匹配已完成，等待揭晓' })
       }
 
@@ -74,8 +74,8 @@ export async function GET(req: NextRequest) {
 
     const match = matchResult.rows[0] as any
 
-    // 未到揭晓时间（北京时间周日20:00前）→ 不返回匹配详情
-    if (!isRevealWindow()) {
+    // 未到揭晓时间（北京时间周日20:00前）→ 非管理员用户看不到匹配详情
+    if (!isRevealWindow() && !decoded.isAdmin) {
       return NextResponse.json({ match: null, status: 'pending_reveal', message: '匹配已完成，等待揭晓' })
     }
 
