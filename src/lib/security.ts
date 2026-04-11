@@ -30,24 +30,32 @@ function getJwtSecret(): string {
 
 function getEncryptKey(): string {
   if (_cachedEncryptKey) return _cachedEncryptKey
-  if (typeof process !== 'undefined' && process.env?.ENCRYPT_SECRET) {
-    _cachedEncryptKey = process.env.ENCRYPT_SECRET
+  
+  // Cloudflare Pages 环境变量通过 process.env 访问
+  const envSecret = typeof process !== 'undefined' ? process.env?.ENCRYPT_SECRET : undefined
+  
+  if (envSecret) {
+    _cachedEncryptKey = envSecret
+    return _cachedEncryptKey
   }
-  if (!_cachedEncryptKey) {
-    // 开发环境允许随机生成，生产环境必须设置环境变量
-    const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
-    if (!isDev) {
-      throw new Error(
-        'CRITICAL: ENCRYPT_SECRET 环境变量未设置！' +
-        '请在 Cloudflare Pages 设置中添加 ENCRYPT_SECRET（至少32位随机十六进制字符串）。' +
-        '未设置此变量将导致所有已存储的联系方式无法解密！'
-      )
-    }
-    const bytes = new Uint8Array(32)
-    crypto.getRandomValues(bytes)
-    _cachedEncryptKey = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-    console.warn('[SECURITY] ⚠️ ENCRYPT_SECRET 未设置，使用临时随机值（仅开发模式）')
+  
+  // 检测是否为生产环境（Cloudflare Pages 或明确设置 NODE_ENV=production）
+  const isCloudflarePages = typeof process !== 'undefined' && !!process.env?.CF_PAGES
+  const isProduction = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'
+  
+  if (isCloudflarePages || isProduction) {
+    throw new Error(
+      'CRITICAL: ENCRYPT_SECRET 环境变量未设置！' +
+      '请在 Cloudflare Pages 设置 → 环境变量中添加 ENCRYPT_SECRET（64位十六进制字符串）。' +
+      '未设置此变量将导致所有联系方式无法加密/解密！'
+    )
   }
+  
+  // 仅本地开发环境使用随机密钥
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  _cachedEncryptKey = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+  console.warn('[SECURITY] ⚠️ ENCRYPT_SECRET 未设置，使用临时随机值（仅开发模式）')
   return _cachedEncryptKey
 }
 
