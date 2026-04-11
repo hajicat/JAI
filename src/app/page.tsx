@@ -199,7 +199,11 @@ export default function Home() {
           </div>
         </div>
 
-        {user ? (
+        {!authChecked ? (
+          <div className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg animate-pulse opacity-80">
+            加载中...
+          </div>
+        ) : user ? (
           <Link href={user.surveyCompleted ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
             {user.surveyCompleted ? '💌 查看匹配' : '🎁 继续测试'}
           </Link>
@@ -263,9 +267,15 @@ export default function Home() {
         <div className="glass-card rounded-3xl p-10">
           <h2 className="text-3xl font-bold text-gray-800 mb-3">完全免费，纯靠缘分</h2>
           <p className="text-gray-500 mb-8">校内平台，不收任何费用。每周日20:00自动匹配。</p>
+          {!authChecked ? (
+            <span className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium animate-pulse opacity-80 cursor-default">
+              加载中...
+            </span>
+          ) : (
           <Link href={user ? (user.surveyCompleted ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
             {user ? (user.surveyCompleted ? '查看匹配 →' : '继续测试 →') : '立即加入 →'}
           </Link>
+          )}
         </div>
       </section>
 
