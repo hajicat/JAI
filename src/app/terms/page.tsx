@@ -39,6 +39,9 @@ export default function TermsPage() {
 
           <h3 className="font-bold text-gray-800 mt-4">六、协议修改</h3>
           <p>我们保留在必要时修改本协议的权利。重大变更将通过平台公告形式通知用户。</p>
+
+          <h3 className="font-bold text-gray-800 mt-4">七、其他</h3>
+          <p>本协议的最终解释权归「吉动盲盒」所有。</p>
         </div>
         <a href="/" className="inline-block mt-8 text-pink-500 hover:underline">← 返回首页</a>
       </div>

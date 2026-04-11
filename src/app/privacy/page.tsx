@@ -22,15 +22,7 @@ export default function PrivacyPage() {
             <li>改进平台的匹配算法和服务质量</li>
           </ul>
 
-          <h3 className="font-bold text-gray-800 mt-4">三、信息的保护</h3>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>所有密码均采用 PBKDF2 哈希加密，不可逆推</li>
-            <li>联系方式采用 AES-256-GCM 对称加密存储</li>
-            <li>JWT Token 用于安全会话管理</li>
-            <li>数据库访问受严格权限控制</li>
-          </ul>
-
-          <h3 className="font-bold text-gray-800 mt-4">四、GPS 定位说明</h3>
+          <h3 className="font-bold text-gray-800 mt-4">三、GPS 定位说明</h3>
           <p>注册时需要获取您的 GPS 位置以验证您是否在校内。此过程：</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>仅在注册页面点击「验证位置」后触发</li>
@@ -39,7 +31,7 @@ export default function PrivacyPage() {
             <li>您可以随时拒绝授权，但将无法完成注册</li>
           </ul>
 
-          <h3 className="font-bold text-gray-800 mt-4">五、信息分享</h3>
+          <h3 className="font-bold text-gray-800 mt-4">四、信息分享</h3>
           <p><strong>我们不会出售您的个人信息。</strong></p>
           <p>以下情况除外：</p>
           <ul className="list-disc pl-5 space-y-1">
@@ -48,15 +40,7 @@ export default function PrivacyPage() {
             <li>保护平台或其他用户的安全权益</li>
           </ul>
 
-          <h3 className="font-bold text-gray-800 mt-4">六、您的权利</h3>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>查看、修改您的个人信息</li>
-            <li>删除账号及所有关联数据</li>
-            <li>撤回已授予的权限</li>
-            <li>导出您的个人数据副本</li>
-          </ul>
-
-          <h3 className="font-bold text-gray-800 mt-4">七、联系我们</h3>
+          <h3 className="font-bold text-gray-800 mt-4">五、联系我们</h3>
           <p>如有任何隐私相关疑问，请联系管理员。</p>
         </div>
         <a href="/" className="inline-block mt-8 text-pink-500 hover:underline">← 返回首页</a>
