@@ -263,9 +263,6 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="relative z-10 text-center py-10 text-gray-400 text-sm">
-        <p>🎁 吉动盲盒 © 2026 吉林动画学院 · 用心构建</p>
-      </footer>
     </div>
   )
 }
