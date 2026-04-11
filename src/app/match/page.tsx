@@ -348,38 +348,52 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
     try { return JSON.parse(val) } catch { return [] }
   }
 
-  // 生成所有35个问题的配置
+  // 完整的35道题目定义（与 survey/page.tsx 保持一致）
   const questions = useMemo(() => {
-    const dimRanges = [
-      { dim: '性格底色', start: 1, end: 8 },
-      { dim: '自我观察', start: 9, end: 14 },
-      { dim: '人生方向', start: 15, end: 21 },
-      { dim: '相处之道', start: 22, end: 28 },
-      { dim: '生活节奏', start: 29, end: 32 },
-      { dim: '个人画像', start: 33, end: 35 },
+    const QUESTIONS = [
+      // A. 性格底色 (q1-q8)
+      { key: 'q1', dim: '性格底色', type: 'choice' as const, q: '你正忙着做一件特别重要的事，旁边的人反复打断你，你最真实的第一反应更接近？' },
+      { key: 'q2', dim: '性格底色', type: 'choice' as const, q: '恋爱后，对方提出"想互相知道手机密码、实时共享定位"，你更接近？' },
+      { key: 'q3', dim: '性格底色', type: 'choice' as const, q: '吵架时，你最担心自己会变成哪一种？' },
+      { key: 'q4', dim: '性格底色', type: 'choice' as const, q: '如果你的朋友和别人起了严重冲突，而你知道朋友不一定占理，你通常会？' },
+      { key: 'q5', dim: '性格底色', type: 'choice' as const, q: '路上看到一只脏兮兮、明显状态不好的流浪猫一直跟着你叫，你第一反应更像？' },
+      { key: 'q6', dim: '性格底色', type: 'choice' as const, q: '对方说"今天有点累，想自己待一会儿，不太想聊天"，你更可能？' },
+      { key: 'q7', dim: '性格底色', type: 'choice' as const, q: '你在团队作业里发现，只要稍微钻点空子就能少做很多事，还不容易被发现，你更可能？' },
+      { key: 'q8', dim: '性格底色', type: 'choice' as const, q: '现在生活费不算宽裕，但你特别想买一个远超自己消费能力的东西，你更可能？' },
+      // B. 自我观察 (q9-q14)
+      { key: 'q9', dim: '自我观察', type: 'choice' as const, q: '遇到很讨厌的人或特别委屈的事，你心里会不会冒出不太体面的想法？' },
+      { key: 'q10', dim: '自我观察', type: 'choice' as const, q: '如果一定要承认自己在关系里的一个缺点，你更像？' },
+      { key: 'q11', dim: '自我观察', type: 'choice' as const, q: '你做这套题的真实心态更接近？' },
+      { key: 'q12', dim: '自我观察', type: 'choice' as const, q: '如果你拿到一笔 3000 元的意外收入，你更倾向？' },
+      { key: 'q13', dim: '自我观察', type: 'choice' as const, q: '如果你刚决定"这笔钱先存着"，结果第二天你最喜欢的一个绝版东西出现了，而且正好花光这笔钱，你更可能？' },
+      { key: 'q14', dim: '自我观察', type: 'choice' as const, q: '你不小心做错事让别人很难堪，你第一反应更像？' },
+      // C. 人生方向 (q15-q21)
+      { key: 'q15', dim: '人生方向', type: 'choice' as const, q: '原计划周末去学一项对自己很重要的东西，朋友突然喊你马上出去玩，你更可能？' },
+      { key: 'q16', dim: '人生方向', type: 'choice' as const, q: '你更希望另一半是什么样的人？' },
+      { key: 'q17', dim: '人生方向', type: 'choice' as const, q: '你更能接受哪种"有缺点但能相处"的室友？' },
+      { key: 'q18', dim: '人生方向', type: 'choice' as const, q: '对热点争议事件，你通常更接近？' },
+      { key: 'q19', dim: '人生方向', type: 'choice' as const, q: '两个人在一起，你最不能接受哪种"不在一个频道"？' },
+      { key: 'q20', dim: '人生方向', type: 'choice' as const, q: '你更认同哪句话？' },
+      { key: 'q21', dim: '人生方向', type: 'choice' as const, q: '如果有一段关系需要你改变很多，你会怎么看？' },
+      // D. 相处之道 (q22-q28)
+      { key: 'q22', dim: '相处之道', type: 'choice' as const, q: '对方很委屈很难过时，你下意识更像？' },
+      { key: 'q23', dim: '相处之道', type: 'choice' as const, q: '你对"分享日常"的理想频率更接近？' },
+      { key: 'q24', dim: '相处之道', type: 'choice' as const, q: '一起旅行时，你最理想的相处方式？' },
+      { key: 'q25', dim: '相处之道', type: 'choice' as const, q: '面对严重分歧，你更像哪种状态？' },
+      { key: 'q26', dim: '相处之道', type: 'choice' as const, q: '如果这次争执里你受伤了，你更可能怎么处理？' },
+      { key: 'q27', dim: '相处之道', type: 'choice' as const, q: '你更能接受哪种表达爱的方式？' },
+      { key: 'q28', dim: '相处之道', type: 'choice' as const, q: '当你不开心时，你更希望对方怎么做？' },
+      // E. 生活节奏 (q29-q32)
+      { key: 'q29', dim: '生活节奏', type: 'choice' as const, q: '你的周末通常更接近？' },
+      { key: 'q30', dim: '生活节奏', type: 'choice' as const, q: '你对居住环境的要求更接近？' },
+      { key: 'q31', dim: '生活节奏', type: 'choice' as const, q: '你怎么看待恋爱中的日常开销？' },
+      { key: 'q32', dim: '生活节奏', type: 'choice' as const, q: '你的社交能量更像？' },
+      // F. 个人画像 (q33-q35) — 开放式题目
+      { key: 'q33', dim: '个人画像', type: 'multi' as const, q: '选出你觉得自己的 3 个优点（可少选）' },
+      { key: 'q34', dim: '个人画像', type: 'multi' as const, q: '选出你觉得自己的 3 个缺点（可少选）' },
+      { key: 'q35', dim: '个人画像', type: 'text' as const, q: '如果用一种食物来比喻你理想中的恋爱关系，会是什么？为什么？' },
     ]
-    const result = []
-    for (let i = 1; i <= 35; i++) {
-      let dim = '未知'
-      for (const range of dimRanges) {
-        if (i >= range.start && i <= range.end) {
-          dim = range.dim
-          break
-        }
-      }
-      let type: 'choice' | 'multi' | 'text' = 'choice'
-      if (i === 33 || i === 34) type = 'multi'
-      else if (i === 35) type = 'text'
-      
-      // 为q33、q34、q35保留原有定制标签
-      let label = `${dim} - 问题${i}`
-      if (i === 33) label = '✨ TA 的优点'
-      else if (i === 34) label = '🌱 TA 认为自己的缺点'
-      else if (i === 35) label = '🍜 TA 用什么食物比喻恋爱关系'
-      
-      result.push({ key: `q${i}`, label, type })
-    }
-    return result
+    return QUESTIONS
   }, [])
 
   const hasContent = questions.some(q => {
@@ -400,15 +414,19 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
       </button>
 
       {expanded && (
-        <div className="mt-4 space-y-4 animate-fade-in">
-          {questions.map(q => {
+        <div className="mt-4 space-y-5 animate-fade-in">
+          {questions.map((q, idx) => {
             if (q.type === 'multi') {
               const items = parseMulti(survey[q.key])
               if (items.length === 0) return null
               return (
-                <div key={q.key} className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-medium text-gray-500 mb-2">{q.label}</p>
-                  <div className="flex flex-wrap gap-2">
+                <div key={q.key} className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-start gap-2 mb-3">
+                    <span className="text-xs font-bold text-pink-500 bg-white px-2 py-0.5 rounded-full mt-0.5">{idx + 1}</span>
+                    <p className="text-sm font-medium text-gray-800 leading-relaxed">{q.q}</p>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-2 ml-6">✨ {q.dim} · TA 的回答</p>
+                  <div className="flex flex-wrap gap-2 ml-6">
                     {items.map((item, i) => (
                       <span key={i} className="px-3 py-1.5 bg-white rounded-lg text-sm text-pink-600 font-medium shadow-sm border border-pink-100">
                         {item}
@@ -421,9 +439,15 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
             const val = survey[q.key]
             if (!val?.trim()) return null
             return (
-              <div key={q.key} className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs font-medium text-gray-500 mb-2">{q.label}</p>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{val}</p>
+              <div key={q.key} className="bg-gray-50 rounded-xl p-4 shadow-sm">
+                <div className="flex items-start gap-2 mb-3">
+                  <span className="text-xs font-bold text-blue-500 bg-white px-2 py-0.5 rounded-full mt-0.5">{idx + 1}</span>
+                  <p className="text-sm font-medium text-gray-800 leading-relaxed">{q.q}</p>
+                </div>
+                <p className="text-xs text-gray-400 mb-2 ml-6">💬 {q.dim} · TA 的回答</p>
+                <div className="ml-6 px-4 py-3 bg-white rounded-lg border border-gray-100">
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{val}</p>
+                </div>
               </div>
             )
           })}
