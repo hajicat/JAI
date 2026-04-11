@@ -9,7 +9,8 @@ export const runtime = 'edge'
  * POST /api/admin/verify-password
  * Body: { password: string }
  *
- * 验证管理员当前密码是否正确，用于查看用户详情等敏感操作前的二次验证
+ * 验证管理员"查看详情二级密码"（独立于登录密码）
+ * 密码存储在 settings 表的 admin_view_password_hash 键中
  */
 export async function POST(req: NextRequest) {
   try {
@@ -23,28 +24,36 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const password = (body.password || '').trim()
-    if (!password) return NextResponse.json({ valid: false }, { status: 400 })
+    if (!password) return NextResponse.json({ valid: false, needSetup: false }, { status: 400 })
 
-    // 查询用户当前密码哈希
     const db = getDb()
     await initDb()
 
+    // 查询独立的查看详情密码哈希
     const result = await db.execute({
-      sql: 'SELECT password_hash FROM users WHERE id = ?',
-      args: [decoded.id],
+      sql: "SELECT value FROM settings WHERE key = 'admin_view_password_hash'",
+      args: [],
     })
     const row = result.rows[0] as any
-    if (!row?.password_hash) return NextResponse.json({ valid: false }, { status: 400 })
 
-    // 用同样的方式哈希输入的密码并比对
+    // 还没设置过二级密码 → 返回提示前端让用户去设置
+    if (!row?.value) {
+      return NextResponse.json({
+        valid: false,
+        needSetup: true,
+        message: '尚未设置查看详情密码，请先在系统设置中设置',
+      })
+    }
+
+    // 比对
     const inputHash = await hashPassword(password)
-    if (inputHash === row.password_hash) {
+    if (inputHash === row.value) {
       return NextResponse.json({ valid: true })
     }
 
-    return NextResponse.json({ valid: false })
+    return NextResponse.json({ valid: false, needSetup: false, message: '密码错误' })
   } catch (error: any) {
     console.error('[admin verify-password]', error?.message || error)
-    return NextResponse.json({ error: '验证失败' }, { status: 500 })
+    return NextResponse.json({ error: '验证失败', valid: false }, { status: 500 })
   }
 }

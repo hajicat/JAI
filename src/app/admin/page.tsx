@@ -59,12 +59,23 @@ export default function AdminPage() {
   const [userDetail, setUserDetail] = useState<any>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
 
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalUserCount, setTotalUserCount] = useState(0)
+
   // 二级密码验证弹窗状态
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [pendingUserId, setPendingUserId] = useState<number | null>(null)
   const [verifyPassword, setVerifyPassword] = useState('')
   const [verifyingPw, setVerifyingPw] = useState(false)
   const [verifyError, setVerifyError] = useState('')
+
+  // 独立二级密码设置状态（系统设置tab）
+  const [viewPwInput, setViewPwInput] = useState('')
+  const [viewPwConfirm, setViewPwConfirm] = useState('')
+  const [settingViewPw, setSettingViewPw] = useState(false)
+  const [hasViewPassword, setHasViewPassword] = useState<boolean | null>(null) // null=未加载
 
   // 手动匹配状态
   const [manualUserA, setManualUserA] = useState<number | ''>('')
@@ -91,10 +102,18 @@ export default function AdminPage() {
     if (tab === 'match') loadMatchUsers()
   }, [tab, loading])
 
-  const loadUsers = async () => {
-    const res = await fetch('/api/admin/users')
+  const loadUsers = async (page: number = 1) => {
+    const res = await fetch(`/api/admin/users?page=${page}`)
     const data = await res.json()
     setUsers(data.users || [])
+    if (data.pagination) {
+      setCurrentPage(data.pagination.page)
+      setTotalPages(data.pagination.totalPages)
+      setTotalUserCount(data.pagination.totalCount)
+    }
+    // 切页时关闭已展开的详情
+    setExpandedUserId(null)
+    setUserDetail(null)
   }
 
   /** 触发查看用户详情：先弹出二级密码验证 */
@@ -119,7 +138,7 @@ export default function AdminPage() {
     finally { setLoadingDetail(false) }
   }
 
-  /** 提交密码验证 */
+  /** 提交密码验证（独立二级密码） */
   const handleVerifyPassword = async () => {
     if (!verifyPassword.trim()) { setVerifyError('请输入密码'); return }
     setVerifyingPw(true)
@@ -135,13 +154,47 @@ export default function AdminPage() {
       if (data.valid) {
         setShowPasswordModal(false)
         if (pendingUserId !== null) loadUserDetail(pendingUserId)
+      } else if (data.needSetup) {
+        // 还没设置过二级密码 → 关闭验证弹窗，跳到设置页
+        setShowPasswordModal(false)
+        setTab('settings')
+        setToast({ msg: '⚠️ 请先设置查看详情密码', type: 'error' })
       } else {
-        setVerifyError('密码错误')
+        setVerifyError(data.message || '密码错误')
       }
     } catch {
       setVerifyError('网络错误，请重试')
     } finally {
       setVerifyingPw(false)
+    }
+  }
+
+  /** 设置/修改独立二级密码 */
+  const handleSetViewPassword = async () => {
+    if (!viewPwInput) { setToast({ msg: '请输入密码', type: 'error' }); return }
+    if (viewPwInput.length < 8) { setToast({ msg: '密码至少8位，含字母和数字', type: 'error' }); return }
+    if (hasViewPassword && !viewPwConfirm) { setToast({ msg: '请确认新密码', type: 'error' }); return }
+    if (viewPwInput !== viewPwConfirm && hasViewPassword) { setToast({ msg: '两次密码不一致', type: 'error' }); return }
+    setSettingViewPw(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/set-view-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ password: viewPwInput }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setToast({ msg: hasViewPassword ? '✅ 二级密码已更新' : '✅ 二级密码已设置', type: 'success' })
+        setViewPwInput(''); setViewPwConfirm('')
+        setHasViewPassword(true)
+      } else {
+        setToast({ msg: data.error || '设置失败', type: 'error' })
+      }
+    } catch {
+      setToast({ msg: '网络错误', type: 'error' })
+    } finally {
+      setSettingViewPw(false)
     }
   }
 
@@ -225,18 +278,17 @@ export default function AdminPage() {
     finally { setManualMatching(false) }
   }
 
-  // 加载可用于匹配的用户列表（已完成问卷的）
+  // 加载可用于匹配的用户列表（已完成问卷的）— 需要全部用户
   const loadMatchUsers = async () => {
     if (matchUsersForSelect.length > 0) return // already loaded
     try {
-      const res = await fetch('/api/admin/users')
+      const res = await fetch('/api/admin/users?all=1')
       const data = await res.json()
-      // Filter to only users who completed survey
       setMatchUsersForSelect((data.users || []).filter((u: any) => u.survey_completed))
     } catch { /* ignore */ }
   }
 
-  // 加载系统设置
+  // 加载系统设置 + 二级密码状态
   useEffect(() => {
     if (loading || tab !== 'settings') return
     fetch('/api/admin/settings')
@@ -244,6 +296,12 @@ export default function AdminPage() {
       .then(d => {
         if (d.gpsRequired !== undefined) setGpsRequired(d.gpsRequired)
       })
+      .catch(() => {})
+
+    // 检查二级密码是否已设置
+    fetch('/api/admin/set-view-password')
+      .then(r => r.json())
+      .then(d => { if ('hasPassword' in d) setHasViewPassword(d.hasPassword) })
       .catch(() => {})
   }, [tab, loading])
 
@@ -332,7 +390,7 @@ export default function AdminPage() {
       <div className="max-w-5xl mx-auto px-6 py-6">
         <div className="flex gap-2 mb-8">
           {[
-            { key: 'users', label: '👥 用户管理', count: users.length },
+            { key: 'users', label: '👥 用户管理', count: totalUserCount || users.length },
             { key: 'codes', label: '📨 邀请码', count: codes.length },
             { key: 'match', label: '💌 执行匹配', count: null },
             { key: 'settings', label: '⚙️ 系统设置', count: null },
@@ -349,18 +407,17 @@ export default function AdminPage() {
         {tab === 'users' && (
           <div className="glass-card rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm table-fixed" style={{ minWidth: '900px' }}>
+              <table className="w-full text-sm table-fixed" style={{ minWidth: '700px' }}>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'12%'}}>昵称</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'5%'}}>性别</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'5%'}}>问卷</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'7%'}}>安全等级</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'6%'}}>参与匹配</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'8%'}}>剩余邀请码</th>
-                    <th className="px-4 py-3 text-center text-gray-500 font-medium" style={{width:'22%'}}>联系方式</th>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'12%'}}>邀请人</th>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'15%'}}>注册时间</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'15%'}}>昵称</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'6%'}}>性别</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'6%'}}>问卷</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'8%'}}>安全等级</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'7%'}}>参与匹配</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'10%'}}>剩余邀请码</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'14%'}}>邀请人</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'17%'}}>注册时间</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -382,22 +439,13 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-center">{u.match_enabled ? '🟢' : '⏸️'}</td>
                         <td className="px-4 py-3 text-center">{u.remaining_codes}</td>
-                        <td className="px-4 py-3 text-center" style={{maxWidth:'200px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                          {u.contactInfo ? (
-                            <span className="font-mono text-xs" title={`${u.contactType === 'wechat' ? '微信' : u.contactType === 'qq' ? 'QQ' : ''} ${u.contactInfo}`}>
-                              {u.contactType === 'wechat' ? '微信' : u.contactType === 'qq' ? 'QQ' : ''} {u.contactInfo}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
-                        </td>
                         <td className="px-4 py-3 text-gray-400">{u.invited_by_name || '管理员'}</td>
                         <td className="px-4 py-3 text-gray-400">{formatBeijingTime(u.created_at)}</td>
                       </tr>
                       {/* Expanded detail row */}
                       {expandedUserId === u.id && (
                         <tr key={`${u.id}-detail`}>
-                          <td colSpan={9} className="px-0 py-0 bg-pink-50/30">
+                          <td colSpan={8} className="px-0 py-0 bg-pink-50/30">
                             <div className="p-5 border-t border-pink-100">
                               {loadingDetail ? (
                                 <p className="text-center text-gray-400 py-4">加载中...</p>
@@ -510,10 +558,45 @@ export default function AdminPage() {
                     </Fragment>
                   ))}
                   {users.length === 0 && (
-                    <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>
                   )}
                 </tbody>
               </table>
+            </div>
+            {/* 分页导航 */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 border-t border-gray-100">
+                <span className="text-xs text-gray-400">
+                  共 {totalUserCount} 人，第 {currentPage}/{totalPages} 页
+                </span>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => loadUsers(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
+                    ← 上一页
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => p !== currentPage && loadUsers(p)}
+                      className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
+                        p === currentPage
+                          ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
+                      }`}>
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => loadUsers(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
+                    下一页 →
+                  </button>
+                </div>
+              </div>
+            )}
             </div>
           </div>
         )}
@@ -705,7 +788,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* 修改密码 */}
+            {/* 修改管理员密码 */}
             <div className="glass-card rounded-2xl p-6 mt-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">🔐 修改管理员密码</h3>
               <div className="space-y-3 max-w-md">
@@ -724,6 +807,46 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
+
+            {/* 设置查看详情二级密码（独立于登录密码） */}
+            <div className="glass-card rounded-2xl p-6 mt-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">🔑 查看详情二级密码</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                独立于管理员登录密码，用于查看用户敏感信息（联系方式、问卷等）前的二次验证。
+                即使登录 session 被劫持，没有此密码也无法查看用户详情。
+              </p>
+              {hasViewPassword === null ? (
+                <p className="text-xs text-gray-300">加载中...</p>
+              ) : (
+                <div className="space-y-3 max-w-md">
+                  <input
+                    type="password"
+                    placeholder={hasViewPassword ? '新的查看详情密码' : '设置查看详情密码（至少8位，含字母和数字）'}
+                    value={viewPwInput}
+                    onChange={e => setViewPwInput(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    disabled={settingViewPw} />
+                  {hasViewPassword && (
+                    <input
+                      type="password"
+                      placeholder="确认新密码"
+                      value={viewPwConfirm}
+                      onChange={e => setViewPwConfirm(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSetViewPassword() }}
+                      className="w-full px-4 py-2.5 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      disabled={settingViewPw} />
+                  )}
+                  <button onClick={handleSetViewPassword}
+                    disabled={settingViewPw || !viewPwInput || (hasViewPassword && !viewPwConfirm)}
+                    className={`px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl hover:opacity-90 disabled:opacity-50 transition`}>
+                    {settingViewPw ? '保存中...' : (hasViewPassword ? '更新二级密码' : '设置二级密码')}
+                  </button>
+                  {hasViewPassword && (
+                    <p className="text-xs text-green-600">✅ 已设置</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -733,13 +856,13 @@ export default function AdminPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)}>
           <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-800 mb-2">🔐 安全验证</h3>
-            <p className="text-sm text-gray-400 mb-5">查看用户详情需要验证管理员密码</p>
+            <p className="text-sm text-gray-400 mb-5">查看用户详情需要输入独立的查看详情密码</p>
             <input
               type="password"
               value={verifyPassword}
               onChange={e => { setVerifyPassword(e.target.value); setVerifyError('') }}
               onKeyDown={e => { if (e.key === 'Enter') handleVerifyPassword() }}
-              placeholder="请输入当前密码"
+              placeholder="请输入查看详情密码"
               autoFocus
               className={`w-full px-4 py-3 bg-white/60 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
                 verifyError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-pink-300'

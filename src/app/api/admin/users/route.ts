@@ -35,44 +35,54 @@ export async function GET(req: NextRequest) {
 
     const db = getDb()
 
-    // No id → return user list
+    // No id → return user list (paginated)
     if (!userId) {
+      // ?all=1: return all users without pagination (for match dropdown)
+      if (req.nextUrl.searchParams.get('all') === '1') {
+        const allResult = await db.execute({
+          sql: `SELECT u.id, u.nickname, u.gender, u.survey_completed
+                FROM users u ORDER BY u.created_at DESC`,
+          args: [],
+        })
+        return NextResponse.json({ users: allResult.rows })
+      }
+
+      const page = Math.max(1, Number(req.nextUrl.searchParams.get('page')) || 1)
+      const pageSize = 10
+      const offset = (page - 1) * pageSize
+
+      // Get total count
+      const countResult = await db.execute({ sql: 'SELECT COUNT(*) as total FROM users', args: [] })
+      const totalCount = Number((countResult.rows[0] as any).total) || 0
+      const totalPages = Math.ceil(totalCount / pageSize)
+
+      // Get paginated users (no contact info in list for security)
       const result = await db.execute({
-        sql: `SELECT u.id, u.nickname, u.email, u.gender, u.preferred_gender,
-                u.survey_completed, u.match_enabled, u.is_admin,
-                u.created_at, u.invited_by, u.contact_type, u.contact_info,
+        sql: `SELECT u.id, u.nickname, u.gender,
+                u.survey_completed, u.match_enabled,
+                u.created_at, u.invited_by,
                 (SELECT COUNT(*) FROM invite_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
                 inv.nickname as invited_by_name
               FROM users u LEFT JOIN users inv ON u.invited_by = inv.id
-              ORDER BY u.created_at DESC`,
-        args: [],
+              ORDER BY u.created_at DESC LIMIT ? OFFSET ?`,
+        args: [pageSize, offset],
       })
 
-      // Decrypt contact info for all users in parallel (admin can see everything)
-      const usersWithContact = await Promise.all(
-        result.rows.map(async (row: any) => {
-          const contact = await safeDecryptContact(row.contact_info, row.contact_type)
-          return {
-            id: row.id,
-            nickname: row.nickname,
-            email: row.email,
-            gender: row.gender,
-            preferred_gender: row.preferred_gender,
-            safety_level: 'normal',
-            survey_completed: !!row.survey_completed,
-            match_enabled: !!row.match_enabled,
-            is_admin: !!row.is_admin,
-            remaining_codes: Number(row.remaining_codes) || 0,
-            invited_by_name: row.invited_by_name,
-            created_at: row.created_at,
-            contactType: contact.type,
-            contactInfo: contact.info,
-          }
-        })
-      )
+      const userList = result.rows.map((row: any) => ({
+        id: row.id,
+        nickname: row.nickname,
+        gender: row.gender,
+        survey_completed: !!row.survey_completed,
+        match_enabled: !!row.match_enabled,
+        remaining_codes: Number(row.remaining_codes) || 0,
+        invited_by_name: row.invited_by_name,
+        created_at: row.created_at,
+      }))
 
-      return NextResponse.json({ users: usersWithContact })
-    }
+      return NextResponse.json({
+        users: userList,
+        pagination: { page, pageSize, totalPages, totalCount },
+      })
 
     const uid = Number(userId)
     if (!Number.isInteger(uid) || uid <= 0) {
