@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
         users: userList,
         pagination: { page, pageSize, totalPages, totalCount },
       })
+    }
 
     const uid = Number(userId)
     if (!Number.isInteger(uid) || uid <= 0) {
