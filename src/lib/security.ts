@@ -127,8 +127,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
     if (parts[0] === 'pbkdf2' && parts.length === 4) {
       const [, saltHex, expectedHash, paramStr] = parts
       const [iterationsStr] = paramStr.split('-')
-      // 限制迭代次数防止 CF CPU 超时 + 避免 timing attack（与 dummy hash 耗时对齐）
-      const iterations = Math.min(parseInt(iterationsStr, 10), PBKDF2_ITERATIONS)
+      const iterations = parseInt(iterationsStr, 10)
       const saltBytes = hexToBytes(saltHex)
 
       const keyMaterial = await crypto.subtle.importKey(

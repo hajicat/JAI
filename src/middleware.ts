@@ -32,7 +32,7 @@ export function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 
   // Permissions Policy - restrict browser features
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)')
 
   // Content Security Policy - hardened for production
   const isDev = process.env.NODE_ENV !== 'production'
