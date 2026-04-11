@@ -8,7 +8,7 @@ export const runtime = 'edge';
 // CF Workers 多 isolate 各自独立内存，不使用模块级缓存
 // 每次请求直接查询数据库，确保多 isolate 间数据一致
 
-async function loadSettings(db: ReturnType<typeof getDb>): { [key: string]: any } {
+async function loadSettings(db: ReturnType<typeof getDb>) {
   // 先确保表存在
   try {
     await db.execute(`CREATE TABLE IF NOT EXISTS settings (
@@ -19,7 +19,7 @@ async function loadSettings(db: ReturnType<typeof getDb>): { [key: string]: any 
   } catch { /* ignore */ }
 
   const row = await db.execute("SELECT key, value FROM settings")
-  const settings: Record<string, any> = {}
+  const settings: any = {}
   if (row.rows.length > 0) {
     for (const r of row.rows as any[]) {
       settings[r.key] = r.value === '1' || r.value === 'true' ? true :
