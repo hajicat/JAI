@@ -117,7 +117,7 @@ function generateRandomSurvey(): Record<string, string> {
   return answers
 }
 
-// ──────────────────── POST: 批量生成 ────────────────────
+// ──────────────────── POST: 批量生成（优化版：事务批量写入）────────────────────
 
 export async function POST(req: NextRequest) {
   try {
@@ -149,16 +149,21 @@ export async function POST(req: NextRequest) {
     // 预哈希密码（所有模拟用户共用，避免重复哈希计算）
     const pwHash = await hashPassword(SEED_PASSWORD)
 
-    const createdUsers: Array<{ id: number; nickname: string; gender: string }> = []
-
     // 先查询现有最大 ID，用于生成唯一 email 后缀
     const maxIdResult = await db.execute({ sql: 'SELECT MAX(id) as mid FROM users', args: [] })
     const baseOffset = Number((maxIdResult.rows[0] as any).mid || 0)
 
+    // 预生成所有数据（纯内存操作，无 IO）
+    interface SeedUser {
+      nickname: string; email: string; gender: string;
+      preferredGender: string; inviteCode: string;
+      survey: Record<string, string>;
+      extraCodes: string[];
+    }
+    const seedUsers: SeedUser[] = []
+
     for (let i = 0; i < count; i++) {
-      // 随机性别（约 50/50）
       const gender = Math.random() > 0.5 ? 'male' : 'female'
-      // preferred_gender: 大多数选异性，少数选 all
       let preferredGender: string
       if (Math.random() > 0.85) {
         preferredGender = 'all'
@@ -166,60 +171,103 @@ export async function POST(req: NextRequest) {
         preferredGender = gender === 'male' ? 'female' : 'male'
       }
 
-      const nickname = randomNickname(gender)
       const uniqueSuffix = baseOffset + i + 1 + Date.now() % 10000
-      const email = `seed_${uniqueSuffix}@${SEED_EMAIL_DOMAIN}`
-      const inviteCode = generateInviteCode()
+      const extraCodes = [generateInviteCode(), generateInviteCode(), generateInviteCode()]
 
-      // 插入用户
-      const insertResult = await db.execute({
-        sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by,
-                                 is_admin, gender, preferred_gender, survey_completed, match_enabled)
-               VALUES (?, ?, ?, ?, ?, 0, ?, ?, 1, 1)`,
-        args: [nickname, email, pwHash, inviteCode, adminId, gender, preferredGender],
+      seedUsers.push({
+        nickname: randomNickname(gender),
+        email: `seed_${uniqueSuffix}@${SEED_EMAIL_DOMAIN}`,
+        gender,
+        preferredGender,
+        inviteCode: generateInviteCode(),
+        survey: generateRandomSurvey(),
+        extraCodes,
       })
+    }
 
-      const userId = Number(insertResult.lastInsertRowid)
-      createdUsers.push({ id: userId, nickname, gender })
+    // ── 批量写入：使用事务分组，每批处理一批用户以避免单次请求过大 ──
+    const BATCH_SIZE = 20 // 每批 20 个用户
+    let totalCreated = 0
+    const createdUsers: Array<{ id: number; nickname: string; gender: string }> = []
 
-      // 生成并插入问卷答案
-      const survey = generateRandomSurvey()
-      const fields = Array.from({ length: 35 }, (_, idx) => `q${idx + 1}`)
-      const values = fields.map(f => survey[f] || '')
+    for (let batchStart = 0; batchStart < seedUsers.length; batchStart += BATCH_SIZE) {
+      const batch = seedUsers.slice(batchStart, batchStart + BATCH_SIZE)
+      const sqlStatements: string[] = []
+      const sqlArgs: any[][] = []
 
-      await db.execute({
-        sql: `INSERT OR REPLACE INTO survey_responses (user_id, ${fields.join(', ')}, updated_at)
-              VALUES (?, ${values.map(() => '?').join(', ')}, datetime('now', 'localtime'))`,
-        args: [userId, ...values],
-      })
+      for (const u of batch) {
+        // INSERT 用户
+        sqlStatements.push(
+          `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by,
+                              is_admin, gender, preferred_gender, survey_completed, match_enabled)
+           VALUES (?, ?, ?, ?, ?, 0, ?, ?, 1, 1)`
+        )
+        sqlArgs.push([u.nickname, u.email, pwHash, u.inviteCode, adminId, u.gender, u.preferredGender])
 
-      // 给每个模拟用户生成 3 个邀请码
-      for (let j = 0; j < 3; j++) {
-        const code = generateInviteCode()
-        await db.execute({
-          sql: 'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)',
-          args: [code, userId],
-        })
+        // INSERT 问卷答案
+        const fields = Array.from({ length: 35 }, (_, idx) => `q${idx + 1}`)
+        const values = fields.map(f => u.survey[f] || '')
+        sqlStatements.push(
+          `INSERT OR REPLACE INTO survey_responses (user_id, ${fields.join(', ')}, updated_at)
+           VALUES ((SELECT id FROM users WHERE email = ?),
+                   ${values.map(() => '?').join(', ')}, datetime('now', 'localtime'))`
+        )
+        sqlArgs.push([u.email, ...values])
+
+        // INSERT 3 个邀请码
+        for (const code of u.extraCodes) {
+          sqlStatements.push(
+            'INSERT INTO invite_codes (code, created_by) VALUES ((SELECT id FROM users WHERE email = ?), ?)'
+          )
+          sqlArgs.push([u.email, code])
+        }
+      }
+
+      // 用 executeMultiple 批量执行（一次网络往返搞定整批）
+      // 构造带参数的 SQL：libsql 的 executeMultiple 不支持参数，改用逐条执行但用 transaction
+      // 回退方案：使用 libsql transaction
+      try {
+        // 使用事务包裹整批
+        await db.execute('BEGIN TRANSACTION')
+        for (let s = 0; s < sqlStatements.length; s++) {
+          await db.execute({ sql: sqlStatements[s], args: sqlArgs[s] })
+        }
+        await db.execute('COMMIT')
+      } catch (txErr) {
+        try { await db.execute('ROLLBACK') } catch (_) { /* ignore */ }
+        throw txErr
       }
     }
 
+    // 查询已创建的用户 ID 列表
+    const createdResult = await db.execute({
+      sql: `SELECT id, nickname, gender FROM users WHERE email LIKE 'seed_%@${SEED_EMAIL_DOMAIN}'
+            ORDER BY id DESC LIMIT ?`,
+      args: [count],
+    })
+    for (const row of createdResult.rows) {
+      const r = row as any
+      createdUsers.unshift({ id: Number(r.id), nickname: r.nickname, gender: r.gender })
+    }
+    totalCreated = createdUsers.length
+
     // 统计当前总模拟用户数
     const countResult = await db.execute({
-      sql: "SELECT COUNT(*) as cnt FROM users WHERE email LIKE 'seed_%@%'",
+      sql: `SELECT COUNT(*) as cnt FROM users WHERE email LIKE 'seed_%@${SEED_EMAIL_DOMAIN}'`,
       args: [],
     })
     const totalSeeds = Number((countResult.rows[0] as any).cnt)
 
     return NextResponse.json({
       success: true,
-      created: createdUsers.length,
+      created: totalCreated,
       totalSeeds,
-      message: `成功生成 ${createdUsers.length} 个模拟用户`,
+      message: `成功生成 ${totalCreated} 个模拟用户`,
       users: createdUsers.slice(0, 10), // 只返回前10个预览
     })
   } catch (error: any) {
     console.error('[admin/seed-users POST]', error?.message || error)
-    return NextResponse.json({ error: '生成模拟用户失败' }, { status: 500 })
+    return NextResponse.json({ error: '生成模拟用户失败: ' + (error?.message || '未知错误') }, { status: 500 })
   }
 }
 
