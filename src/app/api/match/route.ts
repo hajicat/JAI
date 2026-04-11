@@ -18,7 +18,7 @@ function getWeekKey(): string {
   const yearStart = new Date(thursday.getFullYear(), 0, 1)
   const diff = thursday.getTime() - yearStart.getTime()
   const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
-  return now.getFullYear() + '-W' + String(weekNum).padStart(2, '0')
+  return thursday.getFullYear() + '-W' + String(weekNum).padStart(2, '0')
 }
 
 const CONFLICT_NAMES: Record<string, string> = {

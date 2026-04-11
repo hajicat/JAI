@@ -18,7 +18,7 @@ function getWeekKey(): string {
   const yearStart = new Date(thursday.getFullYear(), 0, 1)
   const diff = thursday.getTime() - yearStart.getTime()
   const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
-  return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+  return `${thursday.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
 }
 
 /** 获取答案的字母索引 A=0 B=1 C=2 D=3，找不到返回 -1 */
@@ -439,7 +439,7 @@ function dateToWeekKey(dateStr: string): string {
   const yearStart = new Date(thursday.getFullYear(), 0, 1)
   const diff = thursday.getTime() - yearStart.getTime()
   const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
-  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+  return `${thursday.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
 }
 
 async function handleManualMatch(body: any) {
