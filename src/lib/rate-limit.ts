@@ -44,10 +44,10 @@ export const SURVEY_LIMITER: RateLimitConfig = { windowMs: 5 * 60 * 1000, max: 1
 // KV-based rate limiting (production / when KV binding exists)
 // ============================================================
 
-function getKV(): KVNamespace | null {
+function getKV(): any | null {
   // Cloudflare Pages 绑定通过 globalThis 访问
   try {
-    const kv = (globalThis as any)?.RATE_LIMIT_KV as KVNamespace | undefined
+    const kv = (globalThis as any)?.RATE_LIMIT_KV
     return kv || null
   } catch {
     return null
