@@ -6,10 +6,15 @@ import { useRouter } from 'next/navigation'
 
 // ── 同步工具（纯字符串操作，无网络请求，渲染时即可调用）──
 
-/** 从 cookie 同步读取 token — 用于页面首帧判断登录状态 */
+/** 从 cookie 同步读取 token — 兼容开发/生产环境（生产环境有 __Host- 前缀） */
 function hasTokenCookie(): boolean {
   if (typeof document === 'undefined') return false
-  return document.cookie.split(';').some(c => c.trim().startsWith('token='))
+  const cookies = document.cookie.split(';')
+  // 开发环境: token=  |  生产环境: __Host-token=
+  return cookies.some(c => {
+    const trimmed = c.trim()
+    return trimmed.startsWith('token=') || trimmed.startsWith('__Host-token=')
+  })
 }
 
 function getCsrfToken(): string {
