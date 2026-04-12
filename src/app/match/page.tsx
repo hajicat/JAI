@@ -100,6 +100,7 @@ export default function MatchPage() {
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
   const [matchEnabled, setMatchEnabled] = useState(true)
   const [refreshing, setRefreshing] = useState(false) // 'in_progress' | null
+  const [matchedDone, setMatchedDone] = useState<boolean | null>(null) // null=未知, true=已轮空, false=等待中
 
   const loadData = async () => {
     try {
@@ -120,6 +121,10 @@ export default function MatchPage() {
       setMatchEnabled(meData.user.matchEnabled)
       if (matchData.match) {
         setMatch(matchData.match)
+      }
+      // 记录匹配状态（用于区分"等待中"和"已轮空"）
+      if ('matchedDone' in matchData) {
+        setMatchedDone(matchData.matchedDone)
       }
       setInviteCodes(inviteData.available || [])
     } catch (err) {
@@ -388,7 +393,33 @@ export default function MatchPage() {
               <PartnerAnswers survey={match.partnerSurvey} nickname={match.partnerNickname} />
             )}
           </div>
+        ) : matchedDone ? (
+          /* ── 轮空页面（匹配已完成但没配上）── */
+          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
+            <div className="text-6xl mb-4">🍃</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">本周暂未匹配到搭档</h2>
+            <p className="text-gray-500 mb-6 leading-relaxed">
+              本周参与匹配的同学中，暂时没有找到和你契合度较高的搭档<br />
+              别灰心，缘分可能就在下一周 🌟
+            </p>
+
+            {/* 倒计时到下周日 20:00 北京时间 */}
+            <MatchCountdown />
+
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <Link href="/survey"
+                className="text-sm text-purple-500 hover:underline">
+                📝 调整问卷答案
+              </Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/"
+                className="text-sm text-gray-400 hover:underline">
+                🏠 返回首页
+              </Link>
+            </div>
+          </div>
         ) : (
+          /* ── 等待中页面（匹配尚未执行）── */
           <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
             <div className="text-6xl mb-4">🔮</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>

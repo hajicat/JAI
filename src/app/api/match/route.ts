@@ -4,7 +4,7 @@ import { verifyToken, verifyTokenSafe } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
-import { isRevealWindow, getWeekKey } from '@/lib/week'
+import { isRevealWindow, getWeekKey, isMatchingWindow } from '@/lib/week'
 
 export const runtime = 'edge';
 
@@ -51,12 +51,30 @@ export async function GET(req: NextRequest) {
     })
 
     if (matchResult.rows.length === 0) {
-      // 未到揭晓时间 → 对普通用户隐藏匹配已执行的事实（与"尚未完成"表现一致）
-      if (!isRevealWindow() && !decoded.isAdmin) {
-        return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待' })
+      // 检查匹配是否已执行完毕（用于区分"等待中"和"已轮空"）
+      const lockCheck = await db.execute({
+        sql: "SELECT value FROM settings WHERE key = ?",
+        args: [`matching_lock_${weekKey}`],
+      })
+      const lockStatus = (lockCheck.rows[0] as any)?.value
+      const matchedDone = lockStatus === 'done'
+      const canSeeStatus = isRevealWindow() || !!decoded.isAdmin
+
+      // 未到揭晓时间 → 对普通用户隐藏匹配状态（与"尚未完成"表现一致）
+      if (!canSeeStatus && !matchedDone) {
+        return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待', matchedDone: false })
       }
 
-      return NextResponse.json({ match: null, message: '本周匹配尚未完成，请等待周日匹配' })
+      // 匹配已完成但没配上 → 轮空
+      if (matchedDone) {
+        return NextResponse.json({
+          match: null,
+          message: canSeeStatus ? '本周暂未匹配到合适的搭档' : '本周匹配尚未完成，请耐心等待',
+          matchedDone: true,
+        })
+      }
+
+      return NextResponse.json({ match: null, message: '本周匹配尚未完成，请等待周日匹配', matchedDone: false })
     }
 
     const match = matchResult.rows[0] as any
