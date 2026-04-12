@@ -58,6 +58,7 @@ export default function AdminPage() {
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null)
   const [userDetail, setUserDetail] = useState<any>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null)  // 删除中状态
 
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1)
@@ -175,6 +176,34 @@ export default function AdminPage() {
       setUserDetail(data)
     } catch { /* ignore */ }
     finally { setLoadingDetail(false) }
+  }
+
+  /** 删除用户（需在已通过二级密码验证的用户详情页操作） */
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('⚠️ 确定要删除此用户？此操作不可撤销！\n\n将同时删除：\n- 问卷回答\n- 匹配记录\n- 验证码记录\n- 未使用的邀请码')) return
+
+    setDeletingUserId(userId)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch(`/api/admin/users?id=${userId}`, {
+        method: 'DELETE',
+        headers: { 'x-csrf-token': csrfToken },
+      })
+      const data = await res.json()
+      if (data.success) {
+        setToast({ msg: `✅ ${data.message}`, type: 'success' })
+        // 关闭详情，刷新列表
+        setExpandedUserId(null)
+        setUserDetail(null)
+        loadUsers(currentPage)
+      } else {
+        setToast({ msg: data.error || '删除失败', type: 'error' })
+      }
+    } catch {
+      setToast({ msg: '网络错误，删除失败', type: 'error' })
+    } finally {
+      setDeletingUserId(null)
+    }
   }
 
   /** 提交密码验证（独立二级密码） */
@@ -545,6 +574,18 @@ export default function AdminPage() {
                         <tr key={`${u.id}-detail`}>
                           <td colSpan={8} className="px-0 py-0 bg-pink-50/30">
                             <div className="p-5 border-t border-pink-100">
+                              {/* 删除用户按钮 */}
+                              <div className="flex justify-end mb-3">
+                                <button
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  disabled={deletingUserId === u.id}
+                                  className="text-xs font-medium px-4 py-2 rounded-lg border transition
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
+                                >
+                                  {deletingUserId === u.id ? '⏳ 删除中...' : '🗑️ 删除此用户'}
+                                </button>
+                              </div>
                               {loadingDetail ? (
                                 <p className="text-center text-gray-400 py-4">加载中...</p>
                               ) : userDetail?.error ? (

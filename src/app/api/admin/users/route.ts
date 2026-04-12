@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { getCookieName } from '@/lib/csrf'
+import { validateCsrfToken } from '@/lib/csrf'
 import { calcSafety } from '@/lib/match-engine'
 
 // Helper: attempt to decrypt contact info, safe on failure
@@ -151,5 +152,82 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('[admin/user-detail]', (error as any)?.message || error)
     return NextResponse.json({ error: '获取用户详情失败' }, { status: 500 })
+  }
+}
+
+/**
+ * DELETE /api/admin/users?id=xxx
+ *
+ * 删除指定用户（需管理员权限 + CSRF + 二级密码已在前端验证）
+ * 级联删除：survey_responses, verification_codes, invite_codes(作为创建者), matches
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    // ── 身份验证 ──
+    const cookieName = getCookieName('token')
+    const token = req.cookies.get(cookieName)?.value
+    if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
+
+    const db = getDb()
+    const decoded = await verifyTokenSafe(token, db)
+    if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
+
+    // ── CSRF 校验 ──
+    if (!validateCsrfToken(req)) {
+      return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
+    }
+
+    // ── 获取目标用户ID ──
+    const userId = req.nextUrl.searchParams.get('id')
+    const uid = Number(userId)
+    if (!Number.isInteger(uid) || uid <= 0) {
+      return NextResponse.json({ error: '无效的用户ID' }, { status: 400 })
+    }
+
+    // ── 不允许删除自己 ──
+    if (uid === decoded.id) {
+      return NextResponse.json({ error: '不能删除自己的账号' }, { status: 400 })
+    }
+
+    // ── 检查用户是否存在 ──
+    const userResult = await db.execute({
+      sql: `SELECT id, nickname, is_admin FROM users WHERE id = ?`,
+      args: [uid],
+    })
+    const targetUser = userResult.rows[0] as any
+    if (!targetUser) {
+      return NextResponse.json({ error: '用户不存在' }, { status: 404 })
+    }
+
+    // ── 执行级联删除（按外键依赖顺序）──
+    const nickname = targetUser.nickname
+
+    // 1. 删除匹配记录（作为 user_a 或 user_b）
+    await db.execute({ sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] })
+
+    // 2. 删除问卷回答
+    await db.execute({ sql: `DELETE FROM survey_responses WHERE user_id = ?`, args: [uid] })
+
+    // 3. 删除验证码记录
+    await db.execute({ sql: `DELETE FROM verification_codes WHERE email IN (SELECT email FROM users WHERE id = ?)`, args: [uid] })
+
+    // 4. 删除该用户创建的邀请码（未使用的）
+    await db.execute({ sql: `DELETE FROM invite_codes WHERE created_by = ? AND used_by IS NULL`, args: [uid] })
+
+    // 5. 更新被该用户邀请的人的 invited_by 为 NULL
+    await db.execute({ sql: `UPDATE users SET invited_by = NULL WHERE invited_by = ?`, args: [uid] })
+
+    // 6. 最后删除用户本身
+    await db.execute({ sql: `DELETE FROM users WHERE id = ?`, args: [uid] })
+
+    console.log(`[admin/delete-user] 管理员 ${decoded.id} 删除了用户 ${uid} (${nickname})`)
+
+    return NextResponse.json({
+      success: true,
+      message: `已删除用户「${nickname}」`,
+    })
+  } catch (error) {
+    console.error('[admin/delete-user]', (error as any)?.message || error)
+    return NextResponse.json({ error: '删除用户失败' }, { status: 500 })
   }
 }
