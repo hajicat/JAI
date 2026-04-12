@@ -141,7 +141,20 @@ function LoginForm() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || '发送失败')
+        // 429 冷却/限流：尝试解析等待时间并启动倒计时
+        if (res.status === 429 && data.error) {
+          setError(data.error)
+          // 从错误消息或 Retry-After 头提取秒数启动倒计时
+          const cooldownMatch = data.error.match(/(\d+)\s*秒/)
+          const retryHeader = res.headers.get('Retry-After')
+          const waitSec = cooldownMatch ? parseInt(cooldownMatch[1]) : (retryHeader ? parseInt(retryHeader) : 0)
+          if (waitSec > 0) {
+            setCodeCooldown(waitSec)
+            setCodeSent(true)
+          }
+        } else {
+          setError(data.error || '发送失败')
+        }
         return
       }
 
