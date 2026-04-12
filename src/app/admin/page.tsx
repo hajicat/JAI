@@ -360,6 +360,29 @@ export default function AdminPage() {
     } catch { /* ignore */ }
   }
 
+  // ── 检测本周是否已执行过自动匹配（用户端触发的也能显示）──
+  useEffect(() => {
+    if (loading || tab !== 'match') return
+    // 检查是否有匹配结果（调用一个轻量接口）
+    fetch('/api/admin/match-status')
+      .then(r => r.json())
+      .then(data => {
+        if (data.matched) {
+          // 本周已匹配 → 显示结果摘要
+          setMatchResult({
+            weekKey: data.weekKey,
+            matchedPairs: data.matchedPairs,
+            totalEligible: data.totalEligible,
+            unmatchedUsers: data.unmatchedUsers,
+          })
+        } else {
+          // 未匹配 → 清空旧结果
+          setMatchResult(null)
+        }
+      })
+      .catch(() => {})
+  }, [tab, loading])
+
   // ── 匹配结果详情（需二级密码验证 + 分页）──
   const requestMatchDetail = async () => {
     if (matchDetailVerified) { setMatchDetailVerified(false); return }
