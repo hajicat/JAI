@@ -51,48 +51,64 @@ export async function GET(req: NextRequest) {
     })
 
     if (matchResult.rows.length === 0) {
-      // 检查匹配是否已执行完毕（用于区分"等待中"和"已轮空"）
+      // ── 三种状态区分：等待中 / 轮空 / 新用户待下周 ──
+      //
+      // 1. 匹配未完成（或非管理员且未到揭晓时间）→ 等待中
+      // 2. 匹配已完成 + 用户已在匹配前做完问卷 → 真正的轮空
+      // 3. 匹配已完成 + 用户在匹配后才做问卷 → 新用户，等待下周参与
+      //
+      // 判断方式：对比 survey.updated_at 和 lock 的 updated_at
+      //   survey 更新时间 <= lock 完成时间 → 参与了本轮但没配上
+      //   survey 更新时间 > lock 完成时间 → 本轮跑的时候还没做问卷
+
       const [lockRes, surveyRes] = await Promise.all([
         db.execute({
-          sql: "SELECT value FROM settings WHERE key = ?",
+          sql: "SELECT value, updated_at FROM settings WHERE key = ?",
           args: [`matching_lock_${weekKey}`],
         }),
         db.execute({
-          sql: "SELECT id FROM survey_responses WHERE user_id = ? LIMIT 1",
+          sql: "SELECT updated_at FROM survey_responses WHERE user_id = ? LIMIT 1",
           args: [uid],
         }),
       ])
-      const lockStatus = (lockRes.rows[0] as any)?.value
+      const lockRow = lockRes.rows[0] as any
+      const lockStatus = lockRow?.value
+      const lockUpdatedAt = lockRow?.updated_at || ''
       const matchedDone = lockStatus === 'done'
-      // 用户必须已提交问卷才算"参与匹配"，否则不算轮空
-      const hasSurvey = surveyRes.rows.length > 0
+      const surveyRow = surveyRes.rows[0] as any
+      const surveyUpdatedAt = surveyRow?.updated_at || ''
+      const hasSurvey = !!surveyRow
       const canSeeStatus = isRevealWindow() || !!decoded.isAdmin
 
-      // 未到揭晓时间 + 匹配未完成 → 等待中
-      if (!canSeeStatus && !matchedDone) {
+      // ── 情况A：匹配未完成 / 未到揭晓时间 → 统一显示等待中 ──
+      if (!matchedDone || (!canSeeStatus && matchedDone && !hasSurvey)) {
         return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待', matchedDone: false })
       }
 
-      // 匹配已完成 + 已做问卷但没配上 → 轮空
-      if (matchedDone) {
-        if (hasSurvey) {
-          return NextResponse.json({
-            match: null,
-            message: canSeeStatus ? '本周暂未匹配到合适的搭档' : '本周匹配尚未完成，请耐心等待',
-            matchedDone: true,
-            hasSurvey: true,
-          })
-        } else {
-          return NextResponse.json({
-            match: null,
-            message: '请先完成问卷才能参与匹配',
-            matchedDone: false,
-            hasSurvey: false,
-          })
-        }
+      // ── 情况B：没做问卷 → 引导去做题 ──
+      if (!hasSurvey) {
+        return NextResponse.json({ match: null, message: '请先完成问卷才能参与匹配', matchedDone: false })
       }
 
-      return NextResponse.json({ match: null, message: '本周匹配尚未完成，请等待周日匹配', matchedDone: false })
+      // ── 情况C & D：匹配已完成 + 已做问卷 ──
+      // 判断用户是否在匹配执行前就已经提交了问卷
+      const participatedInThisRound = lockUpdatedAt && surveyUpdatedAt && (surveyUpdatedAt <= lockUpdatedAt)
+
+      if (participatedInThisRound) {
+        // 情况C：参与了本轮匹配但没有配上 → 真正的轮空
+        return NextResponse.json({
+          match: null,
+          message: canSeeStatus ? '本周暂未匹配到合适的搭档' : '本周匹配尚未完成，请耐心等待',
+          matchedDone: true,
+        })
+      } else {
+        // 情况D：匹配结束后才做的问卷（新注册/后补问卷）→ 不算轮空，等下周
+        return NextResponse.json({
+          match: null,
+          message: '你已完成问卷，系统将在下周日为你匹配',
+          matchedDone: false,
+        })
+      }
     }
 
     const match = matchResult.rows[0] as any
