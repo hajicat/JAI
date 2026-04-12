@@ -1,14 +1,12 @@
 /**
- * 邮件验证码模块 — 基于 Resend（兼容 Cloudflare Edge Runtime）
+ * 邮件验证码模块 — 基于 Brevo（SendinBlue）API
+ * 无需额外依赖，纯 fetch 调用，完美兼容 Cloudflare Edge Runtime
  *
  * 安全设计：
  * - 验证码以 SHA-256 哈希存储，不存明文
  * - 6 位数字码，5 分钟过期，最多尝试 5 次
  * - 同一邮箱 60 秒冷却防刷
- * - 开发模式（无 RESEND_API_KEY）时返回明文码供调试
  */
-
-import { Resend } from 'resend'
 
 // ── 配置 ──
 const CODE_EXPIRY_MS = 5 * 60 * 1000       // 5 分钟
@@ -16,10 +14,21 @@ const CODE_COOLDOWN_MS = 60 * 1000         // 60 秒冷却
 const MAX_ATTEMPTS = 5                      // 最大尝试验证次数
 const CODE_LENGTH = 6                       // 6 位数字
 
+// Brevo API 配置
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
+
 export interface VerificationCodeResult {
   success: boolean
   message: string
   error?: string
+}
+
+/**
+ * 获取发件人地址（从环境变量读取）
+ * Brevo 需要先在 Dashboard → Senders 中验证发件邮箱
+ */
+function getFromEmail(): string {
+  return process.env.BREVO_FROM_EMAIL || 'lzx123456123@gmail.com'
 }
 
 /**
@@ -47,16 +56,86 @@ async function hashCode(code: string): Promise<string> {
 }
 
 /**
- * 获取发件人地址（从环境变量读取，带默认值）
- * 注意：Resend 需要验证域名后才能自定义发件地址。
- * 新账号默认只能用 onboarding@resend.dev 或已验证的域名。
+ * 通过 Brevo API 发送邮件（纯 fetch，无外部依赖）
  */
-function getFromEmail(): string {
-  // 优先用环境变量配置的地址，否则用 Resend 免费默认地址
-  if (process.env.RESEND_FROM_EMAIL) {
-    return process.env.RESEND_FROM_EMAIL
+async function sendViaBrevo(
+  toEmail: string,
+  subject: string,
+  htmlContent: string,
+): Promise<{ success: boolean; error?: string; messageId?: string }> {
+  const apiKey = process.env.BREVO_API_KEY
+  if (!apiKey) {
+    return { success: false, error: '未配置 BREVO_API_KEY' }
   }
-  return 'onboarding@resend.dev'
+
+  const fromName = '吉动盲盒'
+  const fromEmail = getFromEmail()
+
+  try {
+    const response = await fetch(BREVO_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: toEmail }],
+        subject,
+        htmlContent,
+      }),
+    })
+
+    if (!response.ok) {
+      const body = await response.text()
+      console.error('[brevo] HTTP error:', response.status, body)
+      return { success: false, error: `Brevo ${response.status}: ${body}` }
+    }
+
+    const data: any = await response.json()
+    console.log(`[brevo] 验证码已发送 → ${toEmail} (messageId: ${data?.messageId})`)
+    return { success: true, messageId: data?.messageId }
+  } catch (err: any) {
+    console.error('[brevo] 异常:', err?.message || err)
+    return { success: false, error: err?.message || '网络请求失败' }
+  }
+}
+
+/**
+ * 构建验证码邮件 HTML
+ */
+function buildEmailHtml(code: string): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span style="font-size: 32px;">🎁</span>
+        <h1 style="color: #333; margin: 12px 0 4px; font-size: 20px;">吉动盲盒</h1>
+        <p style="color: #888; font-size: 14px; margin: 0;">邮箱验证码</p>
+      </div>
+
+      <div style="background: linear-gradient(135deg, #ec4899, #a855f7); border-radius: 16px; padding: 32px; text-align: center; margin: 24px 0;">
+        <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0 0 12px;">你的验证码是</p>
+        <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #fff;">
+          ${code.split('').join(' ')}
+        </div>
+        <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 16px 0 0;">有效期 5 分钟</p>
+      </div>
+
+      <div style="background: #f8f8f8; border-radius: 12px; padding: 16px; font-size: 13px; color: #666; line-height: 1.6;">
+        <p style="margin: 0 0 8px;">⏰ 验证码 <strong>5 分钟</strong>内有效</p>
+        <p style="margin: 0 0 8px;">🔒 请勿将验证码告诉他人</p>
+        <p style="margin: 0;">如果不是你本人操作，请忽略此邮件</p>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+
+      <p style="text-align: center; color: #aaa; font-size: 12px; margin: 0;">
+        此邮件由系统自动发送，请勿回复<br />
+        吉动盲盒 &mdash; 发现校园缘分 ✨
+      </p>
+    </div>
+  `
 }
 
 /**
@@ -66,7 +145,7 @@ function getFromEmail(): string {
  * @param db 数据库客户端（用于存储哈希后的验证码）
  * @param ip 请求者 IP（用于限流）
  *
- * @returns 成功时 success=true；开发模式下额外返回 codeForDev 明文码
+ * @returns 成功时 success=true；失败时返回错误信息
  */
 export async function sendVerificationEmail(
   email: string,
@@ -131,68 +210,24 @@ export async function sendVerificationEmail(
     }
   }
 
-  // ── 5. 通过 Resend 发送邮件 ──
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY!)
+  // ── 5. 通过 Brevo API 发送邮件 ──
+  const result = await sendViaBrevo(
+    email,
+    '你的吉动盲盒验证码',
+    buildEmailHtml(plainCode),
+  )
 
-    const { data, error } = await resend.emails.send({
-      from: `吉动盲盒 <${getFromEmail()}>`,
-      to: [email],
-      subject: '你的吉动盲盒验证码',
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <span style="font-size: 32px;">🎁</span>
-            <h1 style="color: #333; margin: 12px 0 4px; font-size: 20px;">吉动盲盒</h1>
-            <p style="color: #888; font-size: 14px; margin: 0;">邮箱验证码</p>
-          </div>
-
-          <div style="background: linear-gradient(135deg, #ec4899, #a855f7); border-radius: 16px; padding: 32px; text-align: center; margin: 24px 0;">
-            <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0 0 12px;">你的验证码是</p>
-            <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #fff;">
-              ${plainCode.split('').join(' ')}
-            </div>
-            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 16px 0 0;">有效期 5 分钟</p>
-          </div>
-
-          <div style="background: #f8f8f8; border-radius: 12px; padding: 16px; font-size: 13px; color: #666; line-height: 1.6;">
-            <p style="margin: 0 0 8px;">⏰ 验证码 <strong>5 分钟</strong>内有效</p>
-            <p style="margin: 0 0 8px;">🔒 请勿将验证码告诉他人</p>
-            <p style="margin: 0;">如果不是你本人操作，请忽略此邮件</p>
-          </div>
-
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-
-          <p style="text-align: center; color: #aaa; font-size: 12px; margin: 0;">
-            此邮件由系统自动发送，请勿回复<br />
-            吉动盲盒 &mdash; 发现校园缘分 ✨
-          </p>
-        </div>
-      `,
-    })
-
-    if (error) {
-      console.error('[resend] 发送失败:', JSON.stringify(error))
-      const errMsg = error?.message || error?.name || '未知错误'
-      return {
-        success: false,
-        error: `邮件发送失败（${errMsg}）`,
-        message: `验证码发送失败，请稍后重试`,
-      }
-    }
-
-    console.log(`[resend] 验证码已发送 → ${email} (messageId: ${data?.id})`)
-    return {
-      success: true,
-      message: '验证码已发送，请查收邮箱',
-    }
-  } catch (err: any) {
-    console.error('[resend] 异常:', err?.message || err)
+  if (!result.success) {
     return {
       success: false,
-      error: '邮件服务异常',
-      message: '邮件服务暂时不可用，请稍后重试',
+      error: `邮件发送失败（${result.error}）`,
+      message: `验证码发送失败，请稍后重试`,
     }
+  }
+
+  return {
+    success: true,
+    message: '验证码已发送，请查收邮箱',
   }
 }
 
