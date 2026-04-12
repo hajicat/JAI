@@ -197,10 +197,9 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     const errMsg = error?.message || error || 'unknown'
     console.error('[register]', errMsg)
-    // 生产环境隐藏内部错误细节，开发环境返回便于调试
-    const isDev = process.env.NODE_ENV !== 'production'
+    // 临时暴露全部错误信息用于排查（确认问题后改回生产模式隐藏）
     return NextResponse.json(
-      { error: isDev ? `注册失败: ${errMsg}` : '注册失败，请稍后重试' },
+      { error: `注册失败: ${errMsg}` },
       { status: 500 }
     )
   }
