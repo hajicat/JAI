@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     const matchResult = await db.execute({
       sql: sql,
-      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, weekKey],
+      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, weekKey],
     })
 
     if (matchResult.rows.length === 0) {
