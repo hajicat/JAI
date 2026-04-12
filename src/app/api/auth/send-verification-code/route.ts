@@ -65,12 +65,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 返回成功响应
-    // 开发模式额外返回明文码（仅开发环境！）
+    // 降级模式或开发模式都会返回明文码（确保用户能完成注册）
     const responsePayload: any = {
       success: true,
       message: result.message,
     }
-    if (isDevMode() && result.codeForDev) {
+    if (result.codeForDev) {
       responsePayload.devCode = result.codeForDev
     }
 
