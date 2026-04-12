@@ -128,7 +128,7 @@ function LoginForm() {
 
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
 
       const res = await fetch('/api/auth/send-verification-code', {
         method: 'POST',
@@ -234,9 +234,9 @@ function LoginForm() {
 
       let res: Response
       try {
-        // 10秒超时控制
+        // 30秒超时控制
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
         res = await fetch(url, {
           method: 'POST',
           headers: {
