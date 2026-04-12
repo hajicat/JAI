@@ -74,6 +74,9 @@ async function doInit(): Promise<void> {
       max_uses INTEGER DEFAULT 1,
       current_uses INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS survey_responses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id),
       q1 TEXT, q2 TEXT, q3 TEXT, q4 TEXT, q5 TEXT,
@@ -126,6 +129,7 @@ async function doInit(): Promise<void> {
       expires_at TEXT NOT NULL,
       used INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
+    );
 
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_invite ON users(invite_code);
