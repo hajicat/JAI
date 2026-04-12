@@ -100,6 +100,7 @@ export default function MatchPage() {
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
   const [matchEnabled, setMatchEnabled] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [autoMatchStatus, setAutoMatchStatus] = useState<string | null>(null) // 'in_progress' | null
 
   const loadData = async () => {
     try {
@@ -157,31 +158,15 @@ export default function MatchPage() {
         const data = await res.json()
 
         if (data.status === 'done' || data.status === 'already_done') {
-          // 匹配完成或之前已完成 → 刷新页面展示结果
+          // 匹配完成 → 刷新页面展示结果
           window.location.reload()
         } else if (data.status === 'in_progress') {
-          // 别人正在跑 → 用 loadData 轮询而不是整页刷新，最多重试5次
-          if ((window as any).__autoMatchRetries < 5) {
-            ;(window as any).__autoMatchRetries = ((window as any).__autoMatchRetries || 0) + 1
-            setTimeout(async () => {
-              try {
-                const [meRes2, matchRes2] = await Promise.all([
-                  fetch('/api/auth/me'),
-                  fetch('/api/match'),
-                ])
-                const [meData2, matchData2] = await Promise.all([meRes2.json(), matchRes2.json()])
-                if (meData2.user && matchData2.match) {
-                  setUser(meData2.user)
-                  setMatch(matchData2.match)
-                  ;(window as any).__autoMatchRetries = 99 // 停止轮询
-                }
-              } catch { /* ignore */ }
-            }, 5000)
-          }
+          // 别人正在跑 → 标记状态，显示提示，不再自动刷新
+          setAutoMatchStatus('in_progress')
         }
         // status === 'not_yet' 不处理（理论上不会走到这里因为上面已检查时间窗口）
       } catch {
-        // 网络错误不影响使用，用户可以手动刷新页面
+        // 网络错误不影响使用
       }
     }
 
@@ -421,6 +406,18 @@ export default function MatchPage() {
                 🏠 返回首页
               </Link>
             </div>
+
+            {/* 匹配进行中提示 */}
+            {autoMatchStatus === 'in_progress' && (
+              <div className="mt-6 text-center animate-pulse">
+                <p className="text-sm text-blue-500 font-medium">⏳ 系统正在为你计算最佳匹配...</p>
+                <p className="text-xs text-gray-400 mt-1">请稍等片刻，或手动刷新查看结果</p>
+                <button onClick={handleRefresh}
+                  className="mt-3 text-xs px-4 py-1.5 bg-blue-50 text-blue-500 rounded-full hover:bg-blue-100 transition">
+                  刷新查看
+                </button>
+              </div>
+            )}
           </div>
         )}
 
