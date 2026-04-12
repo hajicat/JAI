@@ -36,9 +36,18 @@ export interface RateLimitConfig {
 
 // Pre-configured limiters
 export const LOGIN_LIMITER: RateLimitConfig = { windowMs: 15 * 60 * 1000, max: 10 }
-export const REGISTER_LIMITER: RateLimitConfig = { windowMs: 60 * 60 * 1000, max: 3 }
+// 注册 IP 限流：校园网共享 IP 场景下需放宽，防滥用靠邮箱维度
+export const REGISTER_LIMITER: RateLimitConfig = { windowMs: 60 * 60 * 1000, max: 50 }
 export const API_LIMITER: RateLimitConfig = { windowMs: 1 * 60 * 1000, max: 60 }
 export const SURVEY_LIMITER: RateLimitConfig = { windowMs: 5 * 60 * 1000, max: 10 }
+
+/**
+ * 邮箱维度限流（防止同一邮箱频繁操作）
+ * 用于注册/发码等场景，作为 IP 限流的补充
+ * 校园网多人共享 IP 时，邮箱维度是更精确的防滥用手段
+ */
+export const EMAIL_REGISTER_LIMITER: RateLimitConfig = { windowMs: 24 * 60 * 60 * 1000, max: 2 }
+export const EMAIL_CODE_LIMITER: RateLimitConfig = { windowMs: 60 * 60 * 1000, max: 5 }
 
 // ============================================================
 // KV-based rate limiting (production / when KV binding exists)
@@ -171,4 +180,58 @@ export async function checkRateLimit(
     return checkRateLimitKV(ip, config, action)
   }
   return Promise.resolve(checkRateLimitMemory(ip, config, action))
+}
+
+/**
+ * 基于邮箱的限流检查（与 IP 维度互补）
+ *
+ * 适用场景：
+ * - 校园网/共享 WiFi 等多人共用同一公网IP的环境
+ * - 邮箱是更精确的身份标识，可有效防止单人滥用注册
+ */
+export async function checkRateLimitByEmail(
+  email: string,
+  config: RateLimitConfig,
+  action: string
+): Promise<{ allowed: boolean; remaining: number; retryAfter: number }> {
+  // 用 email hash 作为 key（避免明文邮箱写入 KV）
+  const emailKey = `eml:${action}:${email.toLowerCase().trim()}`
+  
+  if (detectKVAvailable()) {
+    // 复用 KV 函数，只是 key 不同
+    return checkRateLimitKVWithEmail(emailKey, config)
+  }
+  return Promise.resolve(checkRateLimitMemoryByEmail(emailKey, config))
+}
+
+// ── KV 模式（邮箱维度）──
+async function checkRateLimitKVWithEmail(
+  kvKey: string,
+  config: RateLimitConfig
+): Promise<{ allowed: boolean; remaining: number; retryAfter: number }> {
+  const kv = getKV()
+  if (!kv) throw new Error('KV not available')
+  return checkRateLimitKV(kvKey, config, kvKey)
+}
+
+// ── Memory 模式（邮箱维度）──
+function checkRateLimitMemoryByEmail(
+  key: string,
+  config: RateLimitConfig
+): { allowed: boolean; remaining: number; retryAfter: number } {
+  if (Math.random() < 0.01) cleanup()
+  const store = getStore()
+  const now = Date.now()
+  const entry = store.get(key)
+
+  if (!entry || now > entry.resetAt) {
+    store.set(key, { count: 1, resetAt: now + config.windowMs })
+    return { allowed: true, remaining: config.max - 1, retryAfter: 0 }
+  }
+
+  entry.count++
+  if (entry.count > config.max) {
+    return { allowed: false, remaining: 0, retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
+  }
+  return { allowed: true, remaining: config.max - entry.count, retryAfter: 0 }
 }

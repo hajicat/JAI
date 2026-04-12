@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { validateEmail, sanitizeString } from '@/lib/validation'
-import { checkRateLimit, REGISTER_LIMITER } from '@/lib/rate-limit'
+import { checkRateLimit, REGISTER_LIMITER, checkRateLimitByEmail, EMAIL_CODE_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken } from '@/lib/csrf'
 import { sendVerificationEmail } from '@/lib/email'
 
@@ -34,6 +34,15 @@ export async function POST(req: NextRequest) {
     // 解析请求体
     const body = await req.json()
     const email = sanitizeString(body.email || '', 254).toLowerCase()
+
+    // 邮箱维度限流（防止单个邮箱被滥用）
+    const emailRateResult = await checkRateLimitByEmail(email, EMAIL_CODE_LIMITER, 'send_code')
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: '该邮箱发送验证码太频繁，请稍后再试' },
+        { status: 429, headers: { 'Retry-After': String(emailRateResult.retryAfter) } }
+      )
+    }
 
     // 邮箱格式校验
     const emailCheck = validateEmail(email)

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb, CAMPUS_LAT, CAMPUS_LNG, CAMPUS_RADIUS_KM } from '@/lib/db'
 import { hashPassword, createToken, generateInviteCode } from '@/lib/auth'
 import { validateEmail, validatePassword, validateNickname, validateInviteCode, sanitizeString } from '@/lib/validation'
-import { checkRateLimit, REGISTER_LIMITER } from '@/lib/rate-limit'
+import { checkRateLimit, REGISTER_LIMITER, checkRateLimitByEmail, EMAIL_REGISTER_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/lib/csrf'
 import { haversineDistance } from '@/lib/geo'
 import { verifyCode } from '@/lib/email'
@@ -26,8 +26,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const nickname = sanitizeString(body.nickname || '', 20)
     const email = sanitizeString(body.email || '', 254).toLowerCase()
+
+    // 邮箱维度限流（校园网共享IP场景下更精确的防滥用）
+    const emailRateResult = await checkRateLimitByEmail(email, EMAIL_REGISTER_LIMITER, 'register')
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: '该邮箱注册次数已达上限' },
+        { status: 429, headers: { 'Retry-After': String(emailRateResult.retryAfter) } }
+      )
+    }
     const password = body.password || ''
     const inviteCode = (typeof body.inviteCode === 'string' ? body.inviteCode.trim() : '').toUpperCase()
     const gender = sanitizeString(body.gender || '', 10)
