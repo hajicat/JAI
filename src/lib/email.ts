@@ -19,8 +19,10 @@ const CODE_LENGTH = 6                       // 6 位数字
 export interface VerificationCodeResult {
   success: boolean
   // 发送成功时
-  codeForDev?: string        // 仅开发模式：明文验证码
+  codeForDev?: string        // 仅开发模式/降级模式：明文验证码
   message: string            // 用户可见提示
+  // 发送失败或降级时的调试信息（不展示给用户）
+  _debug?: string            // 内部调试用
   // 发送失败时
   error?: string
 }
