@@ -204,7 +204,7 @@ async function doInit(): Promise<void> {
   ]
 
   // 收集需要 ALTER 的表名，批量查询
-  const tablesToCheck = [...new Set(alterStatements.map(a => a.table))]
+  const tablesToCheck = Array.from(new Set(alterStatements.map(a => a.table)))
   for (const tableName of tablesToCheck) {
     const columnsForTable = alterStatements.filter(a => a.table === tableName)
     if (columnsForTable.length === 0) continue
