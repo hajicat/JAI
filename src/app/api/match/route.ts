@@ -202,6 +202,7 @@ export async function POST(req: NextRequest) {
     // 揭晓时间检查：非揭晓窗口内不允许标记 revealed
     if (!isRevealWindow() && !decoded.isAdmin) {
       return NextResponse.json({ error: '匹配结果尚未揭晓，请等待周日20:00' }, { status: 403 })
+    }
 
     const ip = getClientIp(req)
     const rateResult = await checkRateLimit(ip, API_LIMITER, 'match-reveal')
