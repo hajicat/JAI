@@ -101,13 +101,26 @@ export default function Home() {
   useEffect(() => {
     function updateCountdown() {
       const now = new Date()
-      const nextSunday = new Date(now)
-      const daysUntilSunday = (7 - now.getDay()) % 7 || 7
-      nextSunday.setDate(now.getDate() + daysUntilSunday)
-      nextSunday.setHours(20, 0, 0, 0)
-      if (nextSunday <= now) nextSunday.setDate(nextSunday.getDate() + 7)
 
-      const diff = nextSunday.getTime() - now.getTime()
+      // 目标：北京时间本周日或下周日 20:00（匹配结果揭晓时刻）
+      // 北京时间 20:00 = UTC 12:00
+      const target = new Date(now)
+      const utcDay = now.getUTCDay()
+      const utcHours = now.getUTCHours()
+
+      if (utcDay === 0 && utcHours >= 12) {
+        // 已过北京时间周日20:00，跳到下个周日
+        target.setUTCDate(target.getUTCDate() + 7)
+        target.setUTCHours(12, 0, 0, 0)
+      } else {
+        // 算到这个周日的北京时间 20:00
+        const daysToAdd = (7 - now.getDay()) % 7
+        target.setDate(now.getDate() + (daysToAdd || 0))
+        target.setHours(20, 0, 0, 0)
+        if (target <= now) target.setDate(target.getDate() + 7)
+      }
+
+      const diff = target.getTime() - now.getTime()
       const days = Math.floor(diff / (1000 * 60 * 60 * 24))
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
       const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
