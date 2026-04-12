@@ -155,20 +155,29 @@ export async function verifyPassword(password: string, stored: string): Promise<
       const iterations = parseInt(iterationsStr, 10)
       const saltBytes = hexToBytes(saltHex)
 
-      // 使用与 hashPassword 相同的 pepper 混入密码
+      // --- 尝试带 pepper 验证（新哈希） ---
       const pepperedPassword = `${getPepper()}:${password}`
-
-      const keyMaterial = await crypto.subtle.importKey(
+      let keyMaterial = await crypto.subtle.importKey(
         'raw', strToBytes(pepperedPassword), { name: 'PBKDF2' }, false, ['deriveBits']
       )
-
-      const derivedBits = await crypto.subtle.deriveBits(
+      let derivedBits = await crypto.subtle.deriveBits(
         { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-512' },
         keyMaterial,
         KEY_LENGTH * 8
       )
+      let hashHex = bytesToHex(new Uint8Array(derivedBits))
+      if (timingSafeEqualStr(hashHex, expectedHash)) return true
 
-      const hashHex = bytesToHex(new Uint8Array(derivedBits))
+      // --- Fallback：无 pepper 验证（旧哈希，pepper 上线前注册的用户） ---
+      keyMaterial = await crypto.subtle.importKey(
+        'raw', strToBytes(password), { name: 'PBKDF2' }, false, ['deriveBits']
+      )
+      derivedBits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-512' },
+        keyMaterial,
+        KEY_LENGTH * 8
+      )
+      hashHex = bytesToHex(new Uint8Array(derivedBits))
       return timingSafeEqualStr(hashHex, expectedHash)
     }
 
