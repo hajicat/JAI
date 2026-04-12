@@ -195,7 +195,13 @@ export async function POST(req: NextRequest) {
 
     return setCsrfCookie(response)
   } catch (error: any) {
-    console.error('[register]', error?.message || error)
-    return NextResponse.json({ error: '注册失败，请稍后重试' }, { status: 500 })
+    const errMsg = error?.message || error || 'unknown'
+    console.error('[register]', errMsg)
+    // 生产环境隐藏内部错误细节，开发环境返回便于调试
+    const isDev = process.env.NODE_ENV !== 'production'
+    return NextResponse.json(
+      { error: isDev ? `注册失败: ${errMsg}` : '注册失败，请稍后重试' },
+      { status: 500 }
+    )
   }
 }
