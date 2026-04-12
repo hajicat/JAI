@@ -55,11 +55,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '当前密码错误' }, { status: 400 })
     }
 
-    // Update password + invalidate old tokens by setting password_changed_at
+    // Update password + clear failed login state + invalidate old tokens
     const newHash = await hashPassword(newPassword)
     const changedAt = new Date().toISOString()
     await db.execute({
-      sql: 'UPDATE users SET password_hash = ?, password_changed_at = ? WHERE id = ?',
+      sql: 'UPDATE users SET password_hash = ?, password_changed_at = ?, failed_login_attempts = 0, locked_until = NULL WHERE id = ?',
       args: [newHash, changedAt, decoded.id],
     })
 

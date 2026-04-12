@@ -59,7 +59,7 @@ async function doInit(): Promise<void> {
       contact_info TEXT,
       contact_type TEXT DEFAULT 'wechat',
       conflict_type TEXT,
-      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      created_at TEXT DEFAULT (datetime('now')),
       last_match_date TEXT,
       failed_login_attempts INTEGER DEFAULT 0,
       locked_until TEXT,
@@ -73,10 +73,7 @@ async function doInit(): Promise<void> {
       used_by INTEGER REFERENCES users(id),
       max_uses INTEGER DEFAULT 1,
       current_uses INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now', 'localtime'))
-    );
-
-    CREATE TABLE IF NOT EXISTS survey_responses (
+      created_at TEXT DEFAULT (datetime('now'))
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id),
       q1 TEXT, q2 TEXT, q3 TEXT, q4 TEXT, q5 TEXT,
@@ -86,7 +83,7 @@ async function doInit(): Promise<void> {
       q21 TEXT, q22 TEXT, q23 TEXT, q24 TEXT, q25 TEXT,
       q26 TEXT, q27 TEXT, q28 TEXT, q29 TEXT, q30 TEXT,
       q31 TEXT, q32 TEXT, q33 TEXT, q34 TEXT, q35 TEXT,
-      updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+      updated_at TEXT DEFAULT (datetime('now')),
       UNIQUE(user_id)
     );
 
@@ -98,10 +95,11 @@ async function doInit(): Promise<void> {
       dim_scores TEXT,
       reasons TEXT,
       week_key TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      created_at TEXT DEFAULT (datetime('now')),
       a_revealed INTEGER DEFAULT 0,
       b_revealed INTEGER DEFAULT 0,
       UNIQUE(user_a, week_key),
+      UNIQUE(user_b, week_key)
       UNIQUE(user_b, week_key)
     );
 
@@ -118,7 +116,7 @@ async function doInit(): Promise<void> {
       expires_at TEXT NOT NULL,
       ip TEXT,
       attempts INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+      created_at TEXT DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -127,8 +125,7 @@ async function doInit(): Promise<void> {
       token_hash TEXT NOT NULL UNIQUE,
       expires_at TEXT NOT NULL,
       used INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now', 'localtime'))
-    );
+      created_at TEXT DEFAULT (datetime('now'))
 
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_invite ON users(invite_code);

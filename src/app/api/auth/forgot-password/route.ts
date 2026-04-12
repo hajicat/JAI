@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
 
     await db.execute({
       sql: `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, used, created_at)
-            VALUES (?, ?, ?, 0, datetime('now', 'localtime'))`,
+            VALUES (?, ?, ?, 0, datetime('now'))`,
       args: [userId, tokenHash, expiresAt],
     })
 

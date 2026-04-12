@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: emailCheck.error }, { status: 400 })
     }
 
-    // 检查邮箱是否已注册（注册阶段提示友好信息）
+    // 检查邮箱是否已注册 — 不暴露是否存在，与 forgot-password 保持一致（防枚举）
     const db = getDb()
     await initDb()
 
@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
         args: [email],
       })
       if (existing.rows.length > 0) {
-        return NextResponse.json({ error: '该邮箱已被注册' }, { status: 400 })
+        // 邮箱已存在，返回成功但不实际发码（防枚举：攻击者无法区分"已注册"和"发送成功"）
+        return NextResponse.json({ success: true, message: '验证码已发送，请查收邮箱' })
       }
     } catch (_) {
       /* 表可能不存在，继续 */

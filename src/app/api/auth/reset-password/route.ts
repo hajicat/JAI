@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     // 哈希新密码并更新
     const newPasswordHash = await hashPassword(password)
     await db.execute({
-      sql: `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', 'localtime'),
+      sql: `UPDATE users SET password_hash = ?, password_changed_at = datetime('now'),
             failed_login_attempts = 0, locked_until = NULL WHERE id = ?`,
       args: [newPasswordHash, tokenRow.user_id],
     })

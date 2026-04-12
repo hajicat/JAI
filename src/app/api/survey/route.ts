@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
 
     await db.execute({
       sql: `INSERT OR REPLACE INTO survey_responses (user_id, ${fields.join(', ')}, updated_at)
-            VALUES (?, ${values.map(() => '?').join(', ')}, datetime('now', 'localtime'))`,
+            VALUES (?, ${values.map(() => '?').join(', ')}, datetime('now'))`,
       args: [decoded.id, ...values],
     })
 

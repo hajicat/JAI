@@ -71,8 +71,8 @@ export async function POST(req: NextRequest) {
 
     if (typeof body.gpsRequired === 'boolean') {
       await db.execute({
-        sql: `INSERT INTO settings (key, value, updated_at) VALUES ('gpsRequired', ?, datetime('now', 'localtime'))
-               ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now', 'localtime')`,
+        sql: `INSERT INTO settings (key, value, updated_at) VALUES ('gpsRequired', ?, datetime('now'))
+               ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
         args: [body.gpsRequired ? '1' : '0'],
       })
       // 不再使用缓存，重新查询数据库获取最新值
