@@ -125,8 +125,10 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (error: any) {
-    console.error('[match GET]', error && error.message ? error.message : error)
-    return NextResponse.json({ error: '获取匹配失败' }, { status: 500 })
+    const errMsg = error?.message || error?.toString() || 'unknown'
+    console.error('[match GET]', errMsg)
+    // 临时暴露详细错误以便排查 500 根因，定位后改回通用消息
+    return NextResponse.json({ error: '获取匹配失败', detail: errMsg }, { status: 500 })
   }
 }
 
@@ -178,7 +180,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('[match POST]', error && error.message ? error.message : error)
-    return NextResponse.json({ error: '操作失败' }, { status: 500 })
+    const errMsg = error?.message || error?.toString() || 'unknown'
+    console.error('[match POST]', errMsg)
+    return NextResponse.json({ error: '操作失败', detail: errMsg }, { status: 500 })
   }
 }
