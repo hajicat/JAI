@@ -161,7 +161,7 @@ async function doInit(): Promise<void> {
   const adminAlreadySeeded = adminSeededRow.rows.length > 0
 
   // ── Schema 迁移（增量，只在版本低于当前时才执行）──
-  // 版本 1→2: ALTER TABLE users 添加新列（users 表早期没有这些列的历史数据需要迁移）
+  // 版本 1: 补齐早期 users/survey_responses/matches 表缺失的列
   if (currentVersion < 1) {
     const userAlters = [
       `ALTER TABLE users ADD COLUMN gender TEXT`,
@@ -178,11 +178,14 @@ async function doInit(): Promise<void> {
     for (const sql of [...userAlters, `ALTER TABLE matches ADD COLUMN dim_scores TEXT`, ...surveyAlters]) {
       try { await db.execute(sql) } catch (_) { /* 列已存在则忽略 */ }
     }
-    await db.execute({
-      sql: `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('db_schema_version', ?, datetime('now'))`,
-      args: [String(CURRENT_SCHEMA_VERSION)],
-    })
   }
+
+  // 写入版本记录（无论是否执行了迁移，都要记录当前版本）
+  // 对已记录版本的情况：UPSERT 不改变已有值
+  await db.execute({
+    sql: `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('db_schema_version', ?, datetime('now'))`,
+    args: [String(CURRENT_SCHEMA_VERSION)],
+  })
 
   // ── 管理员种子（仅首次运行）──
   if (!adminAlreadySeeded) {
