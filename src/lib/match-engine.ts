@@ -11,6 +11,124 @@ import { getWeekKey, dateToWeekKey } from './week'
 
 export { getWeekKey, isMatchingWindow } from './week'
 
+// ── 带数据库锁的安全自动匹配（admin + auto 共用）──
+//
+// 状态机：not_started → running → done
+// 使用 settings 表做分布式锁：
+//   key = "matching_lock_{weekKey}"
+//   value = "running" | "done"
+//
+// 死锁阈值：锁超过 5 分钟视为异常，允许抢占
+
+const LOCK_EXPIRE_MS = 5 * 60 * 1000
+
+export async function executeAutoMatchSafe(db: ReturnType<typeof getDb>): Promise<{
+  status: string
+  weekKey?: string
+  message?: string
+  matchedPairs?: number
+  unmatchedUsers?: number
+  totalEligible?: number
+  safePoolSize?: number
+}> {
+  const weekKey = getWeekKey()
+  const lockKey = `matching_lock_${weekKey}`
+
+  // 1. 已经完成 → 直接返回
+  const doneCheck = await db.execute({
+    sql: "SELECT value FROM settings WHERE key = ? AND value = 'done'",
+    args: [lockKey],
+  })
+  if (doneCheck.rows.length > 0) {
+    return { status: 'already_done', weekKey }
+  }
+
+  // 2. 正在跑 → 检查是否死锁
+  const runningCheck = await db.execute({
+    sql: "SELECT value, updated_at FROM settings WHERE key = ? AND value = 'running'",
+    args: [lockKey],
+  })
+  if (runningCheck.rows.length > 0) {
+    const lockRow = runningCheck.rows[0] as any
+    const lockTime = lockRow.updated_at
+    if (lockTime) {
+      const lockAge = Date.now() - new Date(lockTime).getTime()
+      if (lockAge > LOCK_EXPIRE_MS) {
+        // 死锁：清除旧锁后继续
+        await db.execute({ sql: "DELETE FROM settings WHERE key = ?", args: [lockKey] })
+      } else {
+        // 正在执行中，让客户端稍后重试
+        return { status: 'in_progress', weekKey }
+      }
+    } else {
+      return { status: 'in_progress', weekKey }
+    }
+  }
+
+  // 3. 抢锁（原子操作：INSERT ... WHERE NOT EXISTS）
+  try {
+    await db.execute({
+      sql: `INSERT INTO settings (key, value, updated_at)
+            SELECT ?, 'running', datetime('now')
+            WHERE NOT EXISTS (
+              SELECT 1 FROM settings WHERE key = ? AND value IN ('running', 'done')
+            )`,
+      args: [lockKey, lockKey],
+    })
+  } catch {
+    // INSERT 冲突说明别人抢到了
+    return { status: 'in_progress', weekKey }
+  }
+
+  // 4. 双重检查：确认抢锁成功
+  const confirmLock = await db.execute({
+    sql: "SELECT value FROM settings WHERE key = ?",
+    args: [lockKey],
+  })
+  if ((confirmLock.rows[0] as any)?.value !== 'running') {
+    return { status: 'in_progress', weekKey }
+  }
+
+  // 5. 执行匹配
+  try {
+    const result = await executeAutoMatch()
+
+    // 标记完成
+    await db.execute({
+      sql: "UPDATE settings SET value = 'done', updated_at = datetime('now') WHERE key = ?",
+      args: [lockKey],
+    })
+
+    return {
+      status: 'done',
+      weekKey,
+      matchedPairs: result.matchedPairs,
+      unmatchedUsers: result.unmatchedUsers,
+      totalEligible: result.totalEligible,
+      safePoolSize: result.safePoolSize,
+    }
+  } catch (err) {
+    // 出错释放锁，下次可以重试
+    await db.execute({ sql: "DELETE FROM settings WHERE key = ?", args: [lockKey] })
+    throw err
+  }
+}
+
+/** 重置本周匹配锁（管理员手动重新匹配时使用） */
+export async function resetWeekMatchLock(weekKey?: string): Promise<boolean> {
+  const db = getDb()
+  const key = weekKey || getWeekKey()
+  const lockKey = `matching_lock_${key}`
+  try {
+    await db.execute({ sql: "DELETE FROM settings WHERE key = ?", args: [lockKey] })
+    // 同时删除本周的匹配记录，允许重新匹配
+    await db.execute({ sql: "DELETE FROM matches WHERE week_key = ?", args: [key] })
+    return true
+  } catch {
+    return false
+  }
+}
+
 // ─────────────────────────────────────────────
 //  类型定义
 // ─────────────────────────────────────────────
@@ -42,7 +160,7 @@ export interface AutoMatchResult {
 //  常量
 // ─────────────────────────────────────────────
 
-const SAME_FREQ_QUESTIONS = ['q15','q16','q17','q18','q19','q20','q23','q27','q29','q30','q31','q32']
+const SAME_FREQ_QUESTIONS = ['q15','q16','q18','q19','q20','q23','q27','q29','q30','q31','q32']
 
 const COMP_QUESTIONS = [
   { id: 'q22', fn: scoreQ22, name: '安抚方式' },
@@ -367,9 +485,13 @@ function generateReasons(
 ): string[] {
   const reasons: string[] = []
 
-  if (q26A <= 1 && q26B <= 1) {
+  // q26 争执处理方式：分析双方是否形成互补节奏
+  const bothLowConflict = (q26A <= 1 && q26B <= 1)  // 都不是把关系当输赢
+  const oneActiveOnePassive = (q26A !== q26B && ((q26A < 2 && q26B >= 2) || (q26B < 2 && q26A >= 2)))  // 一方主动一方等待
+
+  if (bothLowConflict) {
     reasons.push('你们都不是把关系当成输赢的人。遇到问题时一方愿意主动修复，另一方也愿意接住，这种组合很容易把争执变成沟通。')
-  } else if (q26A !== q26B && q26A < 2 && q26B < 2) {
+  } else if (oneActiveOnePassive) {
     reasons.push('在处理矛盾时，你们的节奏形成了一种自然的配合——一个更愿意先开口，另一个擅长冷静后再谈。')
   }
 

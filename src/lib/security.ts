@@ -101,13 +101,38 @@ function timingSafeEqualStr(a: string, b: string): boolean {
 const PBKDF2_ITERATIONS = 5000
 const KEY_LENGTH = 64 // 512 bits
 
+/**
+ * 获取 pepper 密钥（服务端静态密钥，用于在密码哈希前混入额外熵）
+ * 从环境变量 PEPPER_SECRET 读取，不存在则使用 JWT_SECRET 的哈希派生
+ * 目的：即使数据库被拖库 + 盐泄露，攻击者仍无法离线暴力破解（缺少 pepper）
+ */
+function getPepper(): string {
+  const envPepper = typeof process !== 'undefined' ? process.env?.PEPPER_SECRET : undefined
+  if (envPepper) return envPepper
+  // 回退：用 JWT_SECRET 的短哈希作为 pepper（保证非空）
+  try {
+    const jwtSecret = getJwtSecret()
+    let hash = 0
+    for (let i = 0; i < jwtSecret.length; i++) {
+      hash = ((hash << 5) - hash) + jwtSecret.charCodeAt(i)
+      hash |= 0 // Convert to 32bit integer
+    }
+    return `pepper_${Math.abs(hash).toString(16)}`
+  } catch {
+    return '_default_pepper_fallback_'
+  }
+}
+
 export async function hashPassword(password: string): Promise<string> {
   const saltBytes = new Uint8Array(32)
   crypto.getRandomValues(saltBytes)
   const saltHex = bytesToHex(saltBytes)
 
+  // 将 pepper 混入密码再哈希，防止数据库泄露后离线暴力破解
+  const pepperedPassword = `${getPepper()}:${password}`
+
   const keyMaterial = await crypto.subtle.importKey(
-    'raw', strToBytes(password), { name: 'PBKDF2' }, false, ['deriveBits']
+    'raw', strToBytes(pepperedPassword), { name: 'PBKDF2' }, false, ['deriveBits']
   )
 
   const derivedBits = await crypto.subtle.deriveBits(
@@ -130,8 +155,11 @@ export async function verifyPassword(password: string, stored: string): Promise<
       const iterations = parseInt(iterationsStr, 10)
       const saltBytes = hexToBytes(saltHex)
 
+      // 使用与 hashPassword 相同的 pepper 混入密码
+      const pepperedPassword = `${getPepper()}:${password}`
+
       const keyMaterial = await crypto.subtle.importKey(
-        'raw', strToBytes(password), { name: 'PBKDF2' }, false, ['deriveBits']
+        'raw', strToBytes(pepperedPassword), { name: 'PBKDF2' }, false, ['deriveBits']
       )
 
       const derivedBits = await crypto.subtle.deriveBits(

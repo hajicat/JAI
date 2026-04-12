@@ -4,12 +4,10 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-// 从 cookie 获取 CSRF Token
+// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
 function getCsrfToken(): string {
-  return document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrf-token='))
-    ?.split('=')[1] || ''
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
+  return match?.[1] || ''
 }
 
 type GenderOption = 'male' | 'female' | 'other' | ''
@@ -50,7 +48,9 @@ function LoginForm() {
       .catch(() => {})
   }, [])
 
+  // 检查登录状态（注册模式不检查，避免覆盖正在填写的表单）
   useEffect(() => {
+    if (isRegister) return // 注册模式：用户正在填写表单，不要抢跳
     fetch('/api/auth/me').then(r => r.json()).then(data => {
       if (data.user) {
         if (data.user.isAdmin) router.push('/admin')
@@ -58,7 +58,7 @@ function LoginForm() {
         else router.push('/match')
       }
     }).catch(() => {})
-  }, [router])
+  }, [router, isRegister])
 
   // GPS verification for registration
   const verifyGPS = () => {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe, hashPassword, verifyPassword } from '@/lib/auth'
 import { validatePassword } from '@/lib/validation'
-import { getCookieName } from '@/lib/csrf'
+import { getCookieName, validateCsrfToken } from '@/lib/csrf'
 
 export const runtime = 'edge'
 
@@ -24,11 +24,8 @@ export async function POST(req: NextRequest) {
     if (!decoded) return NextResponse.json({ error: '未登录' }, { status: 401 })
     if (!decoded.isAdmin) return NextResponse.json({ error: '无权限' }, { status: 403 })
 
-    // CSRF check
-    const csrfToken = req.headers.get('x-csrf-token')
-    if (!csrfToken) return NextResponse.json({ error: '缺少CSRF Token' }, { status: 400 })
-    const cookieCsrf = req.cookies.get('csrf-token')?.value
-    if (csrfToken !== cookieCsrf) {
+    // CSRF check — 使用统一的 validateCsrfToken（恒定时间比较 + 正确的 cookie 名）
+    if (!validateCsrfToken(req)) {
       return NextResponse.json({ error: 'CSRF验证失败' }, { status: 403 })
     }
 

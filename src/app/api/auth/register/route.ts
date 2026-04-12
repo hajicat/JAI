@@ -86,15 +86,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '请选择你想匹配的性别' }, { status: 400 })
     }
 
-    // Check invite code
+    // Check invite code + atomic usage increment (TOCTOU fix)
+    // 使用原子操作：在单条 SQL 中检查并递增使用计数，防止并发竞态
+    const updateResult = await db.execute({
+      sql: `UPDATE invite_codes SET current_uses = current_uses + 1, used_by = ?
+            WHERE code = ? AND current_uses < max_uses`,
+      args: [0 /* 占位，插入成功后更新 */, inviteCode],
+    })
+    if (!updateResult.rowsAffected || (updateResult as any).rowsAffected === 0) {
+      return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
+    }
+    // 获取完整的邀请码记录（用于后续 created_by 检查）
     const codeResult = await db.execute({
-      sql: 'SELECT * FROM invite_codes WHERE code = ? AND current_uses < max_uses',
+      sql: 'SELECT * FROM invite_codes WHERE code = ?',
       args: [inviteCode],
     })
     const codeRow = codeResult.rows[0] as any
-    if (!codeRow) {
-      return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
-    }
 
     // ── 邮箱验证码校验（注册必须先验证邮箱）──
     const verificationCode = body.verificationCode || ''
@@ -139,9 +146,9 @@ export async function POST(req: NextRequest) {
 
     const newUserId = Number(insertResult.lastInsertRowid)
 
-    // Update invite code usage
+    // Update invite code: set used_by to new user (current_uses already atomically incremented)
     await db.execute({
-      sql: 'UPDATE invite_codes SET current_uses = current_uses + 1, used_by = ? WHERE id = ?',
+      sql: 'UPDATE invite_codes SET used_by = ? WHERE id = ?',
       args: [newUserId, Number(codeRow.id)],
     })
 

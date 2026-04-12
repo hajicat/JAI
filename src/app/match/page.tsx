@@ -20,12 +20,10 @@ const DIM_COLORS: Record<string, string> = {
   '日常节奏': 'from-blue-400 to-cyan-400',
 }
 
-// 从 cookie 获取 CSRF Token
+// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
 function getCsrfToken(): string {
-  return document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrf-token='))
-    ?.split('=')[1] || ''
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
+  return match?.[1] || ''
 }
 
 // 倒计时到下一个周日 20:00（北京时间）—— 匹配结果揭晓时刻
@@ -40,20 +38,22 @@ function MatchCountdown() {
       // 周日 00:00~19:59 → 今天 20:00（当天揭晓）
       // 周日 20:00+     → 下周日 20:00
       // 非周日         → 本周日 20:00
+      // 目标：北京时间（UTC+8）本周日或下周日 20:00 = UTC 12:00
+      // 统一使用 UTC 计算，避免不同时区用户看到的倒计时不一致
       const target = new Date(now)
       const utcDay = now.getUTCDay()
       const utcHours = now.getUTCHours()
 
       // 北京时间 20:00 = UTC 12:00
-      // 如果是 UTC 周日且已经过了 12:00（北京20:00），跳到下个周日
       if (utcDay === 0 && utcHours >= 12) {
+        // 已过 UTC 周日 12:00 → 跳到下个周日
         target.setUTCDate(target.getUTCDate() + 7)
         target.setUTCHours(12, 0, 0, 0)
       } else {
         // 否则算到这个周日的 UTC 12:00
-        const daysToAdd = (7 - now.getDay()) % 7 // 周日返回 0
-        target.setDate(target.getDate() + daysToAdd)
-        target.setHours(20, 0, 0, 0)
+        const daysToAdd = (7 - now.getUTCDay()) % 7 // 周日返回 0
+        target.setUTCDate(target.getUTCDate() + daysToAdd)
+        target.setUTCHours(12, 0, 0, 0)
       }
 
       const diff = target.getTime() - now.getTime()
@@ -162,11 +162,16 @@ export default function MatchPage() {
           headers: { 'X-CSRF-Token': csrfToken },
         })
 
-        // 不管成功/失败/in_progress/already_done → 全部静默处理
-        // 用户看到的永远是"等待揭晓"，直到周日20:00
-        // 后端 api/match 的 isRevealWindow() 会控制数据可见性
-      } catch {
-        // 网络错误也不影响用户体验
+        if (res.ok) {
+          const data = await res.json()
+          // 匹配成功/已匹配 → 静默处理（等周日20:00揭晓）
+          if (data.status === 'done' || data.status === 'already_done') return
+          // 错误状态：记录到控制台，方便排查
+          console.warn('[autoMatch] 状态:', data.status, data.message)
+        }
+      } catch (err) {
+        // 仅网络错误静默（离线时正常），不干扰用户
+        console.debug('[autoMatch] 触发失败:', err)
       }
     }
 

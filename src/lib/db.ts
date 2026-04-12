@@ -168,9 +168,18 @@ async function doInit(): Promise<void> {
       }
     }
 
-    // ⚠️ 管理员初始凭据（请使用 /api/reset-admin 重置或查看日志）
-    // 注意：出于安全考虑，密码不会输出到控制台
-    // 建议通过环境变量 JWT_SECRET / ENCRYPT_SECRET 配置后使用 /api/auth/change-password 修改
+    // ⚠️ 管理员初始凭据（首次部署时请查看控制台/日志）
+    // 开发环境会输出初始密码到控制台，生产环境请通过 /api/auth/change-password 修改
+    const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
+    if (isDev) {
+      console.log(`\n[INIT] 🔐 管理员账号已创建:`)
+      console.log(`  邮箱: ${adminEmail}`)
+      console.log(`  密码: ${adminPassword}`)
+      console.log(`  邀请码: ${adminCode}`)
+      console.log(`  ⚠️  请立即登录并修改密码！\n`)
+    } else {
+      console.warn(`[INIT] 管理员已创建 (${adminEmail})，生产环境密码不输出到日志。如需重置请通过数据库直接操作。`)
+    }
   }
 
   // ── 智能迁移：先检查列是否存在，只对缺失列执行 ALTER ──

@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { validateCsrfToken, getCookieName } from '@/lib/csrf'
-import { getWeekKey, executeAutoMatch, handleManualMatch } from '@/lib/match-engine'
+import { getWeekKey, executeAutoMatch, handleManualMatch, executeAutoMatchSafe } from '@/lib/match-engine'
 
 export const runtime = 'edge'
 
@@ -43,10 +43,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result, { status })
     }
 
-    // ── 模式二：自动批量匹配 ──
-    const result = await executeAutoMatch()
+    // ── 模式二：自动批量匹配（使用带锁版本，防止与 auto 端点并发冲突）──
+    const safeResult = await executeAutoMatchSafe(db)
 
-    if (!result.success) {
+    // 锁相关状态码需要转换给前端
+    if (safeResult.status === 'in_progress') {
+      return NextResponse.json({ error: '匹配正在执行中，请稍候' }, { status: 409 })
+    }
+    if (safeResult.status === 'already_done') {
+      return NextResponse.json(
+        { error: '本周已完成匹配，如需重新匹配请先在系统设置中重置', alreadyDone: true },
+        { status: 409 }
+      )
+    }
+
+    const result = safeResult as any
+
+    if (!result.matchedPairs && (result.totalEligible ?? 0) < 2) {
       return NextResponse.json(
         { error: '参与人数不足', count: result.totalEligible },
         { status: 400 }
@@ -56,10 +69,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       weekKey: result.weekKey,
-      matchedPairs: result.matchedPairs,
-      unmatchedUsers: result.unmatchedUsers,
-      totalEligible: result.totalEligible,
-      safePoolSize: result.safePoolSize,
+      matchedPairs: result.matchedPairs || 0,
+      unmatchedUsers: result.unmatchedUsers || 0,
+      totalEligible: result.totalEligible || 0,
+      safePoolSize: result.safePoolSize || 0,
     })
   } catch (error: any) {
     console.error('[admin/match]', error?.message || error)

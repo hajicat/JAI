@@ -5,6 +5,8 @@ import { decrypt } from '@/lib/crypto'
 import { getCookieName } from '@/lib/csrf'
 import { validateCsrfToken } from '@/lib/csrf'
 import { calcSafety } from '@/lib/match-engine'
+import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/csrf'
 
 // Helper: attempt to decrypt contact info, safe on failure
 async function safeDecryptContact(encrypted: string | null | undefined, contactType: string | null): Promise<{ type: string | null; info: string | null }> {
@@ -175,6 +177,13 @@ export async function DELETE(req: NextRequest) {
     // ── CSRF 校验 ──
     if (!validateCsrfToken(req)) {
       return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
+    }
+
+    // ── 限流（防止 cookie 被盗后批量删除）──
+    const ip = getClientIp(req)
+    const rateResult = await checkRateLimit(ip, API_LIMITER, 'admin-delete-user')
+    if (!rateResult.allowed) {
+      return NextResponse.json({ error: '操作太频繁，请稍后再试' }, { status: 429 })
     }
 
     // ── 获取目标用户ID ──

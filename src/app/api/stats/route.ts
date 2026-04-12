@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
@@ -15,13 +15,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '未授权' }, { status: 401 })
     }
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    await initDb()
+
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded || !decoded.isAdmin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
     }
-
-    const db = getDb()
-    await initDb()
 
     // ── 合并统计查询（3 次 DB 往返 → 1 次）──
     const result = await db.execute(`

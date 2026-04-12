@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const response = NextResponse.json({ success: true })
 
   // Clear both possible cookie names (with and without __Host- prefix)
-  for (const name of ['token', '__Host-token', 'csrf-token']) {
+  for (const name of ['token', '__Host-token', 'csrf-token', '__Host-csrf-token']) {
     response.cookies.set(name, '', {
       httpOnly: name !== 'csrf-token',
       secure: process.env.NODE_ENV === 'production',

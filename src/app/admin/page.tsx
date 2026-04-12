@@ -25,12 +25,10 @@ function formatBeijingTime(utcStr: string | null | undefined): string {
   }
 }
 
-// 从 cookie 获取 CSRF Token
+// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
 function getCsrfToken(): string {
-  return document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrf-token='))
-    ?.split('=')[1] || ''
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
+  return match?.[1] || ''
 }
 
 export default function AdminPage() {
@@ -84,6 +82,7 @@ export default function AdminPage() {
   const [manualUserB, setManualUserB] = useState<number | ''>('')
   const [manualDate, setManualDate] = useState('')        // empty = immediate (this week)
   const [manualMatching, setManualMatching] = useState(false)
+  const [resettingMatch, setResettingMatch] = useState(false)
   const [matchUsersForSelect, setMatchUsersForSelect] = useState<any[]>([])
 
   // 匹配结果详情（分页列表，需二级密码验证）
@@ -310,6 +309,30 @@ export default function AdminPage() {
     finally { setGenerating(false) }
   }
 
+  // 重置本周匹配（清除锁 + 删除已有匹配记录，允许重新匹配）
+  const handleResetMatch = async () => {
+    if (!confirm('⚠️ 确定重置本周匹配？这将删除本周所有匹配记录并释放锁，用户可以重新被匹配！')) return
+    setResettingMatch(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/reset-match', {
+        method: 'POST',
+        headers: { 'x-csrf-token': csrfToken },
+      })
+      const data = await res.json()
+      if (data.success) {
+        setToast({ msg: '✅ 已重置本周匹配，可重新执行', type: 'success' })
+        setMatchResult(null)
+        setMatchDetailVerified(false)
+        // 刷新状态
+        fetch('/api/admin/match-status').then(r => r.json()).catch(() => {})
+      } else {
+        setToast({ msg: data.error || '重置失败', type: 'error' })
+      }
+    } catch { setToast({ msg: '网络错误', type: 'error' }) }
+    finally { setResettingMatch(false) }
+  }
+
   // 手动指定匹配
   const runManualMatching = async () => {
     if (!manualUserA || !manualUserB) {
@@ -350,13 +373,16 @@ export default function AdminPage() {
     finally { setManualMatching(false) }
   }
 
-  // 加载可用于匹配的用户列表（已完成问卷的）— 需要全部用户
-  const loadMatchUsers = async () => {
-    if (matchUsersForSelect.length > 0) return // already loaded
+  // 加载可用于匹配的用户列表（已完成问卷的）— 首次加载后可手动刷新
+  const [matchUsersLoaded, setMatchUsersLoaded] = useState(false)
+
+  const loadMatchUsers = async (forceRefresh = false) => {
+    if (!forceRefresh && matchUsersLoaded) return // 已加载且不强制刷新时跳过
     try {
       const res = await fetch('/api/admin/users?all=1')
       const data = await res.json()
       setMatchUsersForSelect((data.users || []).filter((u: any) => u.survey_completed))
+      setMatchUsersLoaded(true)
     } catch { /* ignore */ }
   }
 
@@ -809,7 +835,15 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* ── 手动指定匹配 ── */}
             <div className="glass-card rounded-3xl p-8">
-              <h2 className="text-xl font-bold text-gray-800 mb-1">🔗 手动指定匹配</h2>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-xl font-bold text-gray-800">🔗 手动指定匹配</h2>
+                <button
+                  onClick={() => loadMatchUsers(true)}
+                  className="text-xs px-3 py-1 text-pink-500 border border-pink-200 rounded-full hover:bg-pink-50 transition"
+                >
+                  🔄 刷新用户列表
+                </button>
+              </div>
               <p className="text-sm text-gray-400 mb-6">选择两个已完成问卷的用户进行配对，用于测试或特殊情况</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -891,6 +925,12 @@ export default function AdminPage() {
                 className="px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 disabled:opacity-50 transition shadow-lg">
                 {generating ? '匹配中...' : '🎁 开始匹配'}
               </button>
+              {matchResult && !matchResult.error && (
+                <button onClick={handleResetMatch} disabled={resettingMatch}
+                  className="mt-3 px-6 py-2 text-sm font-medium text-red-500 border border-red-200 rounded-full hover:bg-red-50 transition disabled:opacity-50">
+                  {resettingMatch ? '重置中...' : '🔄 重置本周匹配（删除结果+释放锁）'}
+                </button>
+              )}
             {matchResult && (
               <div className="mt-8 bg-gray-50 rounded-2xl p-6 text-left">
                 <div className="flex items-center justify-between mb-3">

@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { sanitizeString, sanitizeForStorage } from '@/lib/validation'
 import { checkRateLimit, SURVEY_LIMITER } from '@/lib/rate-limit'
+import { getWeekKey } from '@/lib/week'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
@@ -82,6 +83,17 @@ export async function POST(req: NextRequest) {
     const rateResult = await checkRateLimit(ip, SURVEY_LIMITER, 'survey')
     if (!rateResult.allowed) {
       return NextResponse.json({ error: '提交太频繁' }, { status: 429 })
+    }
+
+    // ── 业务层频率限制：每周最多修改 3 次问卷 ──
+    const weekKey = getWeekKey()
+    const submitCountResult = await db.execute({
+      sql: `SELECT COUNT(*) as cnt FROM survey_responses WHERE user_id = ? AND updated_at >= datetime('now', '-7 days')`,
+      args: [decoded.id],
+    })
+    const weeklyCount = Number((submitCountResult.rows[0] as any)?.cnt || 0)
+    if (weeklyCount >= 3) {
+      return NextResponse.json({ error: '每周最多可修改3次问卷，请下周再试' }, { status: 429 })
     }
 
     const answers = await req.json()

@@ -113,11 +113,10 @@ export default function Home() {
         target.setUTCDate(target.getUTCDate() + 7)
         target.setUTCHours(12, 0, 0, 0)
       } else {
-        // 算到这个周日的北京时间 20:00
-        const daysToAdd = (7 - now.getDay()) % 7
-        target.setDate(now.getDate() + (daysToAdd || 0))
-        target.setHours(20, 0, 0, 0)
-        if (target <= now) target.setDate(target.getDate() + 7)
+        // 统一使用 UTC 计算（与 match/page.tsx 和 login/page.tsx 保持一致）
+        const daysToAdd = (7 - now.getUTCDay()) % 7
+        target.setUTCDate(now.getUTCDate() + (daysToAdd || 0))
+        target.setUTCHours(12, 0, 0, 0) // 北京时间 20:00 = UTC 12:00
       }
 
       const diff = target.getTime() - now.getTime()

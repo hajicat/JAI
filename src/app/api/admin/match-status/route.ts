@@ -12,12 +12,10 @@ export const runtime = 'edge'
 
 export async function GET(req: Request) {
   try {
-    // 从 cookie 取 token（GET 请求无 body）
+    // 从 cookie 取 token（GET 请求无 body）— 使用正则避免截断问题
     const cookieStr = req.headers.get('cookie') || ''
-    const token = cookieStr
-      .split('; ')
-      .find(row => row.startsWith(`${getCookieName('token')}=`))
-      ?.split('=')[1]
+    const tokenMatch = cookieStr.match(new RegExp(`(?:^|;\\s*)${getCookieName('token').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`))
+    const token = tokenMatch?.[1] || ''
 
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
