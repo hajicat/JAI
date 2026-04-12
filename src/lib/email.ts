@@ -58,9 +58,15 @@ export function isDevMode(): boolean {
 
 /**
  * 获取发件人地址（从环境变量读取，带默认值）
+ * 注意：Resend 需要验证域名后才能自定义发件地址。
+ * 新账号默认只能用 onboarding@resend.dev 或已验证的域名。
  */
 function getFromEmail(): string {
-  return process.env.RESEND_FROM_EMAIL || 'noreply@jlai.date'
+  // 优先用环境变量配置的地址，否则用 Resend 免费默认地址
+  if (process.env.RESEND_FROM_EMAIL) {
+    return process.env.RESEND_FROM_EMAIL
+  }
+  return 'onboarding@resend.dev'
 }
 
 /**
