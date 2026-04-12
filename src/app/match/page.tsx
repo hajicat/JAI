@@ -160,8 +160,24 @@ export default function MatchPage() {
           // 匹配完成或之前已完成 → 刷新页面展示结果
           window.location.reload()
         } else if (data.status === 'in_progress') {
-          // 别人正在跑 → 3秒后刷新再试
-          setTimeout(() => window.location.reload(), 3000)
+          // 别人正在跑 → 用 loadData 轮询而不是整页刷新，最多重试5次
+          if ((window as any).__autoMatchRetries < 5) {
+            ;(window as any).__autoMatchRetries = ((window as any).__autoMatchRetries || 0) + 1
+            setTimeout(async () => {
+              try {
+                const [meRes2, matchRes2] = await Promise.all([
+                  fetch('/api/auth/me'),
+                  fetch('/api/match'),
+                ])
+                const [meData2, matchData2] = await Promise.all([meRes2.json(), matchRes2.json()])
+                if (meData2.user && matchData2.match) {
+                  setUser(meData2.user)
+                  setMatch(matchData2.match)
+                  ;(window as any).__autoMatchRetries = 99 // 停止轮询
+                }
+              } catch { /* ignore */ }
+            }, 5000)
+          }
         }
         // status === 'not_yet' 不处理（理论上不会走到这里因为上面已检查时间窗口）
       } catch {
