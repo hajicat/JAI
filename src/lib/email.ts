@@ -48,7 +48,6 @@ async function hashCode(code: string): Promise<string> {
 
 /**
  * 获取发件人地址（从环境变量读取，带默认值）
- */
  * 注意：Resend 需要验证域名后才能自定义发件地址。
  * 新账号默认只能用 onboarding@resend.dev 或已验证的域名。
  */
