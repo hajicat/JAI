@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getDb()
+    await initDb()
 
     // Build dynamic update - only update fields that are provided
     const updates: string[] = []

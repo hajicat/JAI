@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 
 export const runtime = 'edge';
 
 export async function GET() {
   try {
     const db = getDb()
+    await initDb()
     let gpsRequired = true
     try {
       const row = await db.execute("SELECT value FROM settings WHERE key = 'gpsRequired'")

@@ -13,7 +13,7 @@
 //   status: 匹配状态 (not_started | running | done)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { validateCsrfToken, getCookieName } from '@/lib/csrf'
 import { getWeekKey } from '@/lib/week'
@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })

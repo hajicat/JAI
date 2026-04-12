@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe, generateInviteCode } from '@/lib/auth'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 

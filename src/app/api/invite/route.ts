@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
 import { getCookieName } from '@/lib/csrf'
 
@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
 
     const availResult = await db.execute({
       sql: 'SELECT code, current_uses, max_uses FROM invite_codes WHERE created_by = ? AND current_uses < max_uses',

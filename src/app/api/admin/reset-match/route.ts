@@ -2,6 +2,7 @@
 // 管理员重置本周匹配（清除锁 + 删除匹配记录）
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { getCookieName, validateCsrfToken, getClientIp } from '@/lib/csrf'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = (await import('@/lib/db')).getDb()
+    await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 

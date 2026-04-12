@@ -8,7 +8,7 @@
 //   数据库锁防止重复执行。
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { getWeekKey, isMatchingWindow, executeAutoMatchSafe } from '@/lib/match-engine'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 

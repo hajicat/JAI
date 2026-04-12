@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { sanitizeString, sanitizeForStorage } from '@/lib/validation'
 import { checkRateLimit, SURVEY_LIMITER } from '@/lib/rate-limit'
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 

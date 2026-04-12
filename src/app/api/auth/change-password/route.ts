@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyToken, verifyTokenSafe, verifyPassword, hashPassword } from '@/lib/auth'
 import { validatePassword, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     if (!newPwCheck.valid) return NextResponse.json({ error: newPwCheck.error }, { status: 400 })
 
     const db = getDb()
+    await initDb()
 
     // Get current password hash
     const result = await db.execute({

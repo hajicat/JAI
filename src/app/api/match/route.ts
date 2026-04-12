@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyToken, verifyTokenSafe } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     const weekKey = getWeekKey()
     const uid = decoded.id
 
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     // reveal 是敏感操作，用 verifyTokenSafe 校验密码修改时间
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })

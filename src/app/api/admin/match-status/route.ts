@@ -3,7 +3,7 @@
 // 管理后台打开「执行匹配」tab 时调用，用于展示用户端自动触发的结果
 
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { getCookieName, validateCsrfToken } from '@/lib/csrf'
 import { getWeekKey } from '@/lib/week'
@@ -20,6 +20,7 @@ export async function GET(req: Request) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
+    await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded || !decoded.isAdmin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
