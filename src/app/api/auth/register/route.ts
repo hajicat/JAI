@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+    const nickname = sanitizeString(body.nickname || '', 20)
     const email = sanitizeString(body.email || '', 254).toLowerCase()
 
     // 邮箱维度限流（校园网共享IP场景下更精确的防滥用）
