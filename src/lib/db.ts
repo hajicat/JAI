@@ -121,6 +121,15 @@ async function doInit(): Promise<void> {
       created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_invite ON users(invite_code);
     CREATE INDEX IF NOT EXISTS idx_matches_week ON matches(week_key);
@@ -243,6 +252,8 @@ async function doInit(): Promise<void> {
     'CREATE INDEX IF NOT EXISTS idx_invite_codes_creator ON invite_codes(created_by)',
     'CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)',
     'CREATE INDEX IF NOT EXISTS idx_verification_codes_expires ON verification_codes(expires_at)',
+    'CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)',
+    'CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id)',
   ]
   for (const sql of indexStatements) {
     try { await db.execute(sql) } catch (_) { /* ignore */ }

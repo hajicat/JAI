@@ -26,6 +26,11 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [showRegSuccess, setShowRegSuccess] = useState(false)
+  // 忘记密码状态
+  const [showForgotPwd, setShowForgotPwd] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSending, setForgotSending] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
   const [gpsMsg, setGpsMsg] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
@@ -195,6 +200,39 @@ function LoginForm() {
     const timer = setTimeout(() => setCodeCooldown(c => c - 1), 1000)
     return () => clearTimeout(timer)
   }, [codeCooldown])
+
+  // 忘记密码：发送重置链接
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      setError('请输入注册邮箱')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
+      setError('请输入正确的邮箱格式')
+      return
+    }
+
+    setForgotSending(true)
+    setError('')
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || '发送失败')
+        return
+      }
+      setForgotSent(true)
+    } catch {
+      setError('网络错误，请稍后重试')
+    } finally {
+      setForgotSending(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -532,6 +570,66 @@ function LoginForm() {
               {loading ? '请稍候...' : (isRegister ? '🎁 注册' : '登录')}
             </button>
           </form>
+
+          {/* 忘记密码（仅登录模式显示） */}
+          {!isRegister && !showForgotPwd && (
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => { setShowForgotPwd(true); setError('') }}
+                className="text-sm text-gray-400 hover:text-pink-500 transition"
+              >
+                忘记密码？
+              </button>
+            </div>
+          )}
+
+          {/* 忘记密码面板 */}
+          {!isRegister && showForgotPwd && (
+            <div className="mt-4 pt-5 border-t border-gray-100 animate-fade-in">
+              <h3 className="text-base font-semibold text-gray-700 mb-1">🔑 找回密码</h3>
+              <p className="text-xs text-gray-400 mb-4">输入你的注册邮箱，我们将发送重置链接</p>
+
+              <div className="space-y-3">
+                <input
+                  type="email"
+                  placeholder="注册邮箱"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition text-sm"
+                  disabled={forgotSent}
+                />
+
+                {forgotSent ? (
+                  <div className="bg-green-50 rounded-xl p-4 text-center">
+                    <p className="text-sm font-medium text-green-600">✅ 邮件已发送！</p>
+                    <p className="text-xs text-green-500 mt-1">查收邮箱后点击重置链接设置新密码</p>
+                    <button
+                      onClick={() => { setShowForgotPwd(false); setForgotSent(false); setForgotEmail(''); setError('') }}
+                      className="mt-3 text-sm text-pink-500 hover:underline"
+                    >
+                      返回登录
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleForgotPassword}
+                      disabled={forgotSending || !forgotEmail}
+                      className="flex-1 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      {forgotSending ? '发送中...' : '发送重置链接'}
+                    </button>
+                    <button
+                      onClick={() => { setShowForgotPwd(false); setError('') }}
+                      className="px-4 py-2.5 text-sm font-medium text-gray-400 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+                    >
+                      取消
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <p className="mt-6 text-center text-sm text-gray-400">
             {isRegister ? '已有账号？' : '还没有账号？'}
