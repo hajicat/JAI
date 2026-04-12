@@ -79,21 +79,30 @@ function LoginForm() {
         try {
           const res = await fetch('/api/geo', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-csrf-token': getCsrfToken(),
+            },
             body: JSON.stringify({ latitude, longitude }),
           })
           const data = await res.json()
 
+          if (!res.ok) {
+            setGpsStatus('fail')
+            setGpsMsg(`定位验证失败：${data.error || '未知错误'}`)
+            return
+          }
+
           if (data.withinRange) {
             setGpsStatus('ok')
-            setGpsMsg(`✅ 定位成功！距学校${data.distance}km`)
+            setGpsMsg(`✅ 定位成功！距学校${data.distance ?? 0}km`)
           } else {
             setGpsStatus('fail')
-            setGpsMsg(`❌ 你不在学校附近（距${data.distance}km，需要${data.radiusKm}km内）`)
+            setGpsMsg(`❌ 你不在学校附近（距${data.distance ?? '?'}km，需要${data.radiusKm}km内）`)
           }
         } catch {
           setGpsStatus('fail')
-          setGpsMsg('定位验证失败，请重试')
+          setGpsMsg('定位验证失败，请检查网络后重试')
         }
       },
       (err) => {
