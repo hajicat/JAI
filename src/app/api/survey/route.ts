@@ -86,15 +86,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '提交太频繁' }, { status: 429 })
     }
 
-    // ── 业务层频率限制：每周最多修改 3 次问卷 ──
+    // ── 业务层频率限制：每周（自然周）最多修改 3 次问卷 ──
+    // 用 settings 表追踪每用户每周提交次数（survey_responses 是 UNIQUE 单行表，无法直接 COUNT）
     const weekKey = getWeekKey()
-    const submitCountResult = await db.execute({
-      sql: `SELECT COUNT(*) as cnt FROM survey_responses WHERE user_id = ? AND updated_at >= datetime('now', '-7 days')`,
-      args: [decoded.id],
+    const countKey = `survey_week_${decoded.id}_${weekKey}`
+    const countResult = await db.execute({
+      sql: `SELECT value FROM settings WHERE key = ?`,
+      args: [countKey],
     })
-    const weeklyCount = Number((submitCountResult.rows[0] as any)?.cnt || 0)
-    if (weeklyCount >= 3) {
-      return NextResponse.json({ error: '每周最多可修改3次问卷，请下周再试' }, { status: 429 })
+    const currentCount = Number((countResult.rows[0] as any)?.value || 0)
+    if (currentCount >= 3) {
+      return NextResponse.json({ error: '本周问卷已修改3次，请下周再试' }, { status: 429 })
     }
 
     const answers = await req.json()
@@ -167,6 +169,12 @@ export async function POST(req: NextRequest) {
     await db.execute({
       sql: 'UPDATE users SET survey_completed = 1 WHERE id = ?',
       args: [decoded.id],
+    })
+
+    // 递增本周提交计数
+    await db.execute({
+      sql: `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))`,
+      args: [countKey, String(currentCount + 1)],
     })
 
     return NextResponse.json({ success: true })

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const cookieName = getCookieName('token')
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
-    const decoded = await verifyToken(token)
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
@@ -198,6 +198,10 @@ export async function POST(req: NextRequest) {
     if (!validateCsrfToken(req)) {
       return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
     }
+
+    // 揭晓时间检查：非揭晓窗口内不允许标记 revealed
+    if (!isRevealWindow() && !decoded.isAdmin) {
+      return NextResponse.json({ error: '匹配结果尚未揭晓，请等待周日20:00' }, { status: 403 })
 
     const ip = getClientIp(req)
     const rateResult = await checkRateLimit(ip, API_LIMITER, 'match-reveal')

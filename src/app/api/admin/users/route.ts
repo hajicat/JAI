@@ -235,7 +235,10 @@ export async function DELETE(req: NextRequest) {
     // 4. 删除该用户创建的所有邀请码（包括已使用的）— created_by 外键
     try { await db.execute({ sql: `DELETE FROM invite_codes WHERE created_by = ?`, args: [uid] }) } catch (_) {}
 
-    // 5. 删除该用户使用过的邀请码的引用 — used_by 外键（设为 NULL 而非删除整行）
+    // 5. 删除该用户的密码重置 token（避免孤儿数据 + FK 问题）
+    try { await db.execute({ sql: `DELETE FROM password_reset_tokens WHERE user_id = ?`, args: [uid] }) } catch (_) {}
+
+    // 6. 删除该用户使用过的邀请码的引用 — used_by 外键（设为 NULL 而非删除整行）
     try { await db.execute({ sql: `UPDATE invite_codes SET used_by = NULL WHERE used_by = ?`, args: [uid] }) } catch (_) {}
 
     // 6. 更新被该用户邀请的人的 invited_by 为 NULL

@@ -20,8 +20,12 @@ async function loadSettings(db: ReturnType<typeof getDb>) {
 
   const row = await db.execute("SELECT key, value FROM settings")
   const settings: any = {}
+  // 敏感键不应通过 API 暴露（密码哈希等）
+  const SENSITIVE_KEYS = ['admin_view_password_hash']
   if (row.rows.length > 0) {
     for (const r of row.rows as any[]) {
+      // 跳过敏感键
+      if (SENSITIVE_KEYS.includes(r.key)) continue
       settings[r.key] = r.value === '1' || r.value === 'true' ? true :
                        r.value === '0' || r.value === 'false' ? false : r.value
     }
