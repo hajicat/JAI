@@ -46,7 +46,7 @@ export const SURVEY_LIMITER: RateLimitConfig = { windowMs: 5 * 60 * 1000, max: 1
  * 用于注册/发码等场景，作为 IP 限流的补充
  * 校园网多人共享 IP 时，邮箱维度是更精确的防滥用手段
  */
-export const EMAIL_REGISTER_LIMITER: RateLimitConfig = { windowMs: 24 * 60 * 60 * 1000, max: 2 }
+export const EMAIL_REGISTER_LIMITER: RateLimitConfig = { windowMs: 24 * 60 * 60 * 1000, max: 5 }
 export const EMAIL_CODE_LIMITER: RateLimitConfig = { windowMs: 60 * 60 * 1000, max: 5 }
 
 // ============================================================

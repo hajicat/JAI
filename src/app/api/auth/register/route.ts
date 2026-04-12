@@ -28,15 +28,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const nickname = sanitizeString(body.nickname || '', 20)
     const email = sanitizeString(body.email || '', 254).toLowerCase()
-
-    // 邮箱维度限流（校园网共享IP场景下更精确的防滥用）
-    const emailRateResult = await checkRateLimitByEmail(email, EMAIL_REGISTER_LIMITER, 'register')
-    if (!emailRateResult.allowed) {
-      return NextResponse.json(
-        { error: '该邮箱注册次数已达上限' },
-        { status: 429, headers: { 'Retry-After': String(emailRateResult.retryAfter) } }
-      )
-    }
     const password = body.password || ''
     const inviteCode = (typeof body.inviteCode === 'string' ? body.inviteCode.trim() : '').toUpperCase()
     const gender = sanitizeString(body.gender || '', 10)
@@ -141,6 +132,15 @@ export async function POST(req: NextRequest) {
     })
     if (existingResult.rows.length > 0) {
       return NextResponse.json({ error: '该邮箱已注册' }, { status: 400 })
+    }
+
+    // 邮箱维度限流（放在所有校验通过之后，避免输入错误消耗计数）
+    const emailRateResult = await checkRateLimitByEmail(email, EMAIL_REGISTER_LIMITER, 'register')
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: '该邮箱今日注册次数已达上限' },
+        { status: 429, headers: { 'Retry-After': String(emailRateResult.retryAfter) } }
+      )
     }
 
     // Create user
