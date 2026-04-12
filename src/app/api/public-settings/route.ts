@@ -16,7 +16,9 @@ export async function GET() {
       /* 表不存在则默认开启 */
     }
     
-    return NextResponse.json({ gpsRequired })
+    return NextResponse.json({ gpsRequired }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
+    })
   } catch {
     return NextResponse.json({ gpsRequired: true })
   }

@@ -15,17 +15,19 @@ export async function GET(req: Request) {
     const db = getDb()
     await initDb()
 
-    // Run both queries in parallel
-    const [totalResult, surveyResult, matchResult] = await Promise.all([
-      db.execute('SELECT COUNT(*) as count FROM users WHERE is_admin = 0'),
-      db.execute('SELECT COUNT(*) as count FROM users WHERE survey_completed = 1 AND is_admin = 0'),
-      db.execute('SELECT COUNT(*) as count FROM matches'),
-    ])
+    // ── 合并统计查询（3 次 DB 往返 → 1 次）──
+    const statsResult = await db.execute(`
+      SELECT
+        (SELECT COUNT(*) FROM users WHERE is_admin = 0) as totalUsers,
+        (SELECT COUNT(*) FROM users WHERE survey_completed = 1 AND is_admin = 0) as completedSurvey,
+        (SELECT COUNT(*) FROM matches) as totalMatches
+    `)
 
+    const statsRow = statsResult.rows[0] as any
     const publicStats = {
-      totalUsers: Number(totalResult.rows[0].count),
-      completedSurvey: Number(surveyResult.rows[0].count),
-      totalMatches: Number(matchResult.rows[0].count),
+      totalUsers: Number(statsRow.totalUsers),
+      completedSurvey: Number(statsRow.completedSurvey),
+      totalMatches: Number(statsRow.totalMatches),
     }
 
     // Check if user is authenticated

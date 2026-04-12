@@ -145,12 +145,17 @@ async function doInit(): Promise<void> {
     const adminResult = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [adminEmail] })
     const adminId = Number(adminResult.rows[0].id)
 
+    // Generate 10 invite codes for admin (batch insert)
+    const adminCodeStmts: Array<{ sql: string; args: any[] }> = []
     for (let i = 0; i < 10; i++) {
       const code = generateInviteCode()
-      await db.execute({
-        sql: 'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)',
-        args: [code, adminId],
-      })
+      adminCodeStmts.push({ sql: 'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)', args: [code, adminId] })
+    }
+    try { await db.batch(adminCodeStmts) } catch (_) {
+      // fallback for clients that don't support batch
+      for (const stmt of adminCodeStmts) {
+        try { await db.execute(stmt) } catch (__) { /* ignore */ }
+      }
     }
 
     // ⚠️ 管理员初始凭据（请使用 /api/reset-admin 重置或查看日志）
@@ -158,36 +163,67 @@ async function doInit(): Promise<void> {
     // 建议通过环境变量 JWT_SECRET / ENCRYPT_SECRET 配置后使用 /api/auth/change-password 修改
   }
 
-  // Add columns if migrating from old schema (ignore errors)
-  const alterStatements = [
-    `ALTER TABLE users ADD COLUMN gender TEXT`,
-    `ALTER TABLE users ADD COLUMN preferred_gender TEXT`,
-    `ALTER TABLE users ADD COLUMN conflict_type TEXT`,
-    `ALTER TABLE users ADD COLUMN match_enabled INTEGER DEFAULT 1`,
-    `ALTER TABLE users ADD COLUMN password_changed_at TEXT`,
-    `ALTER TABLE matches ADD COLUMN dim_scores TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q21 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q22 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q23 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q24 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q25 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q26 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q27 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q28 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q29 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q30 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q31 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q32 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q33 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q34 TEXT`,
-    `ALTER TABLE survey_responses ADD COLUMN q35 TEXT`,
+  // ── 智能迁移：先检查列是否存在，只对缺失列执行 ALTER ──
+  // 比 try/catch 忽略所有错误更安全，避免不必要的异常捕获
+  const alterStatements: { sql: string; table: string; column: string }[] = [
+    // users 表新增列
+    { sql: `ALTER TABLE users ADD COLUMN gender TEXT`, table: 'users', column: 'gender' },
+    { sql: `ALTER TABLE users ADD COLUMN preferred_gender TEXT`, table: 'users', column: 'preferred_gender' },
+    { sql: `ALTER TABLE users ADD COLUMN conflict_type TEXT`, table: 'users', column: 'conflict_type' },
+    { sql: `ALTER TABLE users ADD COLUMN match_enabled INTEGER DEFAULT 1`, table: 'users', column: 'match_enabled' },
+    { sql: `ALTER TABLE users ADD COLUMN password_changed_at TEXT`, table: 'users', column: 'password_changed_at' },
+    // matches 表新增列
+    { sql: `ALTER TABLE matches ADD COLUMN dim_scores TEXT`, table: 'matches', column: 'dim_scores' },
+    // survey_responses 表新增列
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q21 TEXT`, table: 'survey_responses', column: 'q21' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q22 TEXT`, table: 'survey_responses', column: 'q22' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q23 TEXT`, table: 'survey_responses', column: 'q23' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q24 TEXT`, table: 'survey_responses', column: 'q24' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q25 TEXT`, table: 'survey_responses', column: 'q25' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q26 TEXT`, table: 'survey_responses', column: 'q26' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q27 TEXT`, table: 'survey_responses', column: 'q27' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q28 TEXT`, table: 'survey_responses', column: 'q28' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q29 TEXT`, table: 'survey_responses', column: 'q29' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q30 TEXT`, table: 'survey_responses', column: 'q30' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q31 TEXT`, table: 'survey_responses', column: 'q31' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q32 TEXT`, table: 'survey_responses', column: 'q32' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q33 TEXT`, table: 'survey_responses', column: 'q33' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q34 TEXT`, table: 'survey_responses', column: 'q34' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q35 TEXT`, table: 'survey_responses', column: 'q35' },
   ]
-  for (const sql of alterStatements) {
-    try {
-      await db.execute(sql)
-    } catch (e) {
-      /* ignore */
+
+  // 收集需要 ALTER 的表名，批量查询
+  const tablesToCheck = [...new Set(alterStatements.map(a => a.table))]
+  for (const tableName of tablesToCheck) {
+    const columnsForTable = alterStatements.filter(a => a.table === tableName)
+    if (columnsForTable.length === 0) continue
+
+    // 用 PRAGMA table_info 获取当前已有列
+    const existingColsResult = await db.execute({ sql: `PRAGMA table_info(${tableName})`, args: [] })
+    const existingColumns = new Set<string>()
+    for (const row of existingColsResult.rows) {
+      existingColumns.add((row as any).name)
     }
+
+    // 只对缺失的列执行 ALTER
+    for (const alt of columnsForTable) {
+      if (!existingColumns.has(alt.column)) {
+        try {
+          await db.execute(alt.sql)
+        } catch (_) {
+          /* 并发或边缘情况时忽略 */
+        }
+      }
+    }
+  }
+
+  // ── 新增索引（加速 JOIN 查询）──
+  const indexStatements = [
+    'CREATE INDEX IF NOT EXISTS idx_survey_user ON survey_responses(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_invite_codes_creator ON invite_codes(created_by)',
+  ]
+  for (const sql of indexStatements) {
+    try { await db.execute(sql) } catch (_) { /* ignore */ }
   }
 
   dbInitialized = true

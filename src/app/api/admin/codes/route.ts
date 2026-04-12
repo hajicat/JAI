@@ -57,14 +57,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const count = Math.min(Math.max(Number(body.count) || 5, 1), 20)
 
+    // ── 批量生成邀请码（db.batch 一次提交）──
     const newCodes: string[] = []
+    const insertStmts: Array<{ sql: string; args: any[] }> = []
     for (let i = 0; i < count; i++) {
       const code = generateInviteCode()
-      await db.execute({
+      newCodes.push(code)
+      insertStmts.push({
         sql: 'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)',
         args: [code, decoded.id],
       })
-      newCodes.push(code)
+    }
+    try { await db.batch(insertStmts) } catch (_) {
+      // fallback to individual inserts
+      for (const stmt of insertStmts) {
+        try { await db.execute(stmt) } catch (__) { /* ignore */ }
+      }
     }
 
     return NextResponse.json({ success: true, codes: newCodes })

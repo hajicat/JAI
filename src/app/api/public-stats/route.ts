@@ -12,14 +12,19 @@ export async function GET() {
     const db = getDb()
     await initDb()
 
-    const totalResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE is_admin = 0')
-    const surveyResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE survey_completed = 1 AND is_admin = 0')
-    const matchResult = await db.execute('SELECT COUNT(*) as count FROM matches')
+    // ── 合并统计查询（3 次 DB 往返 → 1 次）──
+    const result = await db.execute(`
+      SELECT
+        (SELECT COUNT(*) FROM users WHERE is_admin = 0) as totalUsers,
+        (SELECT COUNT(*) FROM users WHERE survey_completed = 1 AND is_admin = 0) as completedSurvey,
+        (SELECT COUNT(*) FROM matches) as totalMatches
+    `)
+    const row = result.rows[0] as any
 
     return NextResponse.json({
-      totalUsers: Number(totalResult.rows[0].count),
-      completedSurvey: Number(surveyResult.rows[0].count),
-      totalMatches: Number(matchResult.rows[0].count),
+      totalUsers: Number(row.totalUsers),
+      completedSurvey: Number(row.completedSurvey),
+      totalMatches: Number(row.totalMatches),
     }, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',

@@ -95,6 +95,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
     }
 
+    // 防自邀注册：不能使用自己的邀请码注册新账号
+    const creatorResult = await db.execute({
+      sql: 'SELECT email FROM users WHERE id = ?',
+      args: [Number(codeRow.created_by)],
+    })
+    if (creatorResult.rows.length > 0) {
+      const creatorEmail = ((creatorResult.rows[0] as any).email || '').toLowerCase()
+      if (creatorEmail === email) {
+        return NextResponse.json({ error: '不能使用自己的邀请码注册' }, { status: 400 })
+      }
+    }
+
     // Check email exists (case-insensitive)
     const existingResult = await db.execute({
       sql: "SELECT id FROM users WHERE LOWER(email) = ?",
@@ -122,13 +134,20 @@ export async function POST(req: NextRequest) {
       args: [newUserId, Number(codeRow.id)],
     })
 
-    // Give new user 3 invite codes
+    // Give new user 3 invite codes (batch insert)
+    const newUserCodes: Array<{ sql: string; args: any[] }> = []
     for (let i = 0; i < 3; i++) {
       const code = generateInviteCode()
-      await db.execute({
+      newUserCodes.push({
         sql: 'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)',
         args: [code, newUserId],
       })
+    }
+    try { await db.batch(newUserCodes) } catch (_) {
+      // fallback to individual inserts if batch not supported
+      for (const stmt of newUserCodes) {
+        try { await db.execute(stmt) } catch (__) { /* ignore */ }
+      }
     }
 
     const token = await createToken({ id: newUserId, email, isAdmin: false })

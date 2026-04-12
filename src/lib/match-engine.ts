@@ -55,12 +55,21 @@ const COMP_QUESTIONS = [
 const MATCH_THRESHOLD = 76
 
 // ─────────────────────────────────────────────
-//  工具函数
+//  工具函数 — 答案索引查找
 // ─────────────────────────────────────────────
 
-/** 获取答案的字母索引 A=0 B=1 C=2 D=3，找不到返回 -1 */
-function ansIdx(qId: string, answer: string): number {
-  const map: Record<string, string[]> = {
+/**
+ * 答案索引映射表：模块级预构建，O(1) 查找
+ *
+ * 原实现每次调用都重建 Record<string, string[]> + indexOf 遍历（O(n)）
+ * 匹配 50 人时 ansIdx 被调用数千次，总开销显著。
+ * 改为模块加载时一次性构建 Map<题号, Map<答案文本, 索引>>，
+ * 后续所有查询均为 O(1) 哈希查找。
+ */
+const ANSWER_INDEX_MAP = new Map<string, Map<string, number>>()
+
+;(function buildAnswerIndexMap() {
+  const rawData: Record<string, string[]> = {
     q1: ['会烦，但会先让自己稳住，再说明我现在不方便', '会直接表现出不耐烦，但事后能恢复正常', '很容易把火气撒到当时在场的人身上', '会记很久，之后态度也会变差'],
     q2: ['可以商量，但不是默认义务', '密码无所谓，定位长期共享没必要', '我希望彼此都保留独立隐私', '我想知道对方的，但不太想让对方知道我的'],
     q3: ['一着急就想马上说清楚', '先不说话，缓一缓再谈', '故意说重话，让对方也难受', '故意冷着对方，等TA先来低头'],
@@ -94,14 +103,26 @@ function ansIdx(qId: string, answer: string): number {
     q31: ['顺其自然，别算太死', '设共同预算会更安心', '比较偏向清楚AA', '我会期待一方明显多承担一些'],
     q32: ['比较外放，喜欢热闹和新鲜局', '有局会去，但也需要独处', '小圈子就够了，不爱太多社交', '很看对象，跟合拍的人才会打开'],
   }
-  return (map[qId] || []).indexOf(answer)
+
+  for (const [qId, answers] of Object.entries(rawData)) {
+    const innerMap = new Map<string, number>()
+    for (let i = 0; i < answers.length; i++) {
+      innerMap.set(answers[i], i)
+    }
+    ANSWER_INDEX_MAP.set(qId, innerMap)
+  }
+})()
+
+/** 获取答案的字母索引 A=0 B=1 C=2 D=3，找不到返回 -1 */
+function ansIdx(qId: string, answer: string): number {
+  return ANSWER_INDEX_MAP.get(qId)?.get(answer) ?? -1
 }
 
 // ─────────────────────────────────────────────
-//  一、安全筛查算法
+//  一、安全筛查算法（已导出，供 admin/users 复用）
 // ─────────────────────────────────────────────
 
-function calcSafety(u: any): SafetyResult {
+export function calcSafety(u: any): SafetyResult {
   let risk = 0
   let hardBlock = false
 
@@ -560,6 +581,9 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
   const matched = new Set<number>()
   const shuffled = [...safeUsers].sort(() => Math.random() - 0.5)
 
+  // ── 批量收集匹配结果，最后用 db.batch() 一次写入（减少网络往返）──
+  const insertStatements: Array<{ sql: string; args: any[] }> = []
+
   for (let i = 0; i < shuffled.length; i++) {
     if (matched.has(Number(shuffled[i].user.id))) continue
 
@@ -580,7 +604,7 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
     }
 
     if (bestMatch && bestResult && bestScore >= MATCH_THRESHOLD) {
-      await db.execute({
+      insertStatements.push({
         sql: `INSERT INTO matches (user_a, user_b, score, dim_scores, reasons, week_key)
               VALUES (?, ?, ?, ?, ?, ?)`,
         args: [
@@ -595,6 +619,18 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
       matched.add(Number(shuffled[i].user.id))
       matched.add(Number(bestMatch.user.id))
       matches.push({ score: bestScore })
+    }
+  }
+
+  // 用 db.batch() 一次性提交所有匹配结果
+  if (insertStatements.length > 0) {
+    try {
+      await db.batch(insertStatements)
+    } catch {
+      // batch 失败时回退到逐条插入（兼容不支持 batch 的客户端）
+      for (const stmt of insertStatements) {
+        try { await db.execute(stmt) } catch (_) { /* 单条失败不影响其他 */ }
+      }
     }
   }
 

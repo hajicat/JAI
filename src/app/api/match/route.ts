@@ -4,23 +4,9 @@ import { verifyToken, verifyTokenSafe } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
-import { isRevealWindow } from '@/lib/week'
+import { isRevealWindow, getWeekKey } from '@/lib/week'
 
 export const runtime = 'edge';
-
-// ISO 8601 周数计算：周四所在的周为该年的第几周
-function getWeekKey(): string {
-  const now = new Date()
-  // 找到本周四
-  const dayOfWeek = now.getDay() || 7 // 周日=7，周一=1...
-  const thursday = new Date(now)
-  thursday.setDate(now.getDate() - dayOfWeek + 4) // 本周四
-  // 周四所在年份的第一天
-  const yearStart = new Date(thursday.getFullYear(), 0, 1)
-  const diff = thursday.getTime() - yearStart.getTime()
-  const weekNum = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000))
-  return thursday.getFullYear() + '-W' + String(weekNum).padStart(2, '0')
-}
 
 const CONFLICT_NAMES: Record<string, string> = {
   dolphin: '🐬 海豚型（回避冲突）',
@@ -41,12 +27,18 @@ export async function GET(req: NextRequest) {
     const weekKey = getWeekKey()
     const uid = decoded.id
 
+    // ── 主查询：匹配数据 + 对方信息 + 自己联系方式，一次搞定 ──
     const sql = 'SELECT m.*, ' +
       'CASE WHEN m.user_a = ? THEN u2.nickname ELSE u1.nickname END as partner_nickname, ' +
       'CASE WHEN m.user_a = ? THEN u2.id ELSE u1.id END as partner_id, ' +
       'CASE WHEN m.user_a = ? THEN m.a_revealed ELSE m.b_revealed END as i_revealed, ' +
       'CASE WHEN m.user_a = ? THEN m.b_revealed ELSE m.a_revealed END as partner_revealed, ' +
-      'CASE WHEN m.user_a = ? THEN u2.conflict_type ELSE u1.conflict_type END as partner_conflict_type ' +
+      'CASE WHEN m.user_a = ? THEN u2.conflict_type ELSE u1.conflict_type END as partner_conflict_type, ' +
+      // 对方联系方式（加密存储）
+      'CASE WHEN m.user_a = ? THEN u2.contact_info ELSE u1.contact_info END as partner_contact_info, ' +
+      'CASE WHEN m.user_a = ? THEN u2.contact_type ELSE u1.contact_type END as partner_contact_type, ' +
+      // 自己是否填了联系方式
+      'CASE WHEN m.user_a = ? THEN u1.contact_info ELSE u2.contact_info END as self_contact_info ' +
       'FROM matches m ' +
       'JOIN users u1 ON m.user_a = u1.id ' +
       'JOIN users u2 ON m.user_b = u2.id ' +
@@ -54,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     const matchResult = await db.execute({
       sql: sql,
-      args: [uid, uid, uid, uid, uid, uid, uid, weekKey],
+      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, weekKey],
     })
 
     if (matchResult.rows.length === 0) {
@@ -77,20 +69,16 @@ export async function GET(req: NextRequest) {
     let partnerSurvey: any = null
 
     if (match.i_revealed && match.partner_revealed) {
-      const partnerResult = await db.execute({
-        sql: 'SELECT contact_info, contact_type FROM users WHERE id = ?',
-        args: [match.partner_id],
-      })
-      const partner = partnerResult.rows[0] as any
-      if (partner && partner.contact_info) {
+      // 对方联系方式 — 直接从主查询取，不再单独查
+      if (match.partner_contact_info) {
         try {
           partnerContact = {
-            type: partner.contact_type,
-            info: await decrypt(String(partner.contact_info)),
+            type: match.partner_contact_type,
+            info: await decrypt(String(match.partner_contact_info)),
           }
         } catch {
           partnerContact = {
-            type: partner.contact_type,
+            type: match.partner_contact_type,
             info: '[解密失败]',
             decryptError: true,
           }
@@ -99,7 +87,7 @@ export async function GET(req: NextRequest) {
         partnerContact = { type: null, info: null, empty: true }
       }
 
-      // 获取对方的问卷回答（双方确认后可见）
+      // 获取对方的问卷回答（双方确认后可见）— 仍需单独查
       const surveyResult = await db.execute({
         sql: `SELECT s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
                       s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
@@ -111,14 +99,8 @@ export async function GET(req: NextRequest) {
       partnerSurvey = surveyResult.rows[0] as any || null
     }
 
-    // 检查当前用户是否填写了联系方式
-    let selfHasContact = false
-    const selfResult = await db.execute({
-      sql: 'SELECT contact_info FROM users WHERE id = ?',
-      args: [uid],
-    })
-    const selfRow = selfResult.rows[0] as any
-    if (selfRow && selfRow.contact_info) selfHasContact = true
+    // 自己是否填了联系方式 — 直接从主查询取
+    const selfHasContact = !!match.self_contact_info
 
     let dimScores = null
     try {

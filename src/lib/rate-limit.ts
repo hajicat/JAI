@@ -36,7 +36,7 @@ export interface RateLimitConfig {
 
 // Pre-configured limiters
 export const LOGIN_LIMITER: RateLimitConfig = { windowMs: 15 * 60 * 1000, max: 10 }
-export const REGISTER_LIMITER: RateLimitConfig = { windowMs: 60 * 60 * 1000, max: 5 }
+export const REGISTER_LIMITER: RateLimitConfig = { windowMs: 60 * 60 * 1000, max: 3 }
 export const API_LIMITER: RateLimitConfig = { windowMs: 1 * 60 * 1000, max: 60 }
 export const SURVEY_LIMITER: RateLimitConfig = { windowMs: 5 * 60 * 1000, max: 10 }
 
