@@ -58,15 +58,9 @@ export async function GET(req: NextRequest) {
     })
 
     if (matchResult.rows.length === 0) {
-      // 检查是否匹配已执行但还没到揭晓时间（非管理员用户需等到北京时间周日20:00）
-      const pendingCheck = await db.execute({
-        sql: 'SELECT COUNT(*) as cnt FROM matches WHERE (user_a = ? OR user_b = ?) AND week_key = ?',
-        args: [uid, uid, weekKey],
-      })
-      const hasPendingMatch = Number((pendingCheck.rows[0] as any).cnt) > 0
-
-      if (hasPendingMatch && !isRevealWindow() && !decoded.isAdmin) {
-        return NextResponse.json({ match: null, status: 'pending_reveal', message: '匹配已完成，等待揭晓' })
+      // 未到揭晓时间 → 对普通用户隐藏匹配已执行的事实（与"尚未完成"表现一致）
+      if (!isRevealWindow() && !decoded.isAdmin) {
+        return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待' })
       }
 
       return NextResponse.json({ match: null, message: '本周匹配尚未完成，请等待周日匹配' })
@@ -74,9 +68,9 @@ export async function GET(req: NextRequest) {
 
     const match = matchResult.rows[0] as any
 
-    // 未到揭晓时间（北京时间周日20:00前）→ 非管理员用户看不到匹配详情
+    // 未到揭晓时间（北京时间周日20:00前）→ 非管理员用户看不到任何匹配信息
     if (!isRevealWindow() && !decoded.isAdmin) {
-      return NextResponse.json({ match: null, status: 'pending_reveal', message: '匹配已完成，等待揭晓' })
+      return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待' })
     }
 
     let partnerContact = null

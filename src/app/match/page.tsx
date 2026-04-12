@@ -100,7 +100,6 @@ export default function MatchPage() {
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
   const [matchEnabled, setMatchEnabled] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [pendingReveal, setPendingReveal] = useState(false) // 匹配完成但未到揭晓时间
 
   const loadData = async () => {
     try {
@@ -119,11 +118,7 @@ export default function MatchPage() {
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
       setUser(meData.user)
       setMatchEnabled(meData.user.matchEnabled)
-      if (matchData.status === 'pending_reveal') {
-        // 匹配已完成，但还没到揭晓时间（周日20:00前）
-        setPendingReveal(true)
-        setMatch(null)
-      } else if (matchData.match) {
+      if (matchData.match) {
         setMatch(matchData.match)
       }
       setInviteCodes(inviteData.available || [])
@@ -386,20 +381,6 @@ export default function MatchPage() {
             {match.iRevealed && match.partnerRevealed && match.partnerSurvey && (
               <PartnerAnswers survey={match.partnerSurvey} nickname={match.partnerNickname} />
             )}
-          </div>
-        ) : pendingReveal ? (
-          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
-            <div className="text-6xl mb-4">🎊</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">匹配已完成</h2>
-            <p className="text-gray-500 mb-4 leading-relaxed">
-              你的本周匹配结果正在加密锁定中<br />
-              每周日 <span className="font-bold text-pink-600">20:00</span> 准时揭晓
-            </p>
-
-            {/* 倒计时到揭晓时刻 */}
-            <MatchCountdown />
-
-            <p className="text-xs text-gray-400 mt-6">到时间后刷新页面即可查看结果 ✨</p>
           </div>
         ) : (
           <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
