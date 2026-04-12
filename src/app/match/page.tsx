@@ -99,8 +99,7 @@ export default function MatchPage() {
   const [showInvite, setShowInvite] = useState(false)
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
   const [matchEnabled, setMatchEnabled] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [autoMatchStatus, setAutoMatchStatus] = useState<string | null>(null) // 'in_progress' | null
+  const [refreshing, setRefreshing] = useState(false) // 'in_progress' | null
 
   const loadData = async () => {
     try {
@@ -136,8 +135,10 @@ export default function MatchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
 
-  // ── 自动匹配触发（仅一次）──
-  // 周日北京时间12:00之后（UTC 04:00+），第一个打开页面的已完成问卷用户触发匹配
+  // ── 自动匹配触发（静默、仅一次）──
+  // 周日北京时间12:00之后（UTC 04:00+），第一个打开页面的用户触发后台匹配。
+  // 匹配在后台静默完成，用户无感知。
+  // 结果要等到周日20:00（isRevealWindow）才通过 /api/match 返回给前端。
   const [autoMatchTriggered, setAutoMatchTriggered] = useState(false)
 
   useEffect(() => {
@@ -145,7 +146,7 @@ export default function MatchPage() {
     if (!user?.surveyCompleted || autoMatchTriggered) return
 
     const tryAutoMatch = async () => {
-      setAutoMatchTriggered(true) // 标记已尝试
+      setAutoMatchTriggered(true) // 标记已尝试，永远不再进入
 
       // 检查是否在匹配窗口内（UTC 周日 04:00+ = 北京时间 12:00+）
       const now = new Date()
@@ -160,18 +161,12 @@ export default function MatchPage() {
           method: 'POST',
           headers: { 'X-CSRF-Token': csrfToken },
         })
-        const data = await res.json()
 
-        if (data.status === 'done') {
-          // 匹配完成 → 直接拉取最新数据展示结果（不刷新页面！）
-          await loadData()
-        } else if (data.status === 'in_progress') {
-          // 别人正在跑 → 显示提示，不刷新
-          setAutoMatchStatus('in_progress')
-        }
-        // already_done / not_yet → 不做任何事
+        // 不管成功/失败/in_progress/already_done → 全部静默处理
+        // 用户看到的永远是"等待揭晓"，直到周日20:00
+        // 后端 api/match 的 isRevealWindow() 会控制数据可见性
       } catch {
-        // 网络错误不影响使用
+        // 网络错误也不影响用户体验
       }
     }
 
@@ -411,18 +406,6 @@ export default function MatchPage() {
                 🏠 返回首页
               </Link>
             </div>
-
-            {/* 匹配进行中提示 */}
-            {autoMatchStatus === 'in_progress' && (
-              <div className="mt-6 text-center animate-pulse">
-                <p className="text-sm text-blue-500 font-medium">⏳ 系统正在为你计算最佳匹配...</p>
-                <p className="text-xs text-gray-400 mt-1">请稍等片刻，或手动刷新查看结果</p>
-                <button onClick={handleRefresh}
-                  className="mt-3 text-xs px-4 py-1.5 bg-blue-50 text-blue-500 rounded-full hover:bg-blue-100 transition">
-                  刷新查看
-                </button>
-              </div>
-            )}
           </div>
         )}
 
