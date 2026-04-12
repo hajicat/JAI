@@ -139,7 +139,8 @@ export async function POST(req: NextRequest) {
 
     return setCsrfCookie(response)
   } catch (error: any) {
-    console.error('[login]', error?.message || error)
-    return NextResponse.json({ error: '登录失败，请稍后重试' }, { status: 500 })
+    const errMsg = error?.message || error?.toString() || 'unknown'
+    console.error('[login]', errMsg)
+    return NextResponse.json({ error: '登录失败，请稍后重试', detail: errMsg }, { status: 500 })
   }
 }
