@@ -102,6 +102,23 @@ export async function POST(req: NextRequest) {
       args: [inviteCode],
     })
     const codeRow = codeResult.rows[0] as any
+    if (!codeRow) {
+      return NextResponse.json({ error: '邀请码记录不存在' }, { status: 400 })
+    }
+
+    // 验证 created_by 对应的用户是否存在（防止 FK 约束失败）
+    const createdBy = Number(codeRow.created_by)
+    if (!createdBy || createdBy <= 0 || isNaN(createdBy)) {
+      return NextResponse.json({ error: '邀请码数据异常，请联系管理员' }, { status: 400 })
+    }
+    const creatorCheck = await db.execute({
+      sql: 'SELECT id FROM users WHERE id = ?',
+      args: [createdBy],
+    })
+    if (creatorCheck.rows.length === 0) {
+      console.error('[register] 邀邀码 created_by 指向不存在的用户:', { code: inviteCode, createdBy })
+      return NextResponse.json({ error: '邀请码无效（关联用户不存在），请联系管理员' }, { status: 400 })
+    }
 
     // ── 邮箱验证码校验（注册必须先验证邮箱）──
     const verificationCode = body.verificationCode || ''
@@ -197,9 +214,9 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     const errMsg = error?.message || error || 'unknown'
     console.error('[register]', errMsg)
-    // 临时暴露全部错误信息用于排查（确认问题后改回生产模式隐藏）
+    // 生产环境隐藏内部错误细节
     return NextResponse.json(
-      { error: `注册失败: ${errMsg}` },
+      { error: '注册失败，请稍后重试' },
       { status: 500 }
     )
   }
