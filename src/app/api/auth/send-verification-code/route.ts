@@ -3,7 +3,7 @@ import { getDb, initDb } from '@/lib/db'
 import { validateEmail, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, REGISTER_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken } from '@/lib/csrf'
-import { sendVerificationEmail, isDevMode } from '@/lib/email'
+import { sendVerificationEmail } from '@/lib/email'
 
 export const runtime = 'edge'
 
@@ -64,15 +64,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.error || '发送失败' }, { status: 429 })
     }
 
-    // 返回成功响应
-    // 降级模式或开发模式都会返回明文码（确保用户能完成注册）
-    const responsePayload: any = {
-      success: true,
-      message: result.message,
-    }
-    if (result.codeForDev) {
-      responsePayload.devCode = result.codeForDev
-    }
+    return NextResponse.json({ success: true, message: result.message })
 
     return NextResponse.json(responsePayload)
   } catch (error: any) {

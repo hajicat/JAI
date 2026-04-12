@@ -18,12 +18,7 @@ const CODE_LENGTH = 6                       // 6 位数字
 
 export interface VerificationCodeResult {
   success: boolean
-  // 发送成功时
-  codeForDev?: string        // 仅开发模式/降级模式：明文验证码
-  message: string            // 用户可见提示
-  // 发送失败或降级时的调试信息（不展示给用户）
-  _debug?: string            // 内部调试用
-  // 发送失败时
+  message: string
   error?: string
 }
 
@@ -52,14 +47,8 @@ async function hashCode(code: string): Promise<string> {
 }
 
 /**
- * 检查是否在开发模式（无 RESEND_API_KEY 或 NODE_ENV=development）
- */
-export function isDevMode(): boolean {
-  return !process.env.RESEND_API_KEY || process.env.NODE_ENV === 'development'
-}
-
-/**
  * 获取发件人地址（从环境变量读取，带默认值）
+ */
  * 注意：Resend 需要验证域名后才能自定义发件地址。
  * 新账号默认只能用 onboarding@resend.dev 或已验证的域名。
  */
@@ -143,17 +132,7 @@ export async function sendVerificationEmail(
     }
   }
 
-  // ── 5. 开发模式：不发真实邮件，直接返回明文码 ──
-  if (isDevMode()) {
-    console.log(`\n📧 [开发模式] 验证码 ${plainCode} → ${email}\n`)
-    return {
-      success: true,
-      codeForDev: plainCode,
-      message: '验证码已生成（开发模式见响应体或控制台）',
-    }
-  }
-
-  // ── 6. 生产模式：通过 Resend 发送邮件 ──
+  // ── 5. 通过 Resend 发送邮件 ──
   try {
     const resend = new Resend(process.env.RESEND_API_KEY!)
 
@@ -195,13 +174,11 @@ export async function sendVerificationEmail(
 
     if (error) {
       console.error('[resend] 发送失败:', JSON.stringify(error))
-      // 返回详细错误 + 降级返回明文码（确保用户能完成注册流程）
       const errMsg = error?.message || error?.name || '未知错误'
       return {
-        success: true,
-        codeForDev: plainCode,
-        message: '邮件发送异常，验证码已显示在页面上',
-        _debug: `Resend错误: ${errMsg}`,
+        success: false,
+        error: `邮件发送失败（${errMsg}）`,
+        message: `验证码发送失败，请稍后重试`,
       }
     }
 
@@ -212,12 +189,10 @@ export async function sendVerificationEmail(
     }
   } catch (err: any) {
     console.error('[resend] 异常:', err?.message || err)
-    // 降级：返回明文码确保用户能注册
     return {
-      success: true,
-      codeForDev: plainCode,
-      message: '邮件服务异常，验证码已显示在页面上',
-      _debug: `异常: ${err?.message || '未知'}`,
+      success: false,
+      error: '邮件服务异常',
+      message: '邮件服务暂时不可用，请稍后重试',
     }
   }
 }
