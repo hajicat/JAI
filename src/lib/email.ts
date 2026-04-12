@@ -8,7 +8,7 @@
  * - 开发模式（无 RESEND_API_KEY）时返回明文码供调试
  */
 
-import { createClient } from 'resend'
+import { Resend } from 'resend'
 
 // ── 配置 ──
 const CODE_EXPIRY_MS = 5 * 60 * 1000       // 5 分钟
@@ -147,7 +147,7 @@ export async function sendVerificationEmail(
 
   // ── 6. 生产模式：通过 Resend 发送邮件 ──
   try {
-    const resend = createClient(process.env.RESEND_API_KEY!)
+    const resend = new Resend(process.env.RESEND_API_KEY!)
 
     const { data, error } = await resend.emails.send({
       from: `吉动盲盒 <${getFromEmail()}>`,

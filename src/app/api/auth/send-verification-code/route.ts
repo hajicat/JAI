@@ -10,7 +10,7 @@ export const runtime = 'edge'
 // 发送验证码的独立限流（比注册限流更严格：每小时 10 次）
 const CODE_SEND_LIMITER = {
   windowMs: 60 * 60 * 1000, // 1 小时
-  maxRequests: 10,
+  max: 10,
 }
 
 export async function POST(req: NextRequest) {
