@@ -89,9 +89,9 @@ export async function POST(req: NextRequest) {
     // Check invite code + atomic usage increment (TOCTOU fix)
     // 使用原子操作：在单条 SQL 中检查并递增使用计数，防止并发竞态
     const updateResult = await db.execute({
-      sql: `UPDATE invite_codes SET current_uses = current_uses + 1, used_by = ?
+      sql: `UPDATE invite_codes SET current_uses = current_uses + 1
             WHERE code = ? AND current_uses < max_uses`,
-      args: [0 /* 占位，插入成功后更新 */, inviteCode],
+      args: [inviteCode],
     })
     if (!updateResult.rowsAffected || (updateResult as any).rowsAffected === 0) {
       return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
@@ -214,9 +214,8 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     const errMsg = error?.message || error || 'unknown'
     console.error('[register]', errMsg)
-    // 暴露具体错误用于定位问题
     return NextResponse.json(
-      { error: `注册失败: ${errMsg}` },
+      { error: '注册失败，请稍后重试' },
       { status: 500 }
     )
   }
