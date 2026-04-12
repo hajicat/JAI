@@ -202,14 +202,23 @@ export async function DELETE(req: NextRequest) {
     // ── 执行级联删除（按外键依赖顺序）──
     const nickname = targetUser.nickname
 
+    // 0. 先获取目标用户的邮箱（用于后续删除验证码）
+    const emailResult = await db.execute({
+      sql: `SELECT email FROM users WHERE id = ?`,
+      args: [uid],
+    })
+    const userEmail = (emailResult.rows[0] as any)?.email
+
     // 1. 删除匹配记录（作为 user_a 或 user_b）
     await db.execute({ sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] })
 
     // 2. 删除问卷回答
     await db.execute({ sql: `DELETE FROM survey_responses WHERE user_id = ?`, args: [uid] })
 
-    // 3. 删除验证码记录
-    await db.execute({ sql: `DELETE FROM verification_codes WHERE email IN (SELECT email FROM users WHERE id = ?)`, args: [uid] })
+    // 3. 删除验证码记录（避免子查询，直接用邮箱）
+    if (userEmail) {
+      await db.execute({ sql: `DELETE FROM verification_codes WHERE email = ?`, args: [userEmail] })
+    }
 
     // 4. 删除该用户创建的邀请码（未使用的）
     await db.execute({ sql: `DELETE FROM invite_codes WHERE created_by = ? AND used_by IS NULL`, args: [uid] })
@@ -218,7 +227,12 @@ export async function DELETE(req: NextRequest) {
     await db.execute({ sql: `UPDATE users SET invited_by = NULL WHERE invited_by = ?`, args: [uid] })
 
     // 6. 最后删除用户本身
-    await db.execute({ sql: `DELETE FROM users WHERE id = ?`, args: [uid] })
+    const deleteResult = await db.execute({ sql: `DELETE FROM users WHERE id = ?`, args: [uid] })
+
+    // 校验是否真的删掉了
+    if ((deleteResult as any).rowsAffected === 0) {
+      throw new Error('删除失败：未找到该用户')
+    }
 
     console.log(`[admin/delete-user] 管理员 ${decoded.id} 删除了用户 ${uid} (${nickname})`)
 
