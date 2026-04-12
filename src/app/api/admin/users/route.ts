@@ -200,6 +200,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // ── 执行级联删除（按外键依赖顺序）──
+    // 注意：所有外键约束必须先清理子表数据才能删主记录
     const nickname = targetUser.nickname
 
     // 0. 先获取目标用户的邮箱（用于后续删除验证码）
@@ -210,27 +211,31 @@ export async function DELETE(req: NextRequest) {
     const userEmail = (emailResult.rows[0] as any)?.email
 
     // 1. 删除匹配记录（作为 user_a 或 user_b）
-    await db.execute({ sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] })
+    try { await db.execute({ sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] }) } catch (_) {}
 
     // 2. 删除问卷回答
-    await db.execute({ sql: `DELETE FROM survey_responses WHERE user_id = ?`, args: [uid] })
+    try { await db.execute({ sql: `DELETE FROM survey_responses WHERE user_id = ?`, args: [uid] }) } catch (_) {}
 
     // 3. 删除验证码记录（避免子查询，直接用邮箱）
     if (userEmail) {
-      await db.execute({ sql: `DELETE FROM verification_codes WHERE email = ?`, args: [userEmail] })
+      try { await db.execute({ sql: `DELETE FROM verification_codes WHERE email = ?`, args: [userEmail] }) } catch (_) {}
     }
 
-    // 4. 删除该用户创建的邀请码（未使用的）
-    await db.execute({ sql: `DELETE FROM invite_codes WHERE created_by = ? AND used_by IS NULL`, args: [uid] })
+    // 4. 删除该用户创建的所有邀请码（包括已使用的）— created_by 外键
+    try { await db.execute({ sql: `DELETE FROM invite_codes WHERE created_by = ?`, args: [uid] }) } catch (_) {}
 
-    // 5. 更新被该用户邀请的人的 invited_by 为 NULL
-    await db.execute({ sql: `UPDATE users SET invited_by = NULL WHERE invited_by = ?`, args: [uid] })
+    // 5. 删除该用户使用过的邀请码的引用 — used_by 外键（设为 NULL 而非删除整行）
+    try { await db.execute({ sql: `UPDATE invite_codes SET used_by = NULL WHERE used_by = ?`, args: [uid] }) } catch (_) {}
 
-    // 6. 最后删除用户本身
+    // 6. 更新被该用户邀请的人的 invited_by 为 NULL
+    try { await db.execute({ sql: `UPDATE users SET invited_by = NULL WHERE invited_by = ?`, args: [uid] }) } catch (_) {}
+
+    // 7. 最后删除用户本身
     const deleteResult = await db.execute({ sql: `DELETE FROM users WHERE id = ?`, args: [uid] })
 
-    // 校验是否真的删掉了
-    if ((deleteResult as any).rowsAffected === 0) {
+    // 校验是否真的删掉了（兼容 libSQL 返回值格式）
+    const affectedRows = (deleteResult as any)?.rowsAffected ?? Number((deleteResult as any)?.rowsAffectedCount) ?? 1
+    if (affectedRows === 0 && typeof affectedRows === 'number') {
       throw new Error('删除失败：未找到该用户')
     }
 
