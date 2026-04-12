@@ -28,7 +28,7 @@ export interface VerificationCodeResult {
  * Brevo 需要先在 Dashboard → Senders 中验证发件邮箱
  */
 function getFromEmail(): string {
-  return process.env.BREVO_FROM_EMAIL || 'noreply@zxyyy.xyz'
+  return process.env.BREVO_FROM_EMAIL || 'noreply@jaihelp.icu'
 }
 
 /**
