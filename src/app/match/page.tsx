@@ -136,11 +136,16 @@ export default function MatchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
 
-  // ── 自动匹配触发 ──
+  // ── 自动匹配触发（仅一次）──
   // 周日北京时间12:00之后（UTC 04:00+），第一个打开页面的已完成问卷用户触发匹配
+  const [autoMatchTriggered, setAutoMatchTriggered] = useState(false)
+
   useEffect(() => {
+    // 只触发一次（防止重复调用）
+    if (!user?.surveyCompleted || autoMatchTriggered) return
+
     const tryAutoMatch = async () => {
-      if (!user?.surveyCompleted) return
+      setAutoMatchTriggered(true) // 标记已尝试
 
       // 检查是否在匹配窗口内（UTC 周日 04:00+ = 北京时间 12:00+）
       const now = new Date()
@@ -157,22 +162,22 @@ export default function MatchPage() {
         })
         const data = await res.json()
 
-        if (data.status === 'done' || data.status === 'already_done') {
-          // 匹配完成 → 刷新页面展示结果
-          window.location.reload()
+        if (data.status === 'done') {
+          // 匹配完成 → 直接拉取最新数据展示结果（不刷新页面！）
+          await loadData()
         } else if (data.status === 'in_progress') {
-          // 别人正在跑 → 标记状态，显示提示，不再自动刷新
+          // 别人正在跑 → 显示提示，不刷新
           setAutoMatchStatus('in_progress')
         }
-        // status === 'not_yet' 不处理（理论上不会走到这里因为上面已检查时间窗口）
+        // already_done / not_yet → 不做任何事
       } catch {
         // 网络错误不影响使用
       }
     }
 
-    const timer = setTimeout(tryAutoMatch, 2000) // 延迟2秒等主数据加载完
+    const timer = setTimeout(tryAutoMatch, 2000)
     return () => clearTimeout(timer)
-  }, [user?.surveyCompleted])
+  }, [user?.surveyCompleted, autoMatchTriggered])
 
   const handleRefresh = async () => {
     setRefreshing(true)
