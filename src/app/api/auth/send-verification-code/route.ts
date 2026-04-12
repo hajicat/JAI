@@ -7,10 +7,10 @@ import { sendVerificationEmail, isDevMode } from '@/lib/email'
 
 export const runtime = 'edge'
 
-// 发送验证码的独立限流（比注册限流更严格：每小时 10 次）
+// 发送验证码的独立限流（首次宽松，后续严格）
 const CODE_SEND_LIMITER = {
   windowMs: 60 * 60 * 1000, // 1 小时
-  max: 10,
+  max: 20,
 }
 
 export async function POST(req: NextRequest) {
