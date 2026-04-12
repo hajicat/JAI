@@ -1,0 +1,290 @@
+/**
+ * 邮件验证码模块 — 基于 Resend（兼容 Cloudflare Edge Runtime）
+ *
+ * 安全设计：
+ * - 验证码以 SHA-256 哈希存储，不存明文
+ * - 6 位数字码，5 分钟过期，最多尝试 5 次
+ * - 同一邮箱 60 秒冷却防刷
+ * - 开发模式（无 RESEND_API_KEY）时返回明文码供调试
+ */
+
+import { createClient } from 'resend'
+
+// ── 配置 ──
+const CODE_EXPIRY_MS = 5 * 60 * 1000       // 5 分钟
+const CODE_COOLDOWN_MS = 60 * 1000         // 60 秒冷却
+const MAX_ATTEMPTS = 5                      // 最大尝试验证次数
+const CODE_LENGTH = 6                       // 6 位数字
+
+export interface VerificationCodeResult {
+  success: boolean
+  // 发送成功时
+  codeForDev?: string        // 仅开发模式：明文验证码
+  message: string            // 用户可见提示
+  // 发送失败时
+  error?: string
+}
+
+/**
+ * 生成随机 6 位数字验证码
+ */
+function generateCode(): string {
+  const bytes = new Uint8Array(CODE_LENGTH)
+  crypto.getRandomValues(bytes)
+  let code = ''
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    code += String.fromCharCode(48 + (bytes[i] % 10))  // 48 = '0'
+  }
+  return code
+}
+
+/**
+ * 用 SHA-256 哈希验证码（存数据库用，永不存明文）
+ */
+async function hashCode(code: string): Promise<string> {
+  const data = new TextEncoder().encode(`jlai-verify:${code}`)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/**
+ * 检查是否在开发模式（无 RESEND_API_KEY 或 NODE_ENV=development）
+ */
+export function isDevMode(): boolean {
+  return !process.env.RESEND_API_KEY || process.env.NODE_ENV === 'development'
+}
+
+/**
+ * 获取发件人地址（从环境变量读取，带默认值）
+ */
+function getFromEmail(): string {
+  return process.env.RESEND_FROM_EMAIL || 'noreply@jlai.date'
+}
+
+/**
+ * 发送邮箱验证码邮件
+ *
+ * @param email 目标邮箱
+ * @param db 数据库客户端（用于存储哈希后的验证码）
+ * @param ip 请求者 IP（用于限流）
+ *
+ * @returns 成功时 success=true；开发模式下额外返回 codeForDev 明文码
+ */
+export async function sendVerificationEmail(
+  email: string,
+  db: any,
+  ip: string
+): Promise<VerificationCodeResult> {
+  const now = new Date()
+
+  // ── 1. 冷却检查：同一邮箱 60 秒内不能重发 ──
+  try {
+    const recentResult = await db.execute({
+      sql: `SELECT created_at FROM verification_codes
+            WHERE email = ?
+            ORDER BY created_at DESC LIMIT 1`,
+      args: [email.toLowerCase()],
+    })
+    if (recentResult.rows.length > 0) {
+      const lastSent = new Date((recentResult.rows[0] as any).created_at)
+      const elapsed = now.getTime() - lastSent.getTime()
+      if (elapsed < CODE_COOLDOWN_MS) {
+        const remainingSec = Math.ceil((CODE_COOLDOWN_MS - elapsed) / 1000)
+        return {
+          success: false,
+          error: `请等待 ${remainingSec} 秒后再发送`,
+          message: `操作太频繁，请 ${remainingSec} 秒后再试`,
+        }
+      }
+    }
+  } catch (_) {
+    /* 表可能还不存在，继续执行 */
+  }
+
+  // ── 2. 清理过期记录 ──
+  try {
+    const expiryCutoff = new Date(now.getTime() - CODE_EXPIRY_MS).toISOString()
+    await db.execute({
+      sql: `DELETE FROM verification_codes WHERE created_at < ? OR attempts >= ?`,
+      args: [expiryCutoff, MAX_ATTEMPTS],
+    })
+  } catch (_) {
+    /* 忽略清理错误 */
+  }
+
+  // ── 3. 生成验证码并哈希 ──
+  const plainCode = generateCode()
+  const codeHash = await hashCode(plainCode)
+
+  // ── 4. 存储到数据库 ──
+  const expiresAt = new Date(now.getTime() + CODE_EXPIRY_MS).toISOString()
+  try {
+    await db.execute({
+      sql: `INSERT INTO verification_codes (email, code_hash, expires_at, ip, attempts, created_at)
+            VALUES (?, ?, ?, ?, 0, ?)`,
+      args: [email.toLowerCase(), codeHash, expiresAt, ip, now.toISOString()],
+    })
+  } catch (err: any) {
+    console.error('[email] 存储验证码失败:', err?.message || err)
+    return {
+      success: false,
+      error: '系统错误，请稍后重试',
+      message: '验证码生成失败',
+    }
+  }
+
+  // ── 5. 开发模式：不发真实邮件，直接返回明文码 ──
+  if (isDevMode()) {
+    console.log(`\n📧 [开发模式] 验证码 ${plainCode} → ${email}\n`)
+    return {
+      success: true,
+      codeForDev: plainCode,
+      message: '验证码已生成（开发模式见响应体或控制台）',
+    }
+  }
+
+  // ── 6. 生产模式：通过 Resend 发送邮件 ──
+  try {
+    const resend = createClient(process.env.RESEND_API_KEY!)
+
+    const { data, error } = await resend.emails.send({
+      from: `吉动盲盒 <${getFromEmail()}>`,
+      to: [email],
+      subject: '你的吉动盲盒验证码',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <span style="font-size: 32px;">🎁</span>
+            <h1 style="color: #333; margin: 12px 0 4px; font-size: 20px;">吉动盲盒</h1>
+            <p style="color: #888; font-size: 14px; margin: 0;">邮箱验证码</p>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #ec4899, #a855f7); border-radius: 16px; padding: 32px; text-align: center; margin: 24px 0;">
+            <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0 0 12px;">你的验证码是</p>
+            <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #fff;">
+              ${plainCode.split('').join(' ')}
+            </div>
+            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 16px 0 0;">有效期 5 分钟</p>
+          </div>
+
+          <div style="background: #f8f8f8; border-radius: 12px; padding: 16px; font-size: 13px; color: #666; line-height: 1.6;">
+            <p style="margin: 0 0 8px;">⏰ 验证码 <strong>5 分钟</strong>内有效</p>
+            <p style="margin: 0 0 8px;">🔒 请勿将验证码告诉他人</p>
+            <p style="margin: 0;">如果不是你本人操作，请忽略此邮件</p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+
+          <p style="text-align: center; color: #aaa; font-size: 12px; margin: 0;">
+            此邮件由系统自动发送，请勿回复<br />
+            吉动盲盒 &mdash; 发现校园缘分 ✨
+          </p>
+        </div>
+      `,
+    })
+
+    if (error) {
+      console.error('[resend] 发送失败:', error)
+      return {
+        success: false,
+        error: '邮件发送失败，请稍后重试',
+        message: '验证码发送失败，请检查邮箱地址后重试',
+      }
+    }
+
+    console.log(`[resend] 验证码已发送 → ${email} (messageId: ${data?.id})`)
+    return {
+      success: true,
+      message: '验证码已发送，请查收邮箱',
+    }
+  } catch (err: any) {
+    console.error('[resend] 异常:', err?.message || err)
+    return {
+      success: false,
+      error: '邮件服务异常，请联系管理员',
+      message: '邮件服务暂时不可用，请稍后重试',
+    }
+  }
+}
+
+/**
+ * 验证用户提交的验证码是否正确
+ *
+ * @param email 用户邮箱
+ * @param userInput 用户输入的验证码
+ * @param db 数据库客户端
+ *
+ * @returns valid=true 表示验证通过
+ */
+export async function verifyCode(
+  email: string,
+  userInput: string,
+  db: any
+): Promise<{ valid: boolean; error?: string }> {
+  if (!userInput || typeof userInput !== 'string' || !/^\d{6}$/.test(userInput)) {
+    return { valid: false, error: '验证码格式不正确' }
+  }
+
+  const inputHash = await hashCode(userInput)
+  const emailLower = email.toLowerCase()
+  const nowIso = new Date().toISOString()
+
+  try {
+    // 查找未过期的有效验证码记录
+    const result = await db.execute({
+      sql: `SELECT id, code_hash, attempts, expires_at FROM verification_codes
+            WHERE email = ? AND expires_at > ?
+            ORDER BY created_at DESC LIMIT 1`,
+      args: [emailLower, nowIso],
+    })
+
+    const row = result.rows[0] as any
+    if (!row) {
+      return { valid: false, error: '验证码已过期或不存在' }
+    }
+
+    // 检查尝试次数
+    if (row.attempts >= MAX_ATTEMPTS) {
+      await db.execute({ sql: `DELETE FROM verification_codes WHERE id = ?`, args: [row.id] })
+      return { valid: false, error: '验证码尝试次数过多，请重新获取' }
+    }
+
+    // 增加尝试计数
+    await db.execute({
+      sql: `UPDATE verification_codes SET attempts = attempts + 1 WHERE id = ?`,
+      args: [row.id],
+    })
+
+    // 常量时间比较防时序攻击
+    const storedHash = String(row.code_hash)
+    const match = timingSafeEqual(inputHash, storedHash)
+
+    if (match) {
+      // 验证成功，删除该码防止重复使用
+      await db.execute({ sql: `DELETE FROM verification_codes WHERE id = ?`, args: [row.id] })
+      return { valid: true }
+    } else {
+      const remaining = MAX_ATTEMPTS - Number(row.attempts) - 1
+      return { valid: false, error: `验证码错误，还剩 ${remaining} 次机会` }
+    }
+  } catch (err: any) {
+    console.error('[verify-code]', err?.message || err)
+    return { valid: false, error: '验证失败，请稍后重试' }
+  }
+}
+
+/**
+ * 常量时间字符串比较 — 防时序攻击
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  const aBytes = new TextEncoder().encode(a)
+  const bBytes = new TextEncoder().encode(b)
+  let result = 0
+  for (let i = 0; i < aBytes.length; i++) {
+    result |= aBytes[i] ^ bBytes[i]
+  }
+  return result === 0
+}

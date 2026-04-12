@@ -33,6 +33,13 @@ function LoginForm() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [gpsRequired, setGpsRequired] = useState(true)
 
+  // 邮箱验证码状态（仅注册模式使用）
+  const [verificationCode, setVerificationCode] = useState('')
+  const [codeSent, setCodeSent] = useState(false)
+  const [codeSending, setCodeSending] = useState(false)
+  const [codeCooldown, setCodeCooldown] = useState(0)       // 倒计时秒数
+  const [devCodeHint, setDevCodeHint] = useState('')         // 开发模式显示的明文码
+
   // 加载系统设置（GPS是否必需）
   useEffect(() => {
     fetch('/api/public-settings')
@@ -102,6 +109,71 @@ function LoginForm() {
     )
   }
 
+  // 发送邮箱验证码
+  const handleSendCode = async () => {
+    if (!form.email) {
+      setError('请先输入邮箱地址')
+      return
+    }
+
+    const emailCheck = form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+    if (!emailCheck) {
+      setError('请输入正确的邮箱格式')
+      return
+    }
+
+    setCodeSending(true)
+    setError('')
+    setDevCodeHint('')
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+      const res = await fetch('/api/auth/send-verification-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+        body: JSON.stringify({ email: form.email }),
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || '发送失败')
+        return
+      }
+
+      // 开发模式：显示明文验证码提示
+      if (data.devCode) {
+        setDevCodeHint(data.devCode)
+        setError(`开发模式验证码：${data.devCode}`)
+      } else {
+        setError('')
+      }
+
+      setCodeSent(true)
+      setCodeCooldown(60)  // 60 秒冷却
+
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setError('请求超时，请重试')
+      } else {
+        setError('网络错误，请重试')
+      }
+    } finally {
+      setCodeSending(false)
+    }
+  }
+
+  // 验证码冷却倒计时
+  useEffect(() => {
+    if (codeCooldown <= 0) return
+    const timer = setTimeout(() => setCodeCooldown(c => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [codeCooldown])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -121,6 +193,18 @@ function LoginForm() {
       return
     }
 
+    // 注册模式：校验邮箱验证码
+    if (isRegister) {
+      if (!codeSent) {
+        setError('请先获取邮箱验证码')
+        return
+      }
+      if (!verificationCode || verificationCode.length !== 6) {
+        setError('请输入6位邮箱验证码')
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
@@ -131,6 +215,7 @@ function LoginForm() {
             password: form.password, inviteCode: form.inviteCode,
             gender: form.gender, preferredGender: form.preferredGender,
             latitude: coords?.lat, longitude: coords?.lng,
+            verificationCode,
           }
         : { email: form.email, password: form.password }
 
@@ -327,10 +412,59 @@ function LoginForm() {
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">邮箱</label>
-              <input type="email" placeholder="你的邮箱（用于登录）"
+              <input type="email" placeholder="你的邮箱（用于登录和接收验证码）"
                 value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required autoComplete="email" />
             </div>
+
+            {/* 邮箱验证码（仅注册模式显示） */}
+            {isRegister && (
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-600">📧 邮箱验证</label>
+                  <button
+                    type="button"
+                    onClick={handleSendCode}
+                    disabled={codeSending || codeCooldown > 0 || !form.email}
+                    className={`text-sm font-medium px-3 py-1.5 rounded-lg transition ${
+                      codeCooldown > 0
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        : codeSending
+                        ? 'bg-pink-100 text-pink-400 animate-pulse'
+                        : 'bg-pink-100 text-pink-600 hover:bg-pink-200'
+                    }`}
+                  >
+                    {codeSending
+                      ? '发送中...'
+                      : codeCooldown > 0
+                      ? `${codeCooldown}s 后重发`
+                      : codeSent
+                      ? '重新发送'
+                      : '获取验证码'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400">请输入发到邮箱的 6 位数字验证码，5 分钟内有效</p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="输入 6 位验证码"
+                  value={verificationCode}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                    setVerificationCode(val)
+                  }}
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300 transition tracking-[0.3em] text-center font-mono text-lg"
+                />
+                {/* 开发模式提示 */}
+                {devCodeHint && (
+                  <p className="text-xs text-orange-500 text-center bg-orange-50 rounded-lg p-2">
+                    🔧 开发模式：验证码是 <strong className="tracking-widest">{devCodeHint}</strong>
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* 密码 + 显示/隐藏切换 */}
             <div>

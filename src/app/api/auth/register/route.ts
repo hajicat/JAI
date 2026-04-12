@@ -5,6 +5,7 @@ import { validateEmail, validatePassword, validateNickname, validateInviteCode, 
 import { checkRateLimit, REGISTER_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/lib/csrf'
 import { haversineDistance } from '@/lib/geo'
+import { verifyCode } from '@/lib/email'
 
 export const runtime = 'edge';
 
@@ -95,6 +96,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
     }
 
+    // ── 邮箱验证码校验（注册必须先验证邮箱）──
+    const verificationCode = body.verificationCode || ''
+    if (!verificationCode || typeof verificationCode !== 'string') {
+      return NextResponse.json({ error: '请先获取并输入邮箱验证码' }, { status: 400 })
+    }
+    const verifyResult = await verifyCode(email, verificationCode, db)
+    if (!verifyResult.valid) {
+      return NextResponse.json({ error: verifyResult.error }, { status: 400 })
+    }
+
     // 防自邀注册：不能使用自己的邀请码注册新账号
     const creatorResult = await db.execute({
       sql: 'SELECT email FROM users WHERE id = ?',
@@ -121,8 +132,8 @@ export async function POST(req: NextRequest) {
     const userInviteCode = generateInviteCode()
 
     const insertResult = await db.execute({
-      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by, gender, preferred_gender)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by, gender, preferred_gender, email_verified)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
       args: [nickname, email, passwordHash, userInviteCode, Number(codeRow.created_by), gender, preferredGender],
     })
 

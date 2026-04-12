@@ -111,6 +111,16 @@ async function doInit(): Promise<void> {
       updated_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS verification_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      ip TEXT,
+      attempts INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_invite ON users(invite_code);
     CREATE INDEX IF NOT EXISTS idx_matches_week ON matches(week_key);
@@ -172,6 +182,7 @@ async function doInit(): Promise<void> {
     { sql: `ALTER TABLE users ADD COLUMN conflict_type TEXT`, table: 'users', column: 'conflict_type' },
     { sql: `ALTER TABLE users ADD COLUMN match_enabled INTEGER DEFAULT 1`, table: 'users', column: 'match_enabled' },
     { sql: `ALTER TABLE users ADD COLUMN password_changed_at TEXT`, table: 'users', column: 'password_changed_at' },
+    { sql: `ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`, table: 'users', column: 'email_verified' },
     // matches 表新增列
     { sql: `ALTER TABLE matches ADD COLUMN dim_scores TEXT`, table: 'matches', column: 'dim_scores' },
     // survey_responses 表新增列
@@ -221,6 +232,8 @@ async function doInit(): Promise<void> {
   const indexStatements = [
     'CREATE INDEX IF NOT EXISTS idx_survey_user ON survey_responses(user_id)',
     'CREATE INDEX IF NOT EXISTS idx_invite_codes_creator ON invite_codes(created_by)',
+    'CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)',
+    'CREATE INDEX IF NOT EXISTS idx_verification_codes_expires ON verification_codes(expires_at)',
   ]
   for (const sql of indexStatements) {
     try { await db.execute(sql) } catch (_) { /* ignore */ }
