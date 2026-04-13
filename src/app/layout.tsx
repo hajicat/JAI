@@ -10,6 +10,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body className="min-h-screen flex flex-col">
+        {/* 🎁 滚动Logo */}
+        <div className="fixed top-4 left-4 z-50 overflow-hidden max-w-[calc(100vw-2rem)]">
+          <div
+            className="whitespace-nowrap flex items-center gap-2 animate-marquee"
+            style={{ animationDuration: '8s' }}
+          >
+            <span className="text-xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent shrink-0">
+              🎁 我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了
+            </span>
+            <span className="text-xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent shrink-0">
+              🎁 我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了
+            </span>
+          </div>
+        </div>
+
         <div className="flex-1">{children}</div>
         <footer className="text-center py-6 text-gray-400 text-xs border-t border-gray-100">
           <p>🎁 © 2026 · 长春高校 · 用心构建</p>
