@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const db = getDb()
     await initDb()
-    const decoded = await verifyTokenSafe(token)
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     // ── CSRF 校验 ──

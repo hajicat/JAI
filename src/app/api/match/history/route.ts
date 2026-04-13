@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     // 如果失败返回 null 而不是抛出异常
     let decoded;
     try {
-      decoded = await verifyTokenSafe(token);
+      decoded = await verifyTokenSafe(token, db);
     } catch (tokenErr: any) {
       return NextResponse.json({ error: '认证失败' }, { status: 401 })
     }
