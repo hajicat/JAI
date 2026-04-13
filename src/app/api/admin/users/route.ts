@@ -218,9 +218,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: '不能删除自己的账号' }, { status: 400 })
     }
 
-    // ── 检查用户是否存在 ──
+    // ── 检查用户是否存在（同时获取邮箱用于后续清理验证码）──
     const userResult = await db.execute({
-      sql: `SELECT id, nickname, is_admin FROM users WHERE id = ?`,
+      sql: `SELECT id, nickname, is_admin, email FROM users WHERE id = ?`,
       args: [uid],
     })
     const targetUser = userResult.rows[0] as any
@@ -231,13 +231,7 @@ export async function DELETE(req: NextRequest) {
     // ── 执行级联删除（按外键依赖顺序）──
     // 注意：所有外键约束必须先清理子表数据才能删主记录
     const nickname = targetUser.nickname
-
-    // 0. 先获取目标用户的邮箱（用于后续删除验证码）
-    const emailResult = await db.execute({
-      sql: `SELECT email FROM users WHERE id = ?`,
-      args: [uid],
-    })
-    const userEmail = (emailResult.rows[0] as any)?.email
+    const userEmail = targetUser.email
 
     // 1. 删除匹配记录（作为 user_a 或 user_b）
     try { await db.execute({ sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] }) } catch (_) {}

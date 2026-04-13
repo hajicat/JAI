@@ -261,4 +261,17 @@ async function doInit(): Promise<void> {
   }
 
   dbInitialized = true
+
+  // ── 清理过期的 settings 临时数据（每周冷启动自动执行一次）──
+  // 包括：问卷周计数（>30天）、匹配锁（>7天）
+  try {
+    await db.execute({
+      sql: `DELETE FROM settings
+            WHERE (key LIKE 'survey_week_count_%' AND updated_at < datetime('now', '-30 days'))
+               OR (key LIKE 'matching_lock_%' AND updated_at < datetime('now', '-7 days'))`,
+      args: [],
+    })
+  } catch (_) {
+    /* 清理失败不影响主流程 */
+  }
 }

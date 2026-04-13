@@ -166,6 +166,7 @@ const COMP_QUESTIONS = [
   { id: 'q22', fn: scoreQ22, name: '安抚方式' },
   { id: 'q24', fn: scoreQ24, name: '角色分工' },
   { id: 'q25', fn: scoreQ25, name: '冲突节奏' },
+  { id: 'q26', fn: scoreQ26, name: '争执修复' },
   { id: 'q28', fn: scoreQ28, name: '需求表达' },
 ]
 
@@ -425,7 +426,6 @@ function calculateMatch(a: any, b: any): MatchResult {
   for (const cq of COMP_QUESTIONS) {
     interactionScores.push(cq.fn(ansIdx(cq.id, a[cq.id]), ansIdx(cq.id, b[cq.id])))
   }
-  interactionScores.push(scoreQ26(ansIdx('q26', a.q26), ansIdx('q26', b.q26)))
 
   let dailyScores: number[] = []
   for (const q of ['q29','q30','q31','q32']) {

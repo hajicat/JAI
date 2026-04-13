@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { encrypt, decrypt } from '@/lib/crypto'
 import { validateContactInfo, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
@@ -76,7 +76,11 @@ export async function POST(req: NextRequest) {
     const token = getTokenFromRequest(req)
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const db = getDb()
+    await initDb()
+
+    // 使用 verifyTokenSafe：确保用户改密码后旧 token 立即失效
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     // CSRF validation
@@ -104,9 +108,6 @@ export async function POST(req: NextRequest) {
       const infoCheck = validateContactInfo(contactInfo)
       if (!infoCheck.valid) return NextResponse.json({ error: infoCheck.error }, { status: 400 })
     }
-
-    const db = getDb()
-    await initDb()
 
     // Build dynamic update - only update fields that are provided
     const updates: string[] = []
