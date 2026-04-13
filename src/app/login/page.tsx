@@ -358,7 +358,7 @@ function LoginForm() {
       <div className="relative z-10 w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <span className="text-3xl">🎁</span>
-          <span className="font-bold text-2xl gradient-text">吉我交</span>
+          <span className="font-bold text-2xl gradient-text">我的闺蜜又胖又丑</span>
         </Link>
 
         <div className="glass-card rounded-3xl p-8 shadow-xl">
@@ -366,7 +366,7 @@ function LoginForm() {
             {isRegister ? '创建账号' : '欢迎回来'}
           </h2>
           <p className="text-sm text-gray-400 text-center mb-6">
-            {isRegister ? '仅限长春高校同学，需GPS验证' : '登录你的吉我交账号'}
+            {isRegister ? '仅限长春高校同学，需GPS验证' : '登录你的账号'}
           </p>
 
           {error && (
@@ -475,6 +475,12 @@ function LoginForm() {
               <input type="email" placeholder="你的邮箱（用于登录和接收验证码）"
                 value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required autoComplete="email" />
+              {isRegister && (
+                <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
+                  <span>💡</span>
+                  <span>吉林动画学院同学可用任意邮箱，其他高校需使用校内邮箱（@jlu / @nenu / @jisu / @ccu）</span>
+                </p>
+              )}
             </div>
 
             {/* 邮箱验证码（仅注册模式显示） */}

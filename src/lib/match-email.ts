@@ -54,7 +54,7 @@ function buildMatchEmailHtml(params: {
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
         <span style="font-size: 36px;">💌</span>
-        <h1 style="color: #333; margin: 10px 0 4px; font-size: 20px;">吉我交 · 本周匹配结果</h1>
+        <h1 style="color: #333; margin: 10px 0 4px; font-size: 20px;">我的闺蜜又胖又丑 · 本周匹配结果</h1>
         <p style="color: #888; font-size: 13px; margin: 0;">${weekKey} 匹配周期</p>
       </div>
 
@@ -111,7 +111,7 @@ function buildMatchEmailHtml(params: {
 
       <p style="text-align: center; color: #aaa; font-size: 11px; margin: 0;">
         此邮件由系统自动发送，请勿回复<br />
-        吉我交 &mdash; 发现校园缘分 ✨
+        我的闺蜜又胖又丑 &mdash; 发现校园缘分 ✨
       </p>
     </div>
   `
@@ -143,7 +143,7 @@ async function sendOneEmail(
     }
 
     const htmlContent = buildMatchEmailHtml(params)
-    const subject = `💌 你的吉我交本周匹配结果来了！${params.score}% 契合度`
+    const subject = `💌 你的本周匹配结果来了！${params.score}% 契合度`
 
     const response = await fetch(BREVO_API_URL, {
       method: 'POST',
@@ -153,7 +153,7 @@ async function sendOneEmail(
         'api-key': apiKey,
       },
       body: JSON.stringify({
-        sender: { name: '吉我交', email: getFromEmail() },
+        sender: { name: '我的闺蜜又胖又丑', email: getFromEmail() },
         to: [{ email: toEmail }],
         subject,
         htmlContent,

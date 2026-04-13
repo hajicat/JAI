@@ -7,6 +7,25 @@ import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/
 import { haversineDistance } from '@/lib/geo'
 import { verifyCode } from '@/lib/email'
 
+// 学校邮箱域名白名单（非吉林动画学院用户必须使用这些域名）
+const SCHOOL_EMAIL_DOMAINS = [
+  'jlu.edu.cn',       // 吉林大学
+  'nenu.edu.cn',      // 东北师范大学
+  'jisu.edu.cn',      // 吉林外国语大学
+  'ccu.edu.cn',       // 长春大学
+]
+
+// 吉林动画学院中心坐标（1km内可用任意邮箱）
+const JLUAI_LAT = 43.8175
+const JLUAI_LNG = 125.2561
+const JLUAI_RADIUS_KM = 1
+
+/** 检查邮箱是否为学校邮箱 */
+function isSchoolEmail(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase()
+  return !!domain && SCHOOL_EMAIL_DOMAINS.includes(domain)
+}
+
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
@@ -62,6 +81,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           error: `你不在长春高校圈附近（距离约${Math.round(distance * 100) / 100}km，需要在${CAMPUS_RADIUS_KM}km内）`,
         }, { status: 403 })
+      }
+
+      // ── 学校邮箱验证（非吉林动画学院区域需要校内邮箱）──
+      const distanceToJluai = haversineDistance(latitude, longitude, JLUAI_LAT, JLUAI_LNG)
+      if (distanceToJluai > JLUAI_RADIUS_KM) {
+        // 不在吉林动画学院1km范围内，必须使用学校邮箱
+        if (!isSchoolEmail(email)) {
+          return NextResponse.json({
+            error: '你所在的高校需要使用校内邮箱注册（@jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @ccu.edu.cn）',
+          }, { status: 403 })
+        }
       }
     }
 

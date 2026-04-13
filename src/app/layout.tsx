@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '吉我交 | 长春高校盲盒交友',
-  description: '长春高校专属盲盒交友平台（吉林大学/东北师范/吉林动画/吉林外国语/长春大学），每周为你匹配一位灵魂契合的吉我交人',
+  title: '我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了 | 长春高校盲盒交友',
+  description: '长春高校专属盲盒交友平台（吉林大学/东北师范/吉林动画/吉林外国语/长春大学），每周为你匹配一位灵魂契合的TA',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col">
         <div className="flex-1">{children}</div>
         <footer className="text-center py-6 text-gray-400 text-xs border-t border-gray-100">
-          <p>🎁 吉我交 © 2026 · 长春高校 · 用心构建</p>
+          <p>🎁 © 2026 · 长春高校 · 用心构建</p>
           <p className="mt-1">
             有问题或建议？联系邮箱：
             <a href="mailto:zhu96223@gmail.com" className="text-pink-500 hover:text-pink-600 hover:underline transition">

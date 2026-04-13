@@ -300,7 +300,7 @@ export default function MatchPage() {
       <nav className="flex items-center justify-between px-3 py-2.5 max-w-4xl mx-auto">
         <div className="flex items-center gap-1 min-w-0">
           <span className="text-lg shrink-0">🎁</span>
-          <span className="font-bold text-base gradient-text hidden sm:inline">吉我交</span>
+          <span className="font-bold text-base gradient-text hidden sm:inline">我的闺蜜又胖又丑</span>
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -511,7 +511,7 @@ export default function MatchPage() {
                     className="text-xs text-gray-400 hover:text-pink-500 transition">复制</button>
                 </div>
               )) : <p className="text-sm text-gray-400 text-center py-4">邀请码已用完</p>}
-              <p className="text-xs text-gray-400 mt-2">邀请码发给你信任的同学，让他们也能加入吉我交</p>
+              <p className="text-xs text-gray-400 mt-2">邀请码发给你信任的同学，让他们也能加入</p>
             </div>
           )}
         </div>
