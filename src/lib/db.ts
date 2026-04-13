@@ -41,15 +41,10 @@ export async function initDb(): Promise<void> {
   catch (err) { initPromise = null; throw err } // 失败后允许重试
 }
 
-// 当前 schema 版本：
-// 1 = 基础建表（executeMultiple 内的表 + 索引均已包含）
-// 迁移到更高版本时，只运行增量 ALTER TABLE，完成后更新版本号
-const CURRENT_SCHEMA_VERSION = 1
-
 async function doInit(): Promise<void> {
   const db = getDb()
 
-  // ── 第1次 DB 往返：建表 + 索引（幂等，重复执行无影响）──
+  // ── 建表（幂等，IF NOT EXISTS）+ 索引（IF NOT EXISTS）全部批量执行，仅 1 次 DB 往返 ──
   await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,6 +131,7 @@ async function doInit(): Promise<void> {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    -- 所有索引（IF NOT EXISTS 幂等）
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_invite ON users(invite_code);
     CREATE INDEX IF NOT EXISTS idx_matches_week ON matches(week_key);
@@ -148,89 +144,55 @@ async function doInit(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
   `)
 
-  // ── 第2次 DB 往返：检查 schema 版本 & admin 种子状态（settings 表）──
-  const versionRow = await db.execute({
-    sql: `SELECT value FROM settings WHERE key = 'db_schema_version'`,
-    args: [],
-  })
-  const adminSeededRow = await db.execute({
-    sql: `SELECT value FROM settings WHERE key = 'admin_seeded'`,
-    args: [],
-  })
-  const currentVersion = Number(versionRow.rows[0]?.value ?? 0)
-  const adminAlreadySeeded = adminSeededRow.rows.length > 0
-
-  // ── Schema 迁移（增量，只在版本低于当前时才执行）──
-  // 版本 1: 补齐早期 users/survey_responses/matches 表缺失的列
-  if (currentVersion < 1) {
-    const userAlters = [
-      `ALTER TABLE users ADD COLUMN gender TEXT`,
-      `ALTER TABLE users ADD COLUMN preferred_gender TEXT`,
-      `ALTER TABLE users ADD COLUMN conflict_type TEXT`,
-      `ALTER TABLE users ADD COLUMN match_enabled INTEGER DEFAULT 1`,
-      `ALTER TABLE users ADD COLUMN password_changed_at TEXT`,
-      `ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`,
-    ]
-    const surveyAlters: string[] = []
-    for (let i = 21; i <= 35; i++) {
-      surveyAlters.push(`ALTER TABLE survey_responses ADD COLUMN q${i} TEXT`)
-    }
-    for (const sql of [...userAlters, `ALTER TABLE matches ADD COLUMN dim_scores TEXT`, ...surveyAlters]) {
-      try { await db.execute(sql) } catch (_) { /* 列已存在则忽略 */ }
-    }
-  }
-
-  // 写入版本记录（无论是否执行了迁移，都要记录当前版本）
-  // 对已记录版本的情况：UPSERT 不改变已有值
-  await db.execute({
-    sql: `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('db_schema_version', ?, datetime('now'))`,
-    args: [String(CURRENT_SCHEMA_VERSION)],
-  })
-
-  // ── 管理员种子（仅首次运行）──
-  if (!adminAlreadySeeded) {
+  // ── 种子管理员：直接查事实（is_admin），不依赖间接缓存 ──
+  const adminRow = await db.execute('SELECT id FROM users WHERE is_admin = 1')
+  if (adminRow.rows.length === 0) {
+    // 使用 Web Crypto API（兼容 Edge Runtime）
     const { hashPassword, generateInviteCode } = await import('./security')
 
     const adminCode = generateInviteCode()
+    
+    // 管理员邮箱从环境变量读取，避免硬编码泄露
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@jlai.local'
     const adminNickname = process.env.ADMIN_NICKNAME || '管理员'
-
+    
+    // 使用 Web Crypto API 生成随机密码
     const pwdBytes = new Uint8Array(12)
     crypto.getRandomValues(pwdBytes)
     const adminPassword = Array.from(pwdBytes, b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
     const pwHash = await hashPassword(adminPassword)
 
-    // INSERT OR IGNORE：管理员已存在则跳过（防止 UNIQUE constraint 冲突导致 500）
+    // INSERT OR IGNORE：已存在则跳过（防御性，防止竞态导致 UNIQUE 冲突）
     await db.execute({
       sql: `INSERT OR IGNORE INTO users (nickname, email, password_hash, invite_code, is_admin, gender, preferred_gender)
             VALUES (?, ?, ?, ?, 1, 'other', 'all')`,
       args: [adminNickname, adminEmail, pwHash, adminCode],
     })
 
-    // 无论是否新插入，都通过邮箱查到管理员 ID（已存在时用已有记录）
-    const adminResult = await db.execute({
-      sql: `SELECT id FROM users WHERE email = ?`,
-      args: [adminEmail],
-    })
+    // Get the admin ID
+    const adminResult = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [adminEmail] })
     if (!adminResult.rows.length) {
       console.error('[init] 管理员查询失败，跳过种子操作')
+      dbInitialized = true
       return
     }
     const adminId = Number(adminResult.rows[0].id)
 
-        const codeStmts: Array<{ sql: string; args: any[] }> = []
+    // Generate 10 invite codes for admin (batch insert)
+    const adminCodeStmts: Array<{ sql: string; args: any[] }> = []
     for (let i = 0; i < 10; i++) {
-      codeStmts.push({
-        sql: `INSERT INTO invite_codes (code, created_by) VALUES (?, ?)`,
-        args: [generateInviteCode(), adminId],
-      })
+      const code = generateInviteCode()
+      adminCodeStmts.push({ sql: 'INSERT INTO invite_codes (code, created_by) VALUES (?, ?)', args: [code, adminId] })
     }
-    try { await db.batch(codeStmts) } catch (_) {
-      for (const stmt of codeStmts) {
+    try { await db.batch(adminCodeStmts) } catch (_) {
+      // fallback for clients that don't support batch
+      for (const stmt of adminCodeStmts) {
         try { await db.execute(stmt) } catch (__) { /* ignore */ }
       }
     }
 
+    // ⚠️ 管理员初始凭据（首次部署时请查看控制台/日志）
+    // 开发环境会输出初始密码到控制台，生产环境请通过 /api/auth/change-password 修改
     const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
     if (isDev) {
       console.log(`\n[INIT] 🔐 管理员账号已创建:`)
@@ -241,12 +203,61 @@ async function doInit(): Promise<void> {
     } else {
       console.warn(`[INIT] 管理员已创建 (${adminEmail})，生产环境密码不输出到日志。如需重置请通过数据库直接操作。`)
     }
+  }
 
-    // 标记已执行，后续请求跳过整个 admin 种子块
-    await db.execute({
-      sql: `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('admin_seeded', '1', datetime('now'))`,
-      args: [],
-    })
+  // ── 智能迁移：先检查列是否存在，只对缺失列执行 ALTER ──
+  // 比 try/catch 忽略所有错误更安全，避免不必要的异常捕获
+  const alterStatements: { sql: string; table: string; column: string }[] = [
+    // users 表新增列
+    { sql: `ALTER TABLE users ADD COLUMN gender TEXT`, table: 'users', column: 'gender' },
+    { sql: `ALTER TABLE users ADD COLUMN preferred_gender TEXT`, table: 'users', column: 'preferred_gender' },
+    { sql: `ALTER TABLE users ADD COLUMN conflict_type TEXT`, table: 'users', column: 'conflict_type' },
+    { sql: `ALTER TABLE users ADD COLUMN match_enabled INTEGER DEFAULT 1`, table: 'users', column: 'match_enabled' },
+    { sql: `ALTER TABLE users ADD COLUMN password_changed_at TEXT`, table: 'users', column: 'password_changed_at' },
+    { sql: `ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`, table: 'users', column: 'email_verified' },
+    // matches 表新增列
+    { sql: `ALTER TABLE matches ADD COLUMN dim_scores TEXT`, table: 'matches', column: 'dim_scores' },
+    // survey_responses 表新增列
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q21 TEXT`, table: 'survey_responses', column: 'q21' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q22 TEXT`, table: 'survey_responses', column: 'q22' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q23 TEXT`, table: 'survey_responses', column: 'q23' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q24 TEXT`, table: 'survey_responses', column: 'q24' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q25 TEXT`, table: 'survey_responses', column: 'q25' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q26 TEXT`, table: 'survey_responses', column: 'q26' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q27 TEXT`, table: 'survey_responses', column: 'q27' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q28 TEXT`, table: 'survey_responses', column: 'q28' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q29 TEXT`, table: 'survey_responses', column: 'q29' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q30 TEXT`, table: 'survey_responses', column: 'q30' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q31 TEXT`, table: 'survey_responses', column: 'q31' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q32 TEXT`, table: 'survey_responses', column: 'q32' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q33 TEXT`, table: 'survey_responses', column: 'q33' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q34 TEXT`, table: 'survey_responses', column: 'q34' },
+    { sql: `ALTER TABLE survey_responses ADD COLUMN q35 TEXT`, table: 'survey_responses', column: 'q35' },
+  ]
+
+  // 收集需要 ALTER 的表名，批量查询
+  const tablesToCheck = Array.from(new Set(alterStatements.map(a => a.table)))
+  for (const tableName of tablesToCheck) {
+    const columnsForTable = alterStatements.filter(a => a.table === tableName)
+    if (columnsForTable.length === 0) continue
+
+    // 用 PRAGMA table_info 获取当前已有列
+    const existingColsResult = await db.execute({ sql: `PRAGMA table_info(${tableName})`, args: [] })
+    const existingColumns = new Set<string>()
+    for (const row of existingColsResult.rows) {
+      existingColumns.add((row as any).name)
+    }
+
+    // 只对缺失的列执行 ALTER
+    for (const alt of columnsForTable) {
+      if (!existingColumns.has(alt.column)) {
+        try {
+          await db.execute(alt.sql)
+        } catch (_) {
+          /* 并发或边缘情况时忽略 */
+        }
+      }
+    }
   }
 
   dbInitialized = true
