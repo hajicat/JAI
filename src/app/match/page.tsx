@@ -437,7 +437,7 @@ export default function MatchPage() {
 
             {/* 仍在匹配池提示 */}
             <div className="mt-6 pt-5 border-t border-pink-100">
-              <div className="flex items-center justify-between px-4 py-3 bg-blue-50/80 rounded-xl border border-blue-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-3 bg-blue-50/80 rounded-xl border border-blue-200 gap-3">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">🔄</span>
                   <div>
