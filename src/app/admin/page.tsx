@@ -1120,8 +1120,6 @@ export default function AdminPage() {
               </div>
             </div>
             )}
-          </div>
-        )}
 
         {/* 系统设置 */}
         {tab === 'settings' && (
