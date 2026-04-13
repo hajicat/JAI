@@ -45,41 +45,45 @@ interface Campus {
  */
 
 const CAMPUSES: Campus[] = [
-  // ── 吉林动画学院（2km，任意邮箱） ──
-  { name: '吉林动画学院',        lat: 43.8175, lng: 125.2561,
+  // ── 吉林动画学院（任意邮箱，2km） ───────────────
+  // GCJ-02: 吉林动画学院(高新校区)
+  { name: '吉林动画学院',        lat: 43.820362, lng: 125.261993,
     schoolName: '吉林动画学院', schoolShort: '吉动', radiusKm: 2.0 },
 
-  // ── 吉林大学（7 个校区，全部 2km，校内邮箱） ──
-  { name: '吉大前卫南区',       lat: 43.8277, lng: 125.3129,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉大前卫北区',       lat: 43.8670, lng: 125.3080,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉大南岭校区',       lat: 43.8590, lng: 125.2950,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉大南湖校区',       lat: 43.8500, lng: 125.3050,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉大新民校区',       lat: 43.8700, lng: 125.3100,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉大朝阳校区',       lat: 43.8820, lng: 125.3020,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉大和平校区',       lat: 43.8930, lng: 125.2800,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-
-  // ── 东北师范大学（2 个校区，全部 2km，校内邮箱） ──
-  { name: '东北师范本部(自由)', lat: 43.8600, lng: 125.3200,
-    schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
-  { name: '东北师范净月校区',   lat: 43.8000, lng: 125.4400,
-    schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
-
-  // ── 吉林外国语大学（校内邮箱） ──
-  { name: '吉林外国语大学',     lat: 43.8187, lng: 125.3110,
-    schoolName: '吉林外国语大学',schoolShort: '吉外', radiusKm: 1.15 },
-
-  // ── 长春大学（任意邮箱 — 无官方学生邮箱后缀） ──
-  { name: '长春大学本部',       lat: 43.8400, lng: 125.3400,
+  // ── 长春大学（任意邮箱 — 无官方学生邮箱后缀） ─
+  // GCJ-02: 卫星路南 + 东校区(图书馆)
+  { name: '长春大学(卫星路南)',   lat: 43.830861, lng: 125.299475,
     schoolName: '长春大学',      schoolShort: '长大', radiusKm: 1.0 },
-  { name: '长春大学林园校区',   lat: 43.8600, lng: 125.3300,
+  { name: '长春大学(东校区)',     lat: 43.834209, lng: 125.320884,
     schoolName: '长春大学',      schoolShort: '长大', radiusKm: 0.65 },
+
+  // ── 吉林大学（7 个校区，全部 2km，@jlu / @mails.jlu 校内邮箱） ──
+  // GCJ-02 高德地图精确坐标
+  { name: '吉林大学(前卫南区)',   lat: 43.823755, lng: 125.277062,
+    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+  { name: '吉林大学(前卫北区)',   lat: 43.879464, lng: 125.319115,
+    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+  { name: '吉林大学(南岭校区)',   lat: 43.857075, lng: 125.335348,
+    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+  { name: '吉林大学(和平校区)',   lat: 43.911280, lng: 125.267357,
+    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+  { name: '吉林大学(朝阳校区)',   lat: 43.883165, lng: 125.307354,
+    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+  { name: '吉林大学(南湖校区)',   lat: 43.850500, lng: 125.300000,
+    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+  { name: '吉林大学(新民校区)',   lat: 43.888000, lng: 125.315000,
+    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+
+  // ── 东北师范大学（2 个校区，全部 2km，@nenu 校内邮箱） ──
+  { name: '东北师范本部(自由)',  lat: 43.860000, lng: 125.320000,
+    schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
+  { name: '东北师范净月校区',    lat: 43.788800, lng: 125.320500,
+    schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
+
+  // ── 吉林外国语大学（@jisu 校内邮箱） ──
+  // GCJ-02: 净月大街3658号
+  { name: '吉林外国语大学',      lat: 43.822169, lng: 125.445172,
+    schoolName: '吉林外国语大学',schoolShort: '吉外', radiusKm: 1.15 },
 ]
 
 // ════════════════════════════════════════════
