@@ -212,7 +212,7 @@ async function doInit(): Promise<void> {
     })
     const adminId = Number(adminResult.rows[0].id)
 
-    const codeStmts: Array<{ sql: string; args: unknown[] }> = []
+        const codeStmts: Array<{ sql: string; args: any[] }> = []
     for (let i = 0; i < 10; i++) {
       codeStmts.push({
         sql: `INSERT INTO invite_codes (code, created_by) VALUES (?, ?)`,
