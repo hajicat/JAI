@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyTokenSafe, verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { decrypt } from '@/lib/crypto'
 import { getClientIp, getCookieName } from '@/lib/csrf'
 import { isRevealWindow, getWeekKey } from '@/lib/week'
@@ -27,9 +27,15 @@ export async function GET(req: NextRequest) {
     const db = getDb()
     await initDb()
     
-    // 使用 verifyToken（轻量验证，历史查看不需要密码变更检查的开销）
-    // 但仍需确认 token 有效
-    const decoded = await verifyToken(token)
+    // 使用 verifyTokenSafe（安全验证，带密码变更检查）
+    // 如果失败返回 null 而不是抛出异常
+    let decoded;
+    try {
+      decoded = await verifyTokenSafe(token);
+    } catch (tokenErr) {
+      console.error('[match/history] token decode error:', tokenErr?.message || tokenErr)
+      return NextResponse.json({ error: '认证失败' }, { status: 401 })
+    }
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const uid = decoded.id
@@ -131,7 +137,9 @@ export async function GET(req: NextRequest) {
       totalWeeks: weeks.length,
     })
   } catch (error: any) {
-    console.error('[match/history GET]', error?.message || error)
-    return NextResponse.json({ error: '获取历史匹配失败' }, { status: 500 })
+    const errMsg = error?.message || error || 'unknown'
+    console.error('[match/history GET]', errMsg)
+    // 开发环境返回详细错误，生产环境隐藏
+    return NextResponse.json({ error: `获取历史匹配失败` }, { status: 500 })
   }
 }
