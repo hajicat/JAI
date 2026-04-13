@@ -177,7 +177,16 @@ export async function POST(req: NextRequest) {
       args: [countKey, String(currentCount + 1)],
     })
 
-    return NextResponse.json({ success: true })
+    const response = NextResponse.json({ success: true })
+    // 更新前端同步 cookie：问卷已完成
+    response.cookies.set('survey_status', 'done', {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    })
+
+    return response
   } catch (error: any) {
     console.error('[survey]', error?.message || error)
     return NextResponse.json({ error: '保存失败，请稍后重试' }, { status: 500 })

@@ -137,6 +137,14 @@ export async function POST(req: NextRequest) {
       maxAge: 7 * 24 * 60 * 60,
     })
 
+    // 非敏感状态 cookie：前端同步读取，实现首帧秒开（不存实际数据，仅存 done/pending）
+    response.cookies.set('survey_status', !!user.survey_completed ? 'done' : 'pending', {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    })
+
     return setCsrfCookie(response)
   } catch (error: any) {
     console.error('[login]', error)

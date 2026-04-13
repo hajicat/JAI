@@ -17,6 +17,19 @@ function hasTokenCookie(): boolean {
   })
 }
 
+/** 从 cookie 同步读取问卷完成状态 */
+function getSurveyStatusFromCookie(): boolean | null {
+  if (typeof document === 'undefined') return null
+  const cookies = document.cookie.split(';')
+  for (const c of cookies) {
+    const trimmed = c.trim()
+    if (trimmed.startsWith('survey_status=')) {
+      return trimmed.slice(14) === 'done' // 'survey_status='.length = 14
+    }
+  }
+  return null
+}
+
 function getCsrfToken(): string {
   if (typeof document === 'undefined') return ''
   return document.cookie
@@ -95,6 +108,8 @@ export default function Home() {
   // isLoggedIn 用于 UI 渲染：true = 已登录（cookie 有 token），false = 未登录
   // API 返回后 user 会包含完整信息，但按钮跳转不需要等
   const [isLoggedIn, setIsLoggedIn] = useState(hasTokenCookie())
+  // surveyCompleted 同步读取：首帧即知是否已完成问卷（不依赖 API）
+  const [localSurveyDone, setLocalSurveyDone] = useState(getSurveyStatusFromCookie())
   // statsLoaded 仅用于翻牌动画
   const [statsLoaded, setStatsLoaded] = useState(false)
 
@@ -140,8 +155,10 @@ export default function Home() {
       if (data.user) {
         setUser(data.user)
         setIsLoggedIn(true)
+        setLocalSurveyDone(!!data.user.surveyCompleted)
       } else {
         setIsLoggedIn(false)
+        setLocalSurveyDone(null)
       }
     }).catch(() => {})
     .finally(() => setStatsLoaded(true))
@@ -178,6 +195,7 @@ export default function Home() {
                 } catch { /* ignore */ }
                 setUser(null)
                 setIsLoggedIn(false)
+                setLocalSurveyDone(null)
               }} className="text-xs text-gray-500 hover:text-red-500 px-2.5 py-1.5 border border-gray-200 rounded-full hover:bg-red-50 hover:border-red-200 transition">
                 退出登录
               </button>
@@ -232,8 +250,8 @@ export default function Home() {
         </div>
 
         {isLoggedIn ? (
-          <Link href={user?.surveyCompleted ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-            {user?.surveyCompleted ? '💌 查看匹配' : '🎁 继续测试'}
+          <Link href={localSurveyDone ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+            {localSurveyDone ? '💌 查看匹配' : '🎁 继续测试'}
           </Link>
         ) : (
           <Link href="/login?mode=register" className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
@@ -295,8 +313,8 @@ export default function Home() {
         <div className="glass-card rounded-3xl p-10">
           <h2 className="text-3xl font-bold text-gray-800 mb-3">完全免费，纯靠缘分</h2>
           <p className="text-gray-500 mb-8">校内平台，不收任何费用。每周日20:00自动匹配。</p>
-          <Link href={isLoggedIn ? (user?.surveyCompleted ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
-            {isLoggedIn ? (user?.surveyCompleted ? '查看匹配 →' : '继续测试 →') : '立即加入 →'}
+          <Link href={isLoggedIn ? (localSurveyDone ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
+            {isLoggedIn ? (localSurveyDone ? '查看匹配 →' : '继续测试 →') : '立即加入 →'}
           </Link>
         </div>
       </section>
