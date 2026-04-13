@@ -928,28 +928,36 @@ export default function AdminPage() {
               <div className="text-6xl mb-4">💌</div>
               <h2 className="text-2xl font-bold text-gray-800 mb-3">执行本周匹配</h2>
               <p className="text-gray-500 mb-6">将为所有完成问卷且开启匹配的用户进行匹配<br />支持性别偏好过滤 + 五维度加权评分 + 冲突类型分析</p>
-              <button onClick={runMatching} disabled={generating}
-                className="px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 disabled:opacity-50 transition shadow-lg">
-                {generating ? '匹配中...' : '🎁 开始匹配'}
-              </button>
+              <div className="flex items-center justify-center gap-3">
+                <button onClick={runMatching} disabled={generating}
+                  className="px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 disabled:opacity-50 transition shadow-lg">
+                  {generating ? '匹配中...' : '🎁 开始匹配'}
+                </button>
+                {/* 始终可见的历史记录入口 */}
+                {!matchDetailVerified ? (
+                  <button onClick={requestMatchDetail}
+                    className="px-5 py-3 text-sm font-medium text-purple-600 border border-purple-200 rounded-full hover:bg-purple-50 transition">
+                    📜 查看历史配对记录
+                  </button>
+                ) : (
+                  <button onClick={() => setMatchDetailVerified(false)}
+                    className="px-5 py-3 text-sm font-medium text-pink-500 border border-pink-200 rounded-full hover:bg-pink-50 transition">
+                    🙈 隐藏历史记录
+                  </button>
+                )}
+              </div>
               {matchResult && !matchResult.error && (
                 <button onClick={handleResetMatch} disabled={resettingMatch}
                   className="mt-3 px-6 py-2 text-sm font-medium text-red-500 border border-red-200 rounded-full hover:bg-red-50 transition disabled:opacity-50">
                   {resettingMatch ? '重置中...' : '🔄 重置本周匹配（删除结果+释放锁）'}
                 </button>
               )}
+
+            {/* ── 匹配结果摘要（仅本周有匹配结果时显示）── */}
             {matchResult && (
-              <div className="mt-8 bg-gray-50 rounded-2xl p-6 text-left">
+              <div className="mt-6 bg-gray-50 rounded-2xl p-6 text-left">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-gray-800">匹配结果</h3>
-                  <button onClick={requestMatchDetail}
-                    className={`text-xs px-3 py-1.5 rounded-lg transition ${
-                      matchDetailVerified
-                        ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
-                        : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
-                    }`}>
-                    {matchDetailVerified ? '🙈 隐藏详情' : '👁️ 查看匹配详情'}
-                  </button>
                 </div>
                 {matchResult.error ? (
                   <p className="text-red-500">{matchResult.error}</p>
@@ -967,10 +975,12 @@ export default function AdminPage() {
                     <p>😢 未匹配：<strong>{matchResult.unmatchedUsers}</strong> 人</p>
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* ── 匹配结果详情列表（需二级密码验证 + 分页 + 周选择）── */}
-                {matchDetailVerified && (
-                  <div className="mt-6 pt-5 border-t border-gray-200">
+            {/* ── 历史配对记录详情列表（需二级密码验证 + 分页 + 周选择）── 独立于 matchResult ── */}
+            {matchDetailVerified && (
+              <div className="mt-6 bg-gray-50 rounded-2xl p-6 text-left">
                     {/* 周选择器 */}
                     <div className="flex items-center gap-3 mb-4">
                       <label className="text-xs font-medium text-gray-500 whitespace-nowrap">📅 查看周期：</label>
@@ -1109,7 +1119,6 @@ export default function AdminPage() {
                 )}
               </div>
             )}
-            </div>
           </div>
         )}
 
