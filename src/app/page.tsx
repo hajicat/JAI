@@ -164,7 +164,7 @@ export default function Home() {
           <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
         </div>
         <div className="flex items-center gap-2">
-          {user ? (
+          {isLoggedIn ? (
             <>
               <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition px-4 py-1.5">
                 👤 个人信息
