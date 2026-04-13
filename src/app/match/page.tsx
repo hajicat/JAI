@@ -104,10 +104,7 @@ function MatchCountdown() {
 
 export default function MatchPage() {
   const router = useRouter()
-  
-  // ── 视图模式：current=本周详情 | history=我的候选人 ──
-  const [viewMode, setViewMode] = useState<'current' | 'history'>('current')
-  
+
   const [user, setUser] = useState<any>(null)
   const [match, setMatch] = useState<MatchData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -123,18 +120,20 @@ export default function MatchPage() {
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0)
   const [historyLoading, setHistoryLoading] = useState(false)
 
-  // 加载当前周数据
-  const loadCurrentData = async () => {
+  // 加载当前周数据 + 历史数据（同时请求）
+  const loadAllData = async () => {
     try {
-      const [meRes, matchRes, inviteRes] = await Promise.all([
+      const [meRes, matchRes, inviteRes, histRes] = await Promise.all([
         fetch('/api/auth/me'),
         fetch('/api/match'),
         fetch('/api/invite'),
+        fetch('/api/match/history'),
       ])
-      const [meData, matchData, inviteData] = await Promise.all([
+      const [meData, matchData, inviteData, histData] = await Promise.all([
         meRes.json(),
         matchRes.json(),
         inviteRes.json(),
+        histRes.json(),
       ])
       if (!meData.user) { router.push('/login'); return }
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
@@ -143,6 +142,11 @@ export default function MatchPage() {
       if (matchData.match) setMatch(matchData.match)
       if ('matchedDone' in matchData) setMatchedDone(matchData.matchedDone)
       setInviteCodes(inviteData.available || [])
+      // 历史数据
+      if (histData.weeks) {
+        setHistoryWeeks(histData.weeks)
+        setSelectedWeekIndex(0)
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -151,16 +155,14 @@ export default function MatchPage() {
     }
   }
 
-  // 加载历史数据
+  // 加载历史数据（单独调用，用于刷新）
   const loadHistoryData = async () => {
-    if (historyWeeks.length > 0) return // 已加载过
     setHistoryLoading(true)
     try {
       const res = await fetch('/api/match/history')
       const data = await res.json()
       if (data.weeks) {
         setHistoryWeeks(data.weeks)
-        // 默认选中最新一周
         setSelectedWeekIndex(0)
       }
     } catch (err) {
@@ -170,10 +172,8 @@ export default function MatchPage() {
     }
   }
 
-  const loadData = () => loadCurrentData()
-
   useEffect(() => {
-    loadData()
+    loadAllData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
 
@@ -207,21 +207,10 @@ export default function MatchPage() {
     return () => clearTimeout(timer)
   }, [user?.surveyCompleted, autoMatchTriggered])
 
-  // 切换视图模式
-  const switchView = async (mode: 'current' | 'history') => {
-    setViewMode(mode)
-    if (mode === 'history') await loadHistoryData()
-  }
-
+  // 刷新数据（当前+历史一起刷新）
   const handleRefresh = async () => {
     setRefreshing(true)
-    if (viewMode === 'history') {
-      setHistoryWeeks([]) // 清除缓存，下次切换时重新加载
-      await loadHistoryData()
-      setRefreshing(false)
-    } else {
-      await loadData()
-    }
+    await loadAllData()
   }
 
   const handleReveal = async () => {
@@ -293,16 +282,6 @@ export default function MatchPage() {
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {/* 视图切换按钮 */}
-          <button onClick={() => switchView(viewMode === 'current' ? 'history' : 'current')}
-            className={`text-xs px-2.5 py-1 border rounded-full transition ${
-              viewMode === 'history'
-                ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white border-transparent'
-                : 'text-purple-500 border-purple-200 hover:bg-purple-50'
-            }`}>
-            🌍 候选人
-          </button>
-
           {user?.isAdmin && (
             <Link href="/admin" className="hidden sm:inline-flex px-2.5 py-1 text-xs text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理</Link>
           )}
@@ -333,303 +312,264 @@ export default function MatchPage() {
 
       <div className="max-w-2xl mx-auto px-6 py-10">
 
-        {/* ════════════════ 候选人视图 ════════════════ */}
-        {viewMode === 'history' && (
-          <CandidateHistory
-            weeks={historyWeeks}
-            selectedIndex={selectedWeekIndex}
-            onSelectIndex={setSelectedWeekIndex}
-            loading={historyLoading}
-            onSwitchToCurrent={() => switchView('current')}
-          />
-        )}
+        {/* ════════════════ 当前匹配状态 ════════════════ */}
+        {match ? (
+          <div className="glass-card rounded-3xl p-8 shadow-xl animate-fade-in">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">💌</div>
+              <h2 className="text-2xl font-bold text-gray-800">本周匹配结果</h2>
+              <p className="text-sm text-gray-400 mt-1">{match.weekKey}</p>
+            </div>
 
-        {/* ════════════════ 本周匹配视图（原逻辑） ════════════════ */}
-        {viewMode === 'current' && (
-          <>
-            {match ? (
-              <div className="glass-card rounded-3xl p-8 shadow-xl animate-fade-in">
-                <div className="text-center mb-6">
-                  <div className="text-5xl mb-3">💌</div>
-                  <h2 className="text-2xl font-bold text-gray-800">本周匹配结果</h2>
-                  <p className="text-sm text-gray-400 mt-1">{match.weekKey}</p>
-                </div>
-
-                <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-6 mb-6 text-center">
-                  <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full flex items-center justify-center text-3xl text-white shadow-lg">
-                    {match.partnerNickname[0]}
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">{match.partnerNickname}</h3>
-                  <div className="flex items-center justify-center gap-2 mt-2">
-                    <div className="text-3xl font-bold gradient-text">{match.score}%</div>
-                    <span className="text-gray-400 text-sm">契合度</span>
-                  </div>
-                </div>
-
-                {match.dimScores && match.dimScores.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-gray-500 mb-3">📊 五维度契合度</h4>
-                    <div className="space-y-3">
-                      {match.dimScores.map((dim, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <span className="text-xs text-gray-500 w-20 text-right">{dim.name}</span>
-                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim.name] || 'from-pink-400 to-purple-400'} transition-all duration-1000`}
-                              style={{ width: `${dim.score}%` }} />
-                          </div>
-                          <span className={`text-sm font-bold ${dim.score >= 70 ? 'text-green-500' : dim.score >= 50 ? 'text-yellow-500' : 'text-red-400'}`}>
-                            {dim.score}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-500 mb-3">为什么匹配到TA？</h4>
-                  <div className="space-y-2">
-                    {match.reasons.map((r, i) => (
-                      <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                        <span className="text-pink-400">•</span><span>{r}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Reveal Contact */}
-                {!match.iRevealed ? (
-                  <div>
-                    {!match.selfHasContact && (
-                      <div className="mb-3 text-center py-2 px-4 bg-orange-50 rounded-xl border border-orange-200">
-                        <p className="text-sm text-orange-600">⚠️ 请先填写你自己的联系方式，才能查看对方的</p>
-                      </div>
-                    )}
-                    <button onClick={handleReveal} disabled={revealing || !match.selfHasContact}
-                      className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl transition text-lg ${
-                        !match.selfHasContact ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
-                      }`}>
-                      {revealing ? '确认中...' : '🤝 我愿意交换联系方式'}
-                    </button>
-                  </div>
-                ) : !match.partnerRevealed ? (
-                  <div className="text-center py-4 px-6 bg-yellow-50 rounded-2xl border border-yellow-200">
-                    <p className="text-yellow-700 font-medium">你已确认 ✓</p>
-                    <p className="text-sm text-yellow-600 mt-1">等待对方也确认后即可看到联系方式</p>
-                  </div>
-                ) : match.contact ? match.contact.empty ? (
-                  <div className="text-center py-4 px-6 bg-gray-50 rounded-2xl border border-gray-200">
-                    <p className="text-gray-500 font-medium">😅 对方暂未填写联系方式</p>
-                    <p className="text-xs text-gray-400 mt-1">可以等对方补充后再来查看</p>
-                  </div>
-                ) : match.contact.decryptError ? (
-                  <div className="bg-green-50 rounded-2xl p-6 border border-green-200 text-center">
-                    <p className="text-green-600 font-medium mb-2">🎉 双方已确认！</p>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
-                      <p className="text-sm text-red-400">联系方式解密失败</p>
-                      <p className="text-sm text-gray-400 mt-1">请联系管理员处理</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-green-50 rounded-2xl p-6 border border-green-200 text-center">
-                    <p className="text-green-600 font-medium mb-2">🎉 双方已确认！</p>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
-                      <p className="text-sm text-gray-400">
-                        {match.contact.type === 'wechat' ? '微信号' : match.contact.type === 'qq' ? 'QQ号' : '联系方式'}
-                      </p>
-                      <p className="text-xl font-bold text-gray-800 mt-1">{match.contact.info}</p>
-                    </div>
-                    <p className="text-xs text-green-500 mt-3">去加好友吧！聊聊看合不合拍 ☕</p>
-                  </div>
-                ) : null}
-
-                {match.iRevealed && match.partnerRevealed && match.partnerSurvey && (
-                  <PartnerAnswers survey={match.partnerSurvey} nickname={match.partnerNickname} />
-                )}
+            <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-6 mb-6 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full flex items-center justify-center text-3xl text-white shadow-lg">
+                {match.partnerNickname[0]}
               </div>
-            ) : matchedDone ? (
-              <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
-                <div className="text-6xl mb-4">🍃</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-3">本周暂未匹配到搭档</h2>
-                <p className="text-gray-500 mb-6 leading-relaxed">
-                  本周参与匹配的同学中，暂时没有找到和你契合度较高的搭档<br />别灰心，缘分可能就在下一周 🌟
-                </p>
-                <MatchCountdown />
-                <div className="mt-8 flex items-center justify-center gap-4">
-                  <Link href="/survey" className="text-sm text-purple-500 hover:underline">📝 调整问卷答案</Link>
-                  <span className="text-gray-300">|</span>
-                  <button onClick={() => switchView('history')} className="text-sm text-pink-500 hover:underline">🌍 查看历史候选人</button>
-                </div>
+              <h3 className="text-xl font-bold text-gray-800">{match.partnerNickname}</h3>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <div className="text-3xl font-bold gradient-text">{match.score}%</div>
+                <span className="text-gray-400 text-sm">契合度</span>
               </div>
-            ) : (
-              <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
-                <div className="text-6xl mb-4">🔮</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>
-                <p className="text-gray-500 mb-6 leading-relaxed">
-                  问卷已提交，系统正在为你寻找最佳匹配<br />
-                  匹配结果将在每周日 <span className="font-bold text-pink-600">20:00</span> 准时揭晓
-                </p>
-                <MatchCountdown />
-                <div className="mt-8 flex items-center justify-center gap-4">
-                  <Link href="/survey" className="text-sm text-purple-500 hover:underline">📝 重新填写问卷</Link>
-                  <span className="text-gray-300">|</span>
-                  <button onClick={() => switchView('history')} className="text-sm text-pink-500 hover:underline">🌍 查看历史候选人</button>
+            </div>
+
+            {match.dimScores && match.dimScores.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-500 mb-3">📊 五维度契合度</h4>
+                <div className="space-y-3">
+                  {match.dimScores.map((dim, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-20 text-right">{dim.name}</span>
+                      <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim.name] || 'from-pink-400 to-purple-400'} transition-all duration-1000`}
+                          style={{ width: `${dim.score}%` }} />
+                      </div>
+                      <span className={`text-sm font-bold ${dim.score >= 70 ? 'text-green-500' : dim.score >= 50 ? 'text-yellow-500' : 'text-red-400'}`}>
+                        {dim.score}%
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Match Toggle */}
-            <div className="mt-8 glass-card rounded-3xl p-6 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{matchEnabled ? '🎯' : '⏸️'}</span>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">参与匹配</h3>
-                    <p className="text-xs text-gray-400">{matchEnabled ? '你正在参与每周匹配' : '已暂停，不会被匹配到'}</p>
+            <div className="mb-6">
+              <h4 className="text-sm font-medium text-gray-500 mb-3">为什么匹配到TA？</h4>
+              <div className="space-y-2">
+                {match.reasons.map((r, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="text-pink-400">•</span><span>{r}</span>
                   </div>
-                </div>
-                <button onClick={() => toggleMatch(!matchEnabled)}
-                  className={`w-12 h-7 rounded-full transition-colors ${matchEnabled ? 'bg-pink-500' : 'bg-gray-300'}`}>
-                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${matchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+                ))}
               </div>
             </div>
 
-            {/* Invite Codes */}
-            <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg">
-              <button onClick={() => setShowInvite(!showInvite)} className="w-full flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">📨</span>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-gray-800">我的邀请码</h3>
-                    <p className="text-xs text-gray-400">你还剩 {inviteCodes.length} 个可用邀请码</p>
+            {/* Reveal Contact */}
+            {!match.iRevealed ? (
+              <div>
+                {!match.selfHasContact && (
+                  <div className="mb-3 text-center py-2 px-4 bg-orange-50 rounded-xl border border-orange-200">
+                    <p className="text-sm text-orange-600">⚠️ 请先填写你自己的联系方式，才能查看对方的</p>
                   </div>
+                )}
+                <button onClick={handleReveal} disabled={revealing || !match.selfHasContact}
+                  className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl transition text-lg ${
+                    !match.selfHasContact ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+                  }`}>
+                  {revealing ? '确认中...' : '🤝 我愿意交换联系方式'}
+                </button>
+              </div>
+            ) : !match.partnerRevealed ? (
+              <div className="text-center py-4 px-6 bg-yellow-50 rounded-2xl border border-yellow-200">
+                <p className="text-yellow-700 font-medium">你已确认 ✓</p>
+                <p className="text-sm text-yellow-600 mt-1">等待对方也确认后即可看到联系方式</p>
+              </div>
+            ) : match.contact ? match.contact.empty ? (
+              <div className="text-center py-4 px-6 bg-gray-50 rounded-2xl border border-gray-200">
+                <p className="text-gray-500 font-medium">😅 对方暂未填写联系方式</p>
+                <p className="text-xs text-gray-400 mt-1">可以等对方补充后再来查看</p>
+              </div>
+            ) : match.contact.decryptError ? (
+              <div className="bg-green-50 rounded-2xl p-6 border border-green-200 text-center">
+                <p className="text-green-600 font-medium mb-2">🎉 双方已确认！</p>
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <p className="text-sm text-red-400">联系方式解密失败</p>
+                  <p className="text-sm text-gray-400 mt-1">请联系管理员处理</p>
                 </div>
-                <span className="text-gray-400">{showInvite ? '收起' : '展开'}</span>
-              </button>
-              {showInvite && (
-                <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                  {inviteCodes.length > 0 ? inviteCodes.map((c, i) => (
-                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
-                      <code className="text-sm font-mono font-bold text-pink-600">{c.code}</code>
-                      <button onClick={async () => { await navigator.clipboard.writeText(c.code) }}
-                        className="text-xs text-gray-400 hover:text-pink-500 transition">复制</button>
-                    </div>
-                  )) : <p className="text-sm text-gray-400 text-center py-4">邀请码已用完</p>}
-                  <p className="text-xs text-gray-400 mt-2">邀请码发给你信任的同学，让他们也能加入吉动盲盒</p>
+              </div>
+            ) : (
+              <div className="bg-green-50 rounded-2xl p-6 border border-green-200 text-center">
+                <p className="text-green-600 font-medium mb-2">🎉 双方已确认！</p>
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <p className="text-sm text-gray-400">
+                    {match.contact.type === 'wechat' ? '微信号' : match.contact.type === 'qq' ? 'QQ号' : '联系方式'}
+                  </p>
+                  <p className="text-xl font-bold text-gray-800 mt-1">{match.contact.info}</p>
                 </div>
-              )}
-            </div>
+                <p className="text-xs text-green-500 mt-3">去加好友吧！聊聊看合不合拍 ☕</p>
+              </div>
+            ) : null}
 
-            {/* Contact Settings */}
-            <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg">
-              <ContactSettings user={user} />
+            {match.iRevealed && match.partnerRevealed && match.partnerSurvey && (
+              <PartnerAnswers survey={match.partnerSurvey} nickname={match.partnerNickname} />
+            )}
+          </div>
+        ) : matchedDone ? (
+          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
+            <div className="text-6xl mb-4">🍃</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">本周暂未匹配到搭档</h2>
+            <p className="text-gray-500 mb-6 leading-relaxed">
+              本周参与匹配的同学中，暂时没有找到和你契合度较高的搭档<br />别灰心，缘分可能就在下一周 🌟
+            </p>
+            <MatchCountdown />
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <Link href="/survey" className="text-sm text-purple-500 hover:underline">📝 调整问卷答案</Link>
             </div>
-          </>
+          </div>
+        ) : (
+          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
+            <div className="text-6xl mb-4">🔮</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>
+            <p className="text-gray-500 mb-6 leading-relaxed">
+              问卷已提交，系统正在为你寻找最佳匹配<br />
+              匹配结果将在每周日 <span className="font-bold text-pink-600">20:00</span> 准时揭晓
+            </p>
+            <MatchCountdown />
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <Link href="/survey" className="text-sm text-purple-500 hover:underline">📝 重新填写问卷</Link>
+            </div>
+          </div>
         )}
+
+        {/* ════════════════ 历史候选人（始终显示在有数据时） ════════════════ */}
+        {(historyWeeks.length > 0 || historyLoading) && (
+          <CandidateHistoryInline
+            weeks={historyWeeks}
+            selectedIndex={selectedWeekIndex}
+            onSelectIndex={setSelectedWeekIndex}
+            loading={historyLoading}
+            onRefresh={() => loadHistoryData()}
+          />
+        )}
+
+        {/* Match Toggle */}
+        <div className="mt-8 glass-card rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{matchEnabled ? '🎯' : '⏸️'}</span>
+              <div>
+                <h3 className="font-semibold text-gray-800">参与匹配</h3>
+                <p className="text-xs text-gray-400">{matchEnabled ? '你正在参与每周匹配' : '已暂停，不会被匹配到'}</p>
+              </div>
+            </div>
+            <button onClick={() => toggleMatch(!matchEnabled)}
+              className={`w-12 h-7 rounded-full transition-colors ${matchEnabled ? 'bg-pink-500' : 'bg-gray-300'}`}>
+              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${matchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Invite Codes */}
+        <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg">
+          <button onClick={() => setShowInvite(!showInvite)} className="w-full flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📨</span>
+              <div className="text-left">
+                <h3 className="font-semibold text-gray-800">我的邀请码</h3>
+                <p className="text-xs text-gray-400">你还剩 {inviteCodes.length} 个可用邀请码</p>
+              </div>
+            </div>
+            <span className="text-gray-400">{showInvite ? '收起' : '展开'}</span>
+          </button>
+          {showInvite && (
+            <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+              {inviteCodes.length > 0 ? inviteCodes.map((c, i) => (
+                <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                  <code className="text-sm font-mono font-bold text-pink-600">{c.code}</code>
+                  <button onClick={async () => { await navigator.clipboard.writeText(c.code) }}
+                    className="text-xs text-gray-400 hover:text-pink-500 transition">复制</button>
+                </div>
+              )) : <p className="text-sm text-gray-400 text-center py-4">邀请码已用完</p>}
+              <p className="text-xs text-gray-400 mt-2">邀请码发给你信任的同学，让他们也能加入吉动盲盒</p>
+            </div>
+          )}
+        </div>
+
+        {/* Contact Settings */}
+        <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg">
+          <ContactSettings user={user} />
+        </div>
       </div>
     </div>
   )
 }
 
 // ══════════════════════════════════════════════════════════════
-//  历史候选人组件
+//  历史候选人内联组件（直接显示在当前状态下方）
 // ══════════════════════════════════════════════════════════════
 
-function CandidateHistory({
-  weeks, selectedIndex, onSelectIndex, loading, onSwitchToCurrent,
+function CandidateHistoryInline({
+  weeks, selectedIndex, onSelectIndex, loading, onRefresh,
 }: {
   weeks: WeekData[]; selectedIndex: number; onSelectIndex: (i: number) => void;
-  loading: boolean; onSwitchToCurrent: () => void
+  loading: boolean; onRefresh: () => void
 }) {
   if (loading) {
     return (
-      <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
+      <div className="mt-8 glass-card rounded-3xl p-8 shadow-xl text-center animate-fade-in">
         <div className="text-4xl mb-3 animate-bounce">🌍</div>
-        <p className="text-gray-400">加载历史记录中...</p>
+        <p className="text-gray-400">加载历史候选人...</p>
       </div>
     )
   }
 
-  if (weeks.length === 0) {
-    return (
-      <>
-        <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
-          <div className="text-6xl mb-4">🗺️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-3">还没有候选人记录</h2>
-          <p className="text-gray-500 mb-6">完成问卷并参与匹配后，你的候选人会出现在这里</p>
-          <button onClick={onSwitchToCurrent}
-            className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">
-            查看本周匹配 →
-          </button>
-        </div>
-      </>
-    )
-  }
+  if (weeks.length === 0) return null
 
   const currentWeek = weeks[selectedIndex]
   const matches = currentWeek.matches
   const totalCandidates = weeks.reduce((sum, w) => sum + w.totalMatches, 0)
 
   return (
-    <>
+    <div className="mt-10">
       {/* 标题栏 */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">🌍 我的候选人</h1>
-          <span className="text-sm text-gray-400">{totalCandidates} 位</span>
-        </div>
-
-        {/* 周 Tab 切换 */}
-        {weeks.length > 1 && (
-          <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
-            {weeks.map((wk, idx) => (
-              <button key={wk.weekKey} onClick={() => onSelectIndex(idx)}
-                className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap border ${
-                  idx === selectedIndex
-                    ? 'bg-green-50 text-green-700 border-green-200 shadow-sm'
-                    : 'bg-white/60 text-gray-500 border-gray-200 hover:border-pink-200 hover:text-pink-600'
-                }`}>
-                <span className="mr-1">📅</span>{wk.weekKey}
-                {wk.isCurrent && <span className="ml-1 text-xs">✨</span>}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-800">🕰️ 历史候选人</h2>
+        <span className="text-xs text-gray-400">{totalCandidates} 位</span>
       </div>
 
-      {/* 候选人卡片 */}
-      <div className="glass-card rounded-3xl p-6 shadow-xl animate-fade-in">
-        {/* 已揭示数量标签 */}
+      {/* 周 Tab 切换 */}
+      {weeks.length > 1 && (
+        <div className="flex gap-1 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+          {weeks.map((wk, idx) => (
+            <button key={wk.weekKey} onClick={() => onSelectIndex(idx)}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap border ${
+                idx === selectedIndex
+                  ? 'bg-green-50 text-green-700 border-green-200 shadow-sm'
+                  : 'bg-white/60 text-gray-500 border-gray-200 hover:border-pink-200 hover:text-pink-600'
+              }`}>
+              <span className="mr-1">📅</span>{wk.weekKey}
+              {wk.isCurrent && <span className="ml-1 text-xs">✨</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 候选人卡片列表 */}
+      <div className="glass-card rounded-2xl p-5 shadow-xl animate-fade-in">
         {currentWeek.revealedCount > 0 && (
           <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 text-xs font-medium rounded-full border border-green-200 mb-4">
             <span>✉️</span> {currentWeek.revealedCount} 位已揭示
           </div>
         )}
-
-        {/* 候选人列表 */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {matches.map((m) => (
             <CandidateCard key={m.id} match={m} weekKey={currentWeek.weekKey} />
           ))}
-
-          {/* 还有更多提示 */}
-          {currentWeek.totalMatches > matches.length && (
-            <p className="text-center text-sm text-gray-400 pt-2">
-              还有 {currentWeek.totalMatches - matches.length} 位候选人...
-            </p>
+          {currentWeek.totalMatches === 0 && (
+            <p className="text-center text-sm text-gray-400 py-6">该周暂无匹配记录</p>
           )}
         </div>
-
-        {/* 底部操作 */}
-        <div className="mt-6 pt-4 border-t border-gray-100">
-          <button onClick={onSwitchToCurrent}
-            className="w-full py-3.5 text-white font-semibold bg-gradient-to-r from-pink-600 to-purple-700 rounded-2xl hover:opacity-90 transition text-base">
-            💕 查看盲盒匹配详情 →
-          </button>
-        </div>
       </div>
-    </>
+    </div>
   )
 }
 
