@@ -200,16 +200,22 @@ async function doInit(): Promise<void> {
     const adminPassword = Array.from(pwdBytes, b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
     const pwHash = await hashPassword(adminPassword)
 
+    // INSERT OR IGNORE：管理员已存在则跳过（防止 UNIQUE constraint 冲突导致 500）
     await db.execute({
-      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, is_admin, gender, preferred_gender)
+      sql: `INSERT OR IGNORE INTO users (nickname, email, password_hash, invite_code, is_admin, gender, preferred_gender)
             VALUES (?, ?, ?, ?, 1, 'other', 'all')`,
       args: [adminNickname, adminEmail, pwHash, adminCode],
     })
 
+    // 无论是否新插入，都通过邮箱查到管理员 ID（已存在时用已有记录）
     const adminResult = await db.execute({
       sql: `SELECT id FROM users WHERE email = ?`,
       args: [adminEmail],
     })
+    if (!adminResult.rows.length) {
+      console.error('[init] 管理员查询失败，跳过种子操作')
+      return
+    }
     const adminId = Number(adminResult.rows[0].id)
 
         const codeStmts: Array<{ sql: string; args: any[] }> = []
