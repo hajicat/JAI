@@ -18,11 +18,12 @@ export async function GET(req: NextRequest) {
     const token = getTokenFromRequest(req)
     if (!token) return NextResponse.json({ user: null })
 
-    const decoded = await verifyToken(token)
-    if (!decoded) return NextResponse.json({ user: null })
-
     const db = getDb()
     await initDb()
+
+    // 使用 verifyTokenSafe：确保用户改密码后旧 token 立即失效
+    const decoded = await verifyTokenSafe(token, db)
+    if (!decoded) return NextResponse.json({ user: null })
 
     const userResult = await db.execute({
       sql: `SELECT id, nickname, email, is_admin, survey_completed,
