@@ -72,7 +72,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(result, { status: 500 })
     }
   } catch (error: any) {
-    console.error('[match/notify]', error?.message || error)
     return NextResponse.json({ error: '通知发送失败' }, { status: 500 })
   }
 }

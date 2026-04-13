@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
     try {
       decoded = await verifyTokenSafe(token);
     } catch (tokenErr: any) {
-      console.error('[match/history] token decode error:', tokenErr?.message || tokenErr)
       return NextResponse.json({ error: '认证失败' }, { status: 401 })
     }
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
@@ -137,8 +136,6 @@ export async function GET(req: NextRequest) {
       totalWeeks: weeks.length,
     })
   } catch (error: any) {
-    const errMsg = error?.message || error || 'unknown'
-    console.error('[match/history GET]', errMsg)
     return NextResponse.json({ error: '获取历史匹配失败' }, { status: 500 })
   }
 }

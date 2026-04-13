@@ -139,7 +139,6 @@ async function sendOneEmail(
   try {
     const apiKey = process.env.BREVO_API_KEY
     if (!apiKey) {
-      console.error('[match-email] 未配置 BREVO_API_KEY，跳过邮件发送')
       return true // 不算错误，只是静默跳过
     }
 
@@ -162,15 +161,11 @@ async function sendOneEmail(
     })
 
     if (!response.ok) {
-      const body = await response.text()
-      console.error('[match-email] Brevo HTTP error:', response.status, body)
       return false
     }
 
-    console.log(`[match-email] ✅ 发送成功 → ${toEmail} (${params.nickname} ↔ ${params.partnerNickname})`)
     return true
   } catch (err: any) {
-    console.error('[match-email] 发送异常:', err?.message || err)
     return false
   }
 }
@@ -325,7 +320,6 @@ export async function sendMatchNotifications(): Promise<{
       args: [lockKey],
     })
 
-    console.log(`[match-email] 📊 本周(${weekKey})通知完成: 发送=${sent}, 跳过=${skipped}, 失败=${failed}`)
     return { status: 'done', weekKey, sent, skipped, failed }
 
   } catch (err) {
