@@ -207,6 +207,28 @@ export default function MatchPage() {
     return () => clearTimeout(timer)
   }, [user?.surveyCompleted, autoMatchTriggered])
 
+  // ═══ 匹配邮件通知触发（fire-and-forget，首位访客模式）═══
+  const [notifyTriggered, setNotifyTriggered] = useState(false)
+
+  useEffect(() => {
+    if (!user?.id || notifyTriggered) return
+    const tryNotify = async () => {
+      setNotifyTriggered(true)
+      try {
+        const csrfToken = getCsrfToken()
+        await fetch('/api/match/notify', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': csrfToken },
+        })
+        // fire-and-forget：无论成功失败都不影响用户
+      } catch (err) {
+        console.debug('[match/notify] 触发失败:', err)
+      }
+    }
+    const timer = setTimeout(tryNotify, 3000) // 比autoMatch稍晚，确保匹配先完成
+    return () => clearTimeout(timer)
+  }, [user?.id, notifyTriggered])
+
   // 刷新数据（当前+历史一起刷新）
   const handleRefresh = async () => {
     setRefreshing(true)
