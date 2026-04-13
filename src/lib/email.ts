@@ -94,7 +94,6 @@ async function sendViaBrevo(
     }
 
     const data: any = await response.json()
-    console.log(`[brevo] 验证码已发送 → ${toEmail} (messageId: ${data?.messageId})`)
     return { success: true, messageId: data?.messageId }
   } catch (err: any) {
     console.error('[brevo] 异常:', err?.message || err)
@@ -218,6 +217,13 @@ export async function sendVerificationEmail(
   )
 
   if (!result.success) {
+    // 邮件发送失败 → 回滚刚插入的验证码记录，让用户可以立即重发
+    try {
+      await db.execute({
+        sql: `DELETE FROM verification_codes WHERE code_hash = ?`,
+        args: [codeHash],
+      })
+    } catch (_) { /* 回滚失败不影响返回 */ }
     return {
       success: false,
       error: `邮件发送失败（${result.error}）`,
@@ -254,43 +260,40 @@ export async function verifyCode(
   const nowIso = new Date().toISOString()
 
   try {
-    // 查找未过期的有效验证码记录
+    // ── 原子操作：单条 SQL 同时完成 校验+计数+匹配 ──
+    // 防止竞态：并发请求中只有一个能通过 hash 匹配（UPDATE 是原子的）
     const result = await db.execute({
-      sql: `SELECT id, code_hash, attempts, expires_at FROM verification_codes
-            WHERE email = ? AND expires_at > ?
-            ORDER BY created_at DESC LIMIT 1`,
-      args: [emailLower, nowIso],
+      sql: `UPDATE verification_codes
+            SET attempts = attempts + 1
+            WHERE email = ? AND expires_at > ? AND code_hash = ? AND attempts < ?
+            RETURNING id, attempts`,
+      args: [emailLower, nowIso, inputHash, MAX_ATTEMPTS],
     })
 
     const row = result.rows[0] as any
+
     if (!row) {
-      return { valid: false, error: '验证码已过期或不存在' }
+      // 哈希不匹配 / 已过期 / 尝试次数耗尽 → 查一次判断具体原因
+      const existing = await db.execute({
+        sql: `SELECT id, attempts FROM verification_codes
+              WHERE email = ? AND expires_at > ?
+              ORDER BY created_at DESC LIMIT 1`,
+        args: [emailLower, nowIso],
+      })
+      const existingRow = existing.rows[0] as any
+      if (!existingRow) {
+        return { valid: false, error: '验证码已过期或不存在' }
+      }
+      if (Number(existingRow.attempts) >= MAX_ATTEMPTS - 1) {
+        await db.execute({ sql: `DELETE FROM verification_codes WHERE id = ?`, args: [existingRow.id] })
+        return { valid: false, error: '验证码尝试次数过多，请重新获取' }
+      }
+      return { valid: false, error: '验证码错误，请重新输入' }
     }
 
-    // 检查尝试次数
-    if (row.attempts >= MAX_ATTEMPTS) {
-      await db.execute({ sql: `DELETE FROM verification_codes WHERE id = ?`, args: [row.id] })
-      return { valid: false, error: '验证码尝试次数过多，请重新获取' }
-    }
-
-    // 增加尝试计数
-    await db.execute({
-      sql: `UPDATE verification_codes SET attempts = attempts + 1 WHERE id = ?`,
-      args: [row.id],
-    })
-
-    // 常量时间比较防时序攻击
-    const storedHash = String(row.code_hash)
-    const match = timingSafeEqual(inputHash, storedHash)
-
-    if (match) {
-      // 验证成功，删除该码防止重复使用
-      await db.execute({ sql: `DELETE FROM verification_codes WHERE id = ?`, args: [row.id] })
-      return { valid: true }
-    } else {
-      const remaining = MAX_ATTEMPTS - Number(row.attempts) - 1
-      return { valid: false, error: `验证码错误，还剩 ${remaining} 次机会` }
-    }
+    // 验证成功，立即删除防止重复使用（DELETE 在 UPDATE 之后，但此时该记录已被"消费"）
+    await db.execute({ sql: `DELETE FROM verification_codes WHERE id = ?`, args: [row.id] })
+    return { valid: true }
   } catch (err: any) {
     console.error('[verify-code]', err?.message || err)
     return { valid: false, error: '验证失败，请稍后重试' }

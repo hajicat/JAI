@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
+import { setCsrfCookie } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
@@ -17,9 +18,12 @@ export async function GET() {
       /* 表不存在则默认开启 */
     }
     
-    return NextResponse.json({ gpsRequired }, {
+    const response = NextResponse.json({ gpsRequired }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
     })
+    // 确保首次访问者也有 CSRF token
+    setCsrfCookie(response)
+    return response
   } catch {
     return NextResponse.json({ gpsRequired: true })
   }

@@ -96,12 +96,11 @@ export async function POST(req: NextRequest) {
       args: [email.toLowerCase().trim()],
     })
 
-    // 无论用户是否存在都返回成功（防止邮箱枚举攻击）
-    // 但只有存在时才真正发邮件
-    if (userResult.rows.length === 0) {
-      console.log(`[forgot-password] 邮箱未注册: ${email}`)
-      return NextResponse.json({ message: '如果该邮箱已注册，重置链接已发送' })
-    }
+      // 无论用户是否存在都返回成功（防止邮箱枚举攻击）
+      // 但只有存在时才真正发邮件
+      if (userResult.rows.length === 0) {
+        return NextResponse.json({ message: '如果该邮箱已注册，重置链接已发送' })
+      }
 
     const userId = (userResult.rows[0] as any).id
     const userEmail = (userResult.rows[0] as any).email
@@ -147,8 +146,9 @@ export async function POST(req: NextRequest) {
       args: [userId, tokenHash, expiresAt],
     })
 
-    // 发送邮件
-    const resetUrl = `${req.nextUrl.origin}/reset-password?token=${plainToken}`
+    // 发送邮件（使用配置的公开 URL，避免 CF Pages 内部域名问题）
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL || (new URL(req.url).origin)
+    const resetUrl = `${appOrigin}/reset-password?token=${plainToken}`
 
     const apiKey = process.env.BREVO_API_KEY
     if (!apiKey) {
@@ -185,7 +185,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '邮件发送失败，请稍后重试' }, { status: 500 })
     }
 
-    console.log(`[forgot-password] 重置链接已发送 → ${userEmail}`)
     return NextResponse.json({ message: '重置链接已发送，请查收邮箱' })
 
   } catch (error: any) {

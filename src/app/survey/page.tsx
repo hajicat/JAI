@@ -465,8 +465,8 @@ export default function SurveyPage() {
           {/* 选择题点击选项自动跳转，不需要按钮 */}
         </div>
 
-        {/* 隐私提示卡片（在第一部分开始前显示一次） */}
-        {(step === 0 || showPrivacyNote) && !showPrivacyNote && step < 8 && (
+        {/* 隐私提示卡片（在第一部分开始前显示，首次进入或手动展开时展示） */}
+        {((step === 0 && step < 8) || showPrivacyNote) && (
           <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-200">
             <p className="text-sm text-blue-700 font-medium mb-1">🔒 隐私说明</p>
             <p className="text-xs text-blue-600 leading-relaxed">

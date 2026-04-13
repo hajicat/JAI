@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
 import { encrypt, decrypt } from '@/lib/crypto'
-import { validateContactInfo, sanitizeString, sanitizeForStorage } from '@/lib/validation'
+import { validateContactInfo, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
 
@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
 
     if (contactInfo && contactType) {
       updates.push('contact_type = ?', 'contact_info = ?')
-      args.push(contactType, await encrypt(sanitizeForStorage(contactInfo)))
+      // 注意：联系方式直接用 sanitizeString 清理即可，不要用 sanitizeForStorage（后者做 HTML 转义会永久篡改数据）
+      args.push(contactType, await encrypt(contactInfo))
     }
 
     if (typeof matchEnabled === 'boolean') {

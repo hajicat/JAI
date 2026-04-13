@@ -41,6 +41,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '邮箱或密码错误' }, { status: 401 })
     }
 
+    // 防止超长密码消耗 CPU/内存
+    if (password.length > 128) {
+      return NextResponse.json({ error: '邮箱或密码错误' }, { status: 401 })
+    }
+
     const db = getDb()
     await initDb()
 
@@ -54,16 +59,23 @@ export async function POST(req: NextRequest) {
     // Use constant-time approach: always hash even if user doesn't exist
     // to prevent timing-based user enumeration
     if (!user) {
-      // Dummy hash + simulated lock-check delay to match real user path
-      // 使用 SHA-256 循环（~10-50ms），避免 PBKDF2×5000 触发 CF CPU 上限(502)
-      const dummyInput = new TextEncoder().encode(password + ':dummy_delay')
-      let hash = new Uint8Array(dummyInput)
-      for (let i = 0; i < 500; i++) {
-        const buf = await crypto.subtle.digest('SHA-256', hash)
-        hash = new Uint8Array(buf)
-      }
-      // 模拟数据库查询锁定状态的额外延迟（与第69行真实查询对齐）
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 5))
+      // Dummy PBKDF2 hash — 与真实路径使用相同算法，迭代次数降低以匹配耗时
+      // 真实路径: PBKDF2-SHA512×5000 (~20-30ms)
+      // Dummy 路径: PBKDF2-SHA512×500 (~5-10ms) + 额外随机延迟补齐
+      const dummySalt = new Uint8Array(32)
+      crypto.getRandomValues(dummySalt)
+      try {
+        const keyMaterial = await crypto.subtle.importKey(
+          'raw', new TextEncoder().encode(`_dummy_:${password}`), { name: 'PBKDF2' }, false, ['deriveBits']
+        )
+        await crypto.subtle.deriveBits(
+          { name: 'PBKDF2', salt: dummySalt, iterations: 500, hash: 'SHA-512' },
+          keyMaterial,
+          64 * 8
+        )
+      } catch { /* ignore */ }
+      // 随机延迟补齐（覆盖真实路径中 DB 查询锁定状态的时间差）
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 10 + 15))
       return NextResponse.json({ error: '邮箱或密码错误' }, { status: 401 })
     }
 

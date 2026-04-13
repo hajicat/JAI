@@ -48,9 +48,6 @@ export async function POST(req: NextRequest) {
     // ── 执行带锁的自动匹配（使用 match-engine 导出的统一版本）──
     const result = await executeAutoMatchSafe(db)
 
-    // 记录谁触发了匹配（仅日志用途）
-    console.log(`[match/auto] triggered by uid=${decoded.id}, result=${result.status}`)
-
     return NextResponse.json(result)
 
   } catch (error: any) {

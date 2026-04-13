@@ -701,7 +701,12 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
 
   const matches: any[] = []
   const matched = new Set<number>()
-  const shuffled = [...safeUsers].sort(() => Math.random() - 0.5)
+  // Fisher-Yates 洗牌（均匀随机）
+  const shuffled = [...safeUsers]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
 
   // ── 批量收集匹配结果，最后用 db.batch() 一次写入（减少网络往返）──
   const insertStatements: Array<{ sql: string; args: any[] }> = []

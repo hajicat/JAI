@@ -35,22 +35,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const email = sanitizeString(body.email || '', 254).toLowerCase()
 
-    // 邮箱维度限流（防止单个邮箱被滥用）
-    const emailRateResult = await checkRateLimitByEmail(email, EMAIL_CODE_LIMITER, 'send_code')
-    if (!emailRateResult.allowed) {
-      return NextResponse.json(
-        { error: '该邮箱发送验证码太频繁，请稍后再试' },
-        { status: 429, headers: { 'Retry-After': String(emailRateResult.retryAfter) } }
-      )
-    }
-
     // 邮箱格式校验
     const emailCheck = validateEmail(email)
     if (!emailCheck.valid) {
       return NextResponse.json({ error: emailCheck.error }, { status: 400 })
     }
 
-    // 检查邮箱是否已注册 — 不暴露是否存在，与 forgot-password 保持一致（防枚举）
+    // 检查邮箱是否已注册（先查再限流，避免已注册邮箱消耗合法用户的配额）
     const db = getDb()
     await initDb()
 
@@ -60,11 +51,20 @@ export async function POST(req: NextRequest) {
         args: [email],
       })
       if (existing.rows.length > 0) {
-        // 邮箱已存在，返回成功但不实际发码（防枚举：攻击者无法区分"已注册"和"发送成功"）
+        // 邮箱已存在，返回成功但不实际发码（防枚举）
         return NextResponse.json({ success: true, message: '验证码已发送，请查收邮箱' })
       }
     } catch (_) {
       /* 表可能不存在，继续 */
+    }
+
+    // 邮箱维度限流 — 在确认邮箱未注册后检查（避免消耗已注册邮箱的配额）
+    const emailRateResult = await checkRateLimitByEmail(email, EMAIL_CODE_LIMITER, 'send_code')
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: '该邮箱发送验证码太频繁，请稍后再试' },
+        { status: 429, headers: { 'Retry-After': String(emailRateResult.retryAfter) } }
+      )
     }
 
     // 发送验证码邮件

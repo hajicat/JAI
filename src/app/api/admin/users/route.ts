@@ -7,6 +7,7 @@ import { validateCsrfToken } from '@/lib/csrf'
 import { calcSafety } from '@/lib/match-engine'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp } from '@/lib/csrf'
+import { verifyPassword as verifyAdminPassword } from '@/lib/auth'
 
 // Helper: attempt to decrypt contact info, safe on failure
 async function safeDecryptContact(encrypted: string | null | undefined, contactType: string | null): Promise<{ type: string | null; info: string | null }> {
@@ -181,6 +182,23 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
     }
 
+    // ── 二级密码验证（防止 cookie 被盗后批量删除）──
+    const { confirmPassword } = await req.json() as { confirmPassword?: string }
+    if (!confirmPassword || typeof confirmPassword !== 'string') {
+      return NextResponse.json({ error: '请输入管理员密码以确认删除' }, { status: 400 })
+    }
+    try {
+      const pwResult = await db.execute({
+        sql: "SELECT value FROM settings WHERE key = 'admin_view_password_hash'",
+        args: [],
+      })
+      const pwRow = pwResult.rows[0] as any
+      if (pwRow?.value && !(await verifyAdminPassword(confirmPassword, String(pwRow.value)))) {
+        return NextResponse.json({ error: '管理员密码错误' }, { status: 403 })
+      }
+      // 如果还没设置过二级密码则放行（兼容旧部署）
+    } catch (_) { /* 查询失败时继续 */ }
+
     // ── 限流（防止 cookie 被盗后批量删除）──
     const ip = getClientIp(req)
     const rateResult = await checkRateLimit(ip, API_LIMITER, 'admin-delete-user')
@@ -253,7 +271,7 @@ export async function DELETE(req: NextRequest) {
       throw new Error('删除失败：未找到该用户')
     }
 
-    console.log(`[admin/delete-user] 管理员 ${decoded.id} 删除了用户 ${uid} (${nickname})`)
+    console.log(`[admin/delete-user] uid=${uid} deleted by=${decoded.id}`)
 
     return NextResponse.json({
       success: true,

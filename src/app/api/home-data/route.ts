@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
+import { setCsrfCookie, getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
 
@@ -73,6 +74,9 @@ export async function GET(req: Request) {
         'Vary': 'Cookie',
       },
     })
+
+    // 确保首次访问者也有 CSRF token（否则注册/登录 POST 会 403）
+    setCsrfCookie(response)
 
     // 刷新非 httpOnly 状态 cookie（前端同步读取用）
     if (user) {

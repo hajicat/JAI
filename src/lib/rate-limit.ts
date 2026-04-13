@@ -194,8 +194,13 @@ export async function checkRateLimitByEmail(
   config: RateLimitConfig,
   action: string
 ): Promise<{ allowed: boolean; remaining: number; retryAfter: number }> {
-  // 用 email hash 作为 key（避免明文邮箱写入 KV）
-  const emailKey = `eml:${action}:${email.toLowerCase().trim()}`
+  // 用 email SHA-256 哈希作为 key（避免明文邮箱写入 KV）
+  const emailBytes = new TextEncoder().encode(email.toLowerCase().trim())
+  const hashBuffer = await crypto.subtle.digest('SHA-256', emailBytes)
+  const hashHex = Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  const emailKey = `eml:${action}:${hashHex}`
   
   if (detectKVAvailable()) {
     // 复用 KV 函数，只是 key 不同

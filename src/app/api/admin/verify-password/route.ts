@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe, verifyPassword } from '@/lib/auth'
-import { getCookieName } from '@/lib/csrf'
+import { getCookieName, validateCsrfToken } from '@/lib/csrf'
 
 export const runtime = 'edge'
 
@@ -22,6 +22,11 @@ export async function POST(req: NextRequest) {
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '未登录' }, { status: 401 })
     if (!decoded.isAdmin) return NextResponse.json({ error: '无权限' }, { status: 403 })
+
+    // CSRF 校验
+    if (!validateCsrfToken(req)) {
+      return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
+    }
 
     const body = await req.json()
     const password = (body.password || '').trim()

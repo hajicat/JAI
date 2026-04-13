@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const db = (await import('@/lib/db')).getDb()
+    const db = getDb()
     await initDb()
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
@@ -40,8 +40,6 @@ export async function POST(req: NextRequest) {
     if (!success) {
       return NextResponse.json({ error: '重置失败，请稍后重试' }, { status: 500 })
     }
-
-    console.log(`[admin/reset-match] 管理员 ${decoded.id} 重置了本周匹配`)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
