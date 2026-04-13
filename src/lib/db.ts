@@ -27,8 +27,8 @@ export function getDb(): Client {
 }
 
 // Campus center coordinates (吉林动画学院 博识路168号)
-export const CAMPUS_LAT = 43.8188
-export const CAMPUS_LNG = 125.3178
+export const CAMPUS_LAT = 43.8175
+export const CAMPUS_LNG = 125.2561
 export const CAMPUS_RADIUS_KM = 1.0
 
 export async function initDb(): Promise<void> {
