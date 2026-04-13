@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         withinRange: false,
         message: result.message,
+        nearestCampus: result.nearestCampus || undefined,
+        nearestDistance: result.nearestDistance || undefined,
       })
     }
 
@@ -41,6 +43,8 @@ export async function POST(req: NextRequest) {
       withinRange: true,
       location: result.location,
       requiresSchoolEmail: result.requiresSchoolEmail,
+      nearestCampus: result.nearestCampus || undefined,
+      nearestDistance: result.nearestDistance || undefined,
     })
   } catch {
     return NextResponse.json({ error: '定位验证失败' }, { status: 500 })

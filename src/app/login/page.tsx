@@ -35,6 +35,8 @@ function LoginForm() {
   const [gpsMsg, setGpsMsg] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [gpsRequired, setGpsRequired] = useState(true)
+  const [requiresSchoolEmail, setRequiresSchoolEmail] = useState(false)
+  const [emailHint, setEmailHint] = useState('')
 
   // 邮箱验证码状态（仅注册模式使用）
   const [verificationCode, setVerificationCode] = useState('')
@@ -100,10 +102,14 @@ function LoginForm() {
 
           if (data.withinRange) {
             setGpsStatus('ok')
-            setGpsMsg(`✅ 定位成功！在高校圈内，距中心${data.distance ?? 0}km`)
+            setGpsMsg(`✅ 定位成功！检测到您在「${data.location}」，距最近校区 ${data.nearestDistance ?? 0}km`)
+            setRequiresSchoolEmail(data.requiresSchoolEmail)
+            if (data.requiresSchoolEmail) {
+              setEmailHint('💡 该区域需使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）')
+            }
           } else {
             setGpsStatus('fail')
-            setGpsMsg(`❌ 你不在高校圈附近（距${data.distance ?? '?'}km，需要${data.radiusKm}km内）`)
+            setGpsMsg(`❌ ${data.message || '不在高校范围内'}`)
           }
         } catch {
           setGpsStatus('fail')
@@ -475,10 +481,15 @@ function LoginForm() {
               <input type="email" placeholder="你的邮箱（用于登录和接收验证码）"
                 value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required autoComplete="email" />
-              {isRegister && (
+              {isRegister && emailHint && (
                 <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
+                  <span>{emailHint}</span>
+                </p>
+              )}
+              {isRegister && !emailHint && gpsStatus === 'idle' && (
+                <p className="text-xs text-gray-400 mt-1.5 flex items-start gap-1">
                   <span>💡</span>
-                  <span>吉林动画学院/长春大学可用任意邮箱，其他高校需校内邮箱（@jlu / @mails.jlu / @nenu / @jisu）</span>
+                  <span>请先完成GPS定位，系统将自动判断是否需要校内邮箱</span>
                 </p>
               )}
             </div>

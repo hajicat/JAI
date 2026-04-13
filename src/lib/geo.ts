@@ -97,8 +97,8 @@ function isJLAI(lat: number, lng: number): boolean {
  * 返回最近的校区信息 + 是否需要校内邮箱
  */
 export function verifyLocation(lat: number, lng: number):
-  | { valid: false; message: string }
-  | { valid: true; location: string; requiresSchoolEmail: boolean } {
+  | { valid: false; message: string; nearestCampus?: string; nearestDistance?: number }
+  | { valid: true; location: string; requiresSchoolEmail: boolean; nearestCampus: string; nearestDistance: number } {
 
   // 检查是否在任一校区范围内（每个校区有独立半径）
   let nearestCampus: Campus | null = null
@@ -115,6 +115,8 @@ export function verifyLocation(lat: number, lng: number):
         valid: true,
         location: `${c.schoolName}(${c.name})`,
         requiresSchoolEmail: c.schoolShort !== '吉动' && c.schoolShort !== '长大',
+        nearestCampus: c.name,
+        nearestDistance: Math.round(dist * 100) / 100,
       }
     }
   }
@@ -123,7 +125,9 @@ export function verifyLocation(lat: number, lng: number):
   if (nearestCampus && nearestDist <= 10) {
     return {
       valid: false,
-      message: `你当前不在任何校区附近。最近的 ${nearestCampus.name} 距离 ${(nearestDist).toFixed(1)}km，请到校园内再试`,
+      message: `你当前不在任何校区范围内。最近的「${nearestCampus.name}」距离 ${(nearestDist).toFixed(1)}km，请到校园内再试`,
+      nearestCampus: nearestCampus.name,
+      nearestDistance: Math.round(nearestDist * 100) / 100,
     }
   }
 
