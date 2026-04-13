@@ -63,14 +63,29 @@ export function isMatchingWindow(): boolean {
 }
 
 /**
- * 判断当前是否已过揭晓时间（北京时间周日 20:00 = UTC 周日 12:00 之后）
- * 匹配在周日 12:00 执行，但结果要等到 20:00 才向用户展示
+ * 判断当前是否已过揭晓时间 / 处于结果可见窗口内
+ *
+ * 可见窗口：北京时间 周日 20:00 ~ 周四 00:00
+ * 对应 UTC：  周日 12:00 ~ 周三 16:00
+ *
+ * 超过此窗口后，即使本周已有匹配结果也不再展示主卡片，
+ * 用户需等待下一轮匹配揭晓。
  */
 export function isRevealWindow(): boolean {
   const now = new Date()
   const utcDay = now.getUTCDay()
   const utcHours = now.getUTCHours()
-  return utcDay === 0 && utcHours >= 12
+
+  // UTC 周日 12:00+  → 北京 周日 20:00+
+  if (utcDay === 0) return utcHours >= 12
+  // UTC 周一全天      → 北京 周一 08:00 ~ 周二 08:00
+  if (utcDay === 1) return true
+  // UTC 周二全天      → 北京 周二 08:00 ~ 周三 08:00
+  if (utcDay === 2) return true
+  // UTC 周三 00:00~15:59 → 北京 周三 08:00 ~ 周四 00:00 前
+  if (utcDay === 3) return utcHours < 16
+
+  return false
 }
 
 /**
