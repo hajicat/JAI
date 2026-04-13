@@ -262,7 +262,7 @@ export async function sendMatchNotifications(): Promise<{
       const userIds = [Number(row.user_a), Number(row.user_b)]
       const partners = [
         { email: row.b_email, name: row.b_nickname, gender: row.b_gender },
-        { email: row.a_email, name: row.a_nickname, gender: row.u1_gender }, // 给 B 看 A 时需要 A 的性别
+        { email: row.a_email, name: row.a_nickname, gender: row.a_gender }, // 给 B 看 A 时需要 A 的性别
       ]
 
       let reasons: string[] = []
