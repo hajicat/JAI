@@ -177,7 +177,7 @@ export default function Home() {
       <nav className="relative z-10 flex items-center justify-between px-4 py-3 max-w-6xl mx-auto gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-xl shrink-0">🎁</span>
-          <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
+          <span className="font-bold text-lg gradient-text truncate">吉我交</span>
         </div>
         <div className="flex items-center gap-2">
           {isLoggedIn ? (
@@ -215,7 +215,7 @@ export default function Home() {
       <main className="relative z-10 max-w-4xl mx-auto px-6 pt-16 pb-24 text-center">
         <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur rounded-full text-sm text-gray-500 border border-white/30">
           <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          已有 <span className="font-semibold text-pink-600">{displayCount}</span> 位吉动人完成测试
+          已有 <span className="font-semibold text-pink-600">{displayCount}</span> 位吉我交人完成测试
         </div>
 
         <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
@@ -225,8 +225,8 @@ export default function Home() {
         </h1>
 
         <p className="text-lg text-gray-500 mb-10 max-w-xl mx-auto leading-relaxed">
-          吉林动画学院专属盲盒交友平台<br />
-          基于心理学深度兼容性测试，每周为你匹配一位灵魂契合的吉动人
+          长春高校专属盲盒交友平台<br />
+          基于心理学深度兼容性测试，每周为你匹配一位灵魂契合的吉我交人
         </p>
 
         <div className="glass-card rounded-2xl p-6 mb-10 max-w-md mx-auto">
@@ -299,10 +299,11 @@ export default function Home() {
       <section className="relative z-10 max-w-3xl mx-auto px-6 py-12">
         <div className="glass-card rounded-3xl p-8 text-center">
           <div className="text-4xl mb-3">📍</div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">仅限校内同学</h3>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">仅限长春高校同学</h3>
           <p className="text-gray-500 text-sm">
-            注册时需通过GPS定位验证你在吉林动画学院1km范围内<br />
-            确保每一位参与者都是真实的吉动人
+            注册时需通过GPS定位验证你在长春高校圈内（吉林大学/东北师范大学/<br />
+            吉林动画学院/吉林外国语大学/长春大学，15km范围）<br />
+            确保每一位参与者都是真实的高校同学
           </p>
         </div>
       </section>

@@ -112,7 +112,7 @@ function ResetForm() {
       <div className="relative z-10 w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <span className="text-3xl">🎁</span>
-          <span className="font-bold text-2xl gradient-text">吉动盲盒</span>
+          <span className="font-bold text-2xl gradient-text">吉我交</span>
         </Link>
 
         <div className="glass-card rounded-3xl p-8 shadow-xl">

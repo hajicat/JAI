@@ -7,12 +7,12 @@ export default function TermsPage() {
           <p><strong>生效日期：</strong>2026 年 1 月 1 日</p>
 
           <h3 className="font-bold text-gray-800 mt-4">一、服务说明</h3>
-          <p>「吉动盲盒」是吉林动画学院专属的匿名匹配交友平台。本平台通过心理学兼容性测试，每周为完成问卷的用户进行一对一匹配。</p>
+          <p>「吉我交」是长春高校专属的匿名匹配交友平台（覆盖吉林大学/东北师范大学/吉林动画学院/吉林外国语大学/长春大学）。本平台通过心理学兼容性测试，每周为完成问卷的用户进行一对一匹配。</p>
 
           <h3 className="font-bold text-gray-800 mt-4">二、使用条件</h3>
           <ul className="list-disc pl-5 space-y-1">
-            <li>您必须是吉林动画学院在校学生或教职工</li>
-            <li>注册时需通过校内 GPS 定位验证</li>
+            <li>您必须是上述长春高校的在校学生或教职工</li>
+            <li>注册时需通过高校圈 GPS 定位验证</li>
             <li>每位用户仅可拥有一个账号</li>
             <li>您必须年满 16 周岁</li>
           </ul>
@@ -29,7 +29,8 @@ export default function TermsPage() {
           <p>我们承诺：</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>不向任何第三方出售或共享您的个人信息</li>
-            <li>GPS 位置仅用于校内验证，验证后不存储原始坐标</li>
+            <li>GPS 位置仅用于高校圈验证，验证后不存储原始坐标</li>
+
             <li>联系方式仅在双方确认后交换</li>
             <li>您可以随时申请删除账号及所有关联数据</li>
           </ul>
@@ -41,7 +42,7 @@ export default function TermsPage() {
           <p>我们保留在必要时修改本协议的权利。重大变更将通过平台公告形式通知用户。</p>
 
           <h3 className="font-bold text-gray-800 mt-4">七、其他</h3>
-          <p>本协议的最终解释权归「吉动盲盒」所有。</p>
+          <p>本协议的最终解释权归「吉我交」所有。</p>
         </div>
         <a href="/" className="inline-block mt-8 text-pink-500 hover:underline">← 返回首页</a>
       </div>

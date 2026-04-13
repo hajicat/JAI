@@ -100,10 +100,10 @@ function LoginForm() {
 
           if (data.withinRange) {
             setGpsStatus('ok')
-            setGpsMsg(`✅ 定位成功！距学校${data.distance ?? 0}km`)
+            setGpsMsg(`✅ 定位成功！在高校圈内，距中心${data.distance ?? 0}km`)
           } else {
             setGpsStatus('fail')
-            setGpsMsg(`❌ 你不在学校附近（距${data.distance ?? '?'}km，需要${data.radiusKm}km内）`)
+            setGpsMsg(`❌ 你不在高校圈附近（距${data.distance ?? '?'}km，需要${data.radiusKm}km内）`)
           }
         } catch {
           setGpsStatus('fail')
@@ -239,7 +239,7 @@ function LoginForm() {
     setError('')
 
     if (isRegister && gpsRequired && gpsStatus !== 'ok') {
-      setError('请先完成GPS定位验证')
+      setError('请先完成高校圈定位验证')
       return
     }
 
@@ -358,7 +358,7 @@ function LoginForm() {
       <div className="relative z-10 w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <span className="text-3xl">🎁</span>
-          <span className="font-bold text-2xl gradient-text">吉动盲盒</span>
+          <span className="font-bold text-2xl gradient-text">吉我交</span>
         </Link>
 
         <div className="glass-card rounded-3xl p-8 shadow-xl">
@@ -366,7 +366,7 @@ function LoginForm() {
             {isRegister ? '创建账号' : '欢迎回来'}
           </h2>
           <p className="text-sm text-gray-400 text-center mb-6">
-            {isRegister ? '仅限吉林动画学院同学，需GPS验证' : '登录你的吉动盲盒账号'}
+            {isRegister ? '仅限长春高校同学，需GPS验证' : '登录你的吉我交账号'}
           </p>
 
           {error && (
@@ -390,7 +390,7 @@ function LoginForm() {
                 {gpsRequired && (
                 <div className="bg-gray-50 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-600">📍 GPS 校内验证</span>
+                    <span className="text-sm font-medium text-gray-600">📍 GPS 高校验证</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       gpsStatus === 'ok' ? 'bg-green-100 text-green-600' :
                       gpsStatus === 'fail' ? 'bg-red-100 text-red-600' :
@@ -408,7 +408,7 @@ function LoginForm() {
                     disabled={gpsStatus === 'checking'}
                     className="w-full py-2 text-sm font-medium text-pink-600 bg-white border border-pink-200 rounded-lg hover:bg-pink-50 transition disabled:opacity-50"
                   >
-                    {gpsStatus === 'checking' ? '定位中...' : gpsStatus === 'ok' ? '重新验证' : '点击验证位置'}
+                    {gpsStatus === 'checking' ? '定位中...' : gpsStatus === 'ok' ? '重新验证' : '点击验证高校圈位置'}
                   </button>
                 </div>
                 )}

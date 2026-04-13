@@ -1131,7 +1131,7 @@ export default function AdminPage() {
                 <div>
                   <p className="font-medium text-gray-800">📍 GPS 校内验证</p>
                   <p className="text-sm text-gray-400 mt-1">
-                    开启后，注册时必须在吉林动画学院附近（{gpsRequired ? '当前已开启' : '当前已关闭'}）
+                    开启后，注册时必须在长春高校圈附近（{gpsRequired ? '当前已开启' : '当前已关闭'}）
                   </p>
                 </div>
                 <button

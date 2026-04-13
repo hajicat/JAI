@@ -26,10 +26,12 @@ export function getDb(): Client {
   return client
 }
 
-// Campus center coordinates (吉林动画学院 博识路168号)
-export const CAMPUS_LAT = 43.8175
-export const CAMPUS_LNG = 125.2561
-export const CAMPUS_RADIUS_KM = 1.0
+// Campus center: 5所长春高校的覆盖中心点
+// 吉林动画学院 43.8175/125.2561 | 吉林大学 43.8277/125.3129 | 东北师范大学 43.7888/125.3205
+// 长春大学 43.8698/125.3234 | 吉林外国语大学 43.8187/125.3110
+export const CAMPUS_LAT = 43.8260
+export const CAMPUS_LNG = 125.3049
+export const CAMPUS_RADIUS_KM = 15.0
 
 export async function initDb(): Promise<void> {
   if (dbInitialized) return

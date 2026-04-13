@@ -35,11 +35,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       withinRange,
       distance: Math.round(distance * 100) / 100,
-      campusName: '吉林动画学院',
+      campusName: '长春高校圈',
       radiusKm: CAMPUS_RADIUS_KM,
     })
-  } catch (error: any) {
-    console.error('[geo]', error?.message || error)
+  } catch {
     return NextResponse.json({ error: '定位验证失败' }, { status: 500 })
   }
 }
@@ -47,10 +46,17 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   // 坐标精度降低到小数点后2位（约±1.1km），防止被用于伪造精确 GPS 位置
   return NextResponse.json({
-    campusName: '吉林动画学院',
-    campusAddress: '长春市高新技术产业开发区博识路168号',
+    campusName: '长春高校圈',
+    campusAddress: '长春市（吉林大学/东北师范大学/吉林动画学院/吉林外国语大学/长春大学）',
     centerLat: Math.round(CAMPUS_LAT * 100) / 100,
     centerLng: Math.round(CAMPUS_LNG * 100) / 100,
     radiusKm: CAMPUS_RADIUS_KM,
+    schools: [
+      '吉林动画学院',
+      '吉林大学',
+      '东北师范大学',
+      '吉林外国语大学',
+      '长春大学',
+    ],
   })
 }

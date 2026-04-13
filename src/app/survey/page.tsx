@@ -286,7 +286,7 @@ export default function SurveyPage() {
       {!loading && alreadyCompleted && (
         <div className="relative z-10 max-w-lg mx-auto px-6 py-16 text-center">
           <div className="mb-6 text-5xl">🎁</div>
-          <h1 className="text-2xl font-bold gradient-text mb-3">吉动盲盒</h1>
+          <h1 className="text-2xl font-bold gradient-text mb-3">吉我交</h1>
           <p className="text-gray-500 mb-2">你已完成过问卷</p>
           <div className="bg-pink-50 rounded-2xl p-6 mb-8 text-sm text-gray-600 leading-relaxed">
             <p className="font-medium text-gray-700 mb-2">📋 题库已全新升级</p>
@@ -322,7 +322,7 @@ export default function SurveyPage() {
         <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-xl shrink-0">🎁</span>
-          <span className="font-bold text-lg gradient-text truncate">吉动盲盒</span>
+          <span className="font-bold text-lg gradient-text truncate">吉我交</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link href="/" className="text-xs text-gray-400 hover:text-gray-600 hover:underline whitespace-nowrap">🏠 首页</Link>

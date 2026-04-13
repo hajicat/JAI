@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       const distance = haversineDistance(latitude, longitude, CAMPUS_LAT, CAMPUS_LNG)
       if (distance > CAMPUS_RADIUS_KM) {
         return NextResponse.json({
-          error: `你不在吉林动画学院附近（距离约${Math.round(distance * 100) / 100}km，需要在${CAMPUS_RADIUS_KM}km内）`,
+          error: `你不在长春高校圈附近（距离约${Math.round(distance * 100) / 100}km，需要在${CAMPUS_RADIUS_KM}km内）`,
         }, { status: 403 })
       }
     }
