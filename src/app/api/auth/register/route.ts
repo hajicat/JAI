@@ -9,10 +9,10 @@ import { verifyCode } from '@/lib/email'
 
 // 学校邮箱域名白名单（非吉林动画学院用户必须使用这些域名）
 const SCHOOL_EMAIL_DOMAINS = [
-  'jlu.edu.cn',       // 吉林大学
+  'jlu.edu.cn',       // 吉林大学（教职工）
+  'mails.jlu.edu.cn', // 吉林大学（学生）
   'nenu.edu.cn',      // 东北师范大学
   'jisu.edu.cn',      // 吉林外国语大学
-  'ccu.edu.cn',       // 长春大学
 ]
 
 /** 检查邮箱是否为学校邮箱 */

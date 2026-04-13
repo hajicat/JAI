@@ -478,7 +478,7 @@ function LoginForm() {
               {isRegister && (
                 <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
                   <span>💡</span>
-                  <span>吉林动画学院同学可用任意邮箱，其他高校需使用校内邮箱（@jlu / @nenu / @jisu / @ccu）</span>
+                  <span>吉林动画学院同学可用任意邮箱，其他高校需使用校内邮箱（@jlu / @mails.jlu / @nenu / @jisu）</span>
                 </p>
               )}
             </div>
