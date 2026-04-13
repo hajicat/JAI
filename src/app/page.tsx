@@ -6,14 +6,13 @@ import { useRouter } from 'next/navigation'
 
 // ── 同步工具（纯字符串操作，无网络请求，渲染时即可调用）──
 
-/** 从 cookie 同步读取 token — 兼容开发/生产环境（生产环境有 __Host- 前缀） */
-function hasTokenCookie(): boolean {
+/** 从 cookie 同步读取登录状态（非 httpOnly，前端可直接访问） */
+function hasLoggedInCookie(): boolean {
   if (typeof document === 'undefined') return false
   const cookies = document.cookie.split(';')
-  // 开发环境: token=  |  生产环境: __Host-token=
   return cookies.some(c => {
     const trimmed = c.trim()
-    return trimmed.startsWith('token=') || trimmed.startsWith('__Host-token=')
+    return trimmed.startsWith('loggedIn=true') || trimmed.startsWith('logged_in=true')
   })
 }
 
@@ -107,7 +106,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null)
   // isLoggedIn 用于 UI 渲染：true = 已登录（cookie 有 token），false = 未登录
   // API 返回后 user 会包含完整信息，但按钮跳转不需要等
-  const [isLoggedIn, setIsLoggedIn] = useState(hasTokenCookie())
+  const [isLoggedIn, setIsLoggedIn] = useState(hasLoggedInCookie())
   // surveyCompleted 同步读取：首帧即知是否已完成问卷（不依赖 API）
   const [localSurveyDone, setLocalSurveyDone] = useState(getSurveyStatusFromCookie())
   // statsLoaded 仅用于翻牌动画

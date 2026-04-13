@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
       maxAge: 0,
     })
   }
+  // 清除非 httpOnly 的状态 cookie
+  response.cookies.set('logged_in', '', { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 0 })
+  response.cookies.set('survey_status', '', { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 0 })
 
   return response
 }

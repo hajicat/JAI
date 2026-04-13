@@ -211,6 +211,12 @@ export async function POST(req: NextRequest) {
     })
 
     // 非敏感状态 cookie：前端同步读取，新用户默认 pending
+    response.cookies.set('logged_in', 'true', {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    })
     response.cookies.set('survey_status', 'pending', {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

@@ -63,7 +63,7 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ...publicStats,
       user,
     }, {
@@ -73,6 +73,18 @@ export async function GET(req: Request) {
         'Vary': 'Cookie',
       },
     })
+
+    // 刷新非 httpOnly 状态 cookie（前端同步读取用）
+    if (user) {
+      response.cookies.set('logged_in', 'true', { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 7 * 24 * 60 * 60 })
+      response.cookies.set('survey_status', user.surveyCompleted ? 'done' : 'pending', { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 7 * 24 * 60 * 60 })
+    } else {
+      // token 无效时清除状态 cookie
+      response.cookies.set('logged_in', '', { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 0 })
+      response.cookies.set('survey_status', '', { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 0 })
+    }
+
+    return response
   } catch (error: any) {
     console.error('[home-data]', error?.message || error)
     return NextResponse.json({
