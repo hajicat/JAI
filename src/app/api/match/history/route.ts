@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     const errMsg = error?.message || error || 'unknown'
     console.error('[match/history GET]', errMsg)
-    // 开发环境返回详细错误，生产环境隐藏
-    return NextResponse.json({ error: `获取历史匹配失败` }, { status: 500 })
+    // 临时返回详细错误用于排查，修复后改回隐藏
+    return NextResponse.json({ error: `获取历史匹配失败: ${errMsg}` }, { status: 500 })
   }
 }
