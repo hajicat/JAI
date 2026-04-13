@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
         WHERE (m.user_a = ? OR m.user_b = ?)
         ORDER BY m.week_key DESC, m.created_at DESC
       `,
-      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
+      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid],
     })
 
     const rows = result.rows as any[]
@@ -139,7 +139,6 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     const errMsg = error?.message || error || 'unknown'
     console.error('[match/history GET]', errMsg)
-    // 临时返回详细错误用于排查，修复后改回隐藏
-    return NextResponse.json({ error: `获取历史匹配失败: ${errMsg}` }, { status: 500 })
+    return NextResponse.json({ error: '获取历史匹配失败' }, { status: 500 })
   }
 }
