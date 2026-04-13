@@ -240,7 +240,7 @@ export async function sendMatchNotifications(): Promise<{
     const matchesResult = await db.execute({
       sql: `
         SELECT m.id, m.user_a, m.user_b, m.score, m.reasons, m.a_revealed, m.b_revealed,
-               u_a.email AS a_email, u_a.nickname AS a_nickname,
+               u_a.email AS a_email, u_a.nickname AS a_nickname, u_a.gender AS a_gender,
                u_b.email AS b_email, u_b.nickname AS b_nickname, u_b.gender AS b_gender
         FROM matches m
         JOIN users u_a ON m.user_a = u_a.id
@@ -267,7 +267,7 @@ export async function sendMatchNotifications(): Promise<{
       const userIds = [Number(row.user_a), Number(row.user_b)]
       const partners = [
         { email: row.b_email, name: row.b_nickname, gender: row.b_gender },
-        { email: row.a_email, name: row.a_nickname, gender: null }, // 给 A 看 B 时不需要 B 的性别标签
+        { email: row.a_email, name: row.a_nickname, gender: row.u1_gender }, // 给 B 看 A 时需要 A 的性别
       ]
 
       let reasons: string[] = []
