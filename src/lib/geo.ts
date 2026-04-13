@@ -77,7 +77,7 @@ const CAMPUSES: Campus[] = [
   // ── 东北师范大学（2 个校区，全部 2km，@nenu 校内邮箱） ──
   { name: '东北师范本部(自由)',  lat: 43.860000, lng: 125.320000,
     schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
-  { name: '东北师范净月校区',    lat: 43.788800, lng: 125.320500,
+  { name: '东北师范净月校区',    lat: 43.826195, lng: 125.425650,
     schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
 
   // ── 吉林外国语大学（@jisu 校内邮箱） ──
