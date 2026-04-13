@@ -589,54 +589,126 @@ function CandidateCard({ match, weekKey }: { match: HistoryMatch; weekKey: strin
   const avatarIcon = match.bothRevealed ? '💕' : '❓'
 
   return (
-    <div
-      onClick={() => setExpanded(!expanded)}
-      className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition ${
-        expanded ? 'bg-pink-50/80 border-2 border-pink-200' : 'bg-white/60 border border-gray-100 hover:border-pink-200 hover:bg-pink-50/40'
-      }`}
-    >
-      {/* 头像 */}
-      <div className={`w-12 h-12 ${avatarBg} rounded-full flex items-center justify-center text-xl shadow-sm shrink-0`}>
-        {match.bothRevealed ? match.partnerNickname[0] : avatarIcon}
+    <div className="rounded-2xl overflow-hidden border border-gray-100 hover:border-pink-200 transition bg-white/60">
+      {/* 卡片头部（可点击展开） */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        className={`flex items-center gap-4 p-4 cursor-pointer transition ${
+          expanded ? 'bg-pink-50/80' : 'hover:bg-pink-50/40'
+        }`}
+      >
+        {/* 头像 */}
+        <div className={`w-12 h-12 ${avatarBg} rounded-full flex items-center justify-center text-xl shadow-sm shrink-0`}>
+          {match.bothRevealed ? match.partnerNickname[0] : avatarIcon}
+        </div>
+
+        {/* 基本信息 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-800 truncate">
+              {(match.partnerGender === 'female' ? '女' : match.partnerGender === 'male' ? '男' : '')}
+              {' · '}{match.partnerNickname}
+            </span>
+            {/* 状态标签 */}
+            {match.bothRevealed ? (
+              <span className="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-600 rounded-full border border-green-200">已揭示</span>
+            ) : match.hidden ? (
+              <span className="px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-500 rounded-full border border-blue-200">等待揭晓</span>
+            ) : match.iRevealed ? (
+              <span className="px-2 py-0.5 text-xs font-medium bg-yellow-50 text-yellow-600 rounded-full border border-yellow-200">等待对方</span>
+            ) : null}
+          </div>
+          {!match.hidden && (
+            <p className="text-sm text-gray-500 mt-0.5 truncate">
+              {topDim ? `你们在「${topDim.name}」维度上高度契合` : ''}
+            </p>
+          )}
+          {match.hidden && (
+            <p className="text-sm text-gray-400 mt-0.5">匹配结果尚未揭晓，请耐心等待</p>
+          )}
+        </div>
+
+        {/* 分数 */}
+        <div className="shrink-0 text-right">
+          <div className={`text-2xl font-bold ${match.bothRevealed ? 'gradient-text' : 'text-gray-400'}`}>
+            {match.hidden ? '?' : `${match.score}%`}
+          </div>
+        </div>
+
+        {/* 展开箭头 */}
+        <svg className={`w-4 h-4 text-gray-300 transition-transform shrink-0 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
       </div>
 
-      {/* 基本信息 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-gray-800 truncate">
-            {(match.partnerGender === 'female' ? '女' : match.partnerGender === 'male' ? '男' : '')}
-            {' · '}{match.partnerNickname}
-          </span>
-          {/* 状态标签 */}
-          {match.bothRevealed ? (
-            <span className="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-600 rounded-full border border-green-200">已揭示</span>
-          ) : match.hidden ? (
-            <span className="px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-500 rounded-full border border-blue-200">等待揭晓</span>
-          ) : match.iRevealed ? (
-            <span className="px-2 py-0.5 text-xs font-medium bg-yellow-50 text-yellow-600 rounded-full border border-yellow-200">等待对方</span>
+      {/* ═══ 展开详情（和当周匹配展示一致）═══ */}
+      {expanded && !match.hidden && (
+        <div className="px-5 pb-5 animate-fade-in border-t border-pink-100">
+
+          {/* 五维度契合度 */}
+          {match.dimScores && match.dimScores.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-500 mb-3">📊 五维度契合度</h4>
+              <div className="space-y-3">
+                {match.dimScores.map((dim, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 w-20 text-right">{dim.name}</span>
+                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim.name] || 'from-pink-400 to-purple-400'} transition-all duration-700`}
+                        style={{ width: `${dim.score}%` }} />
+                      </div>
+                    <span className={`text-sm font-bold ${dim.score >= 70 ? 'text-green-500' : dim.score >= 50 ? 'text-yellow-500' : 'text-red-400'}`}>
+                      {dim.score}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 匹配原因 */}
+          {match.reasons && match.reasons.length > 0 && (
+            <div className="mt-5">
+              <h4 className="text-sm font-medium text-gray-500 mb-3">💡 为什么匹配到TA？</h4>
+              <div className="space-y-2">
+                {match.reasons.map((r, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="text-pink-400 mt-0.5">•</span><span>{r}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 联系方式区域 */}
+          {!match.iRevealed ? (
+            <div className="mt-5">
+              <p className="text-center py-3 px-4 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-400">
+                点击「确认交换」后可查看联系方式
+              </p>
+            </div>
+          ) : !match.partnerRevealed ? (
+            <div className="mt-5 text-center py-3 px-4 bg-yellow-50 rounded-xl border border-yellow-200">
+              <p className="text-sm text-yellow-700 font-medium">你已确认 ✓ 等待对方确认</p>
+            </div>
+          ) : match.contact && !match.contact.empty && !match.contact.decryptError ? (
+            <div className="mt-5 bg-green-50 rounded-xl p-4 border border-green-200 text-center">
+              <p className="text-green-600 font-medium text-sm mb-1">🎉 双方已确认！</p>
+              <div className="bg-white rounded-lg p-3 shadow-sm inline-block">
+                <p className="text-xs text-gray-400">
+                  {match.contact.type === 'wechat' ? '微信号' : match.contact.type === 'qq' ? 'QQ号' : '联系方式'}
+                </p>
+                <p className="text-lg font-bold text-gray-800 mt-0.5">{match.contact.info}</p>
+              </div>
+            </div>
+          ) : match.contact?.empty ? (
+            <div className="mt-5 text-center py-3 px-4 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-sm text-gray-400">😅 对方暂未填写联系方式</p>
+            </div>
           ) : null}
-        </div>
-        {!match.hidden && (
-          <p className="text-sm text-gray-500 mt-0.5 truncate">
-            {topDim ? `你们在「${topDim.name}」维度上高度契合` : ''}
-          </p>
-        )}
-        {match.hidden && (
-          <p className="text-sm text-gray-400 mt-0.5">匹配结果尚未揭晓，请耐心等待</p>
-        )}
-      </div>
 
-      {/* 分数 */}
-      <div className="shrink-0 text-right">
-        <div className={`text-2xl font-bold ${match.bothRevealed ? 'gradient-text' : 'text-gray-400'}`}>
-          {match.hidden ? '?' : `${match.score}%`}
         </div>
-      </div>
-
-      {/* 展开箭头 */}
-      <svg className={`w-4 h-4 text-gray-300 transition-transform shrink-0 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
+      )}
     </div>
   )
 }
