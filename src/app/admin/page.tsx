@@ -97,6 +97,9 @@ export default function AdminPage() {
   const [matchPage, setMatchPage] = useState(1)
   const MATCH_PAGE_SIZE = 10
   const [loadingMatchDetails, setLoadingMatchDetails] = useState(false)
+  // 历史周选择（用于查看非当前周的配对记录）
+  const [adminSelectedWeek, setAdminSelectedWeek] = useState<string>('')
+  const [availableWeeks, setAvailableWeeks] = useState<string[]>([])
 
   // 手动匹配状态
 
@@ -438,7 +441,7 @@ export default function AdminPage() {
         setShowMatchPwModal(false)
         setMatchDetailVerified(true)
         setMatchPage(1)
-        await loadMatchDetails(1)
+        await loadMatchDetails(1, adminSelectedWeek)
       } else if (data.needSetup) {
         setShowMatchPwModal(false); setTab('settings');
         setToast({ msg: '⚠️ 请先设置查看详情密码', type: 'error' })
@@ -449,14 +452,18 @@ export default function AdminPage() {
     finally { setMatchVerifyingPw(false) }
   }
 
-  const loadMatchDetails = async (page: number = 1) => {
+  const loadMatchDetails = async (page: number = 1, week?: string) => {
     setLoadingMatchDetails(true)
     try {
-      const res = await fetch(`/api/admin/matches?page=${page}&limit=${MATCH_PAGE_SIZE}`)
+      const targetWeek = week || adminSelectedWeek || ''
+      const url = `/api/admin/matches?page=${page}&limit=${MATCH_PAGE_SIZE}${targetWeek ? `&week=${encodeURIComponent(targetWeek)}` : ''}`
+      const res = await fetch(url)
       const data = await res.json()
       setMatchPairs(data.pairs || [])
       setMatchUnmatched(data.unmatched || [])
       setMatchTotalPairs(data.totalPairs || 0)
+      // 如果后端返回了可用周列表，缓存起来
+      if (data.availableWeeks) setAvailableWeeks(data.availableWeeks)
     } catch { /* ignore */ }
     finally { setLoadingMatchDetails(false) }
   }
@@ -961,12 +968,34 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ── 匹配结果详情列表（需二级密码验证 + 分页）── */}
+                {/* ── 匹配结果详情列表（需二级密码验证 + 分页 + 周选择）── */}
                 {matchDetailVerified && (
                   <div className="mt-6 pt-5 border-t border-gray-200">
+                    {/* 周选择器 */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <label className="text-xs font-medium text-gray-500 whitespace-nowrap">📅 查看周期：</label>
+                      <select
+                        value={adminSelectedWeek}
+                        onChange={async (e) => {
+                          const w = e.target.value
+                          setAdminSelectedWeek(w)
+                          setMatchPage(1)
+                          await loadMatchDetails(1, w)
+                        }}
+                        className="px-3 py-1.5 bg-white/60 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                      >
+                        <option value="">当前周（默认）</option>
+                        {availableWeeks.map(w => (
+                          <option key={w} value={w}>{w}{w === (matchResult?.weekKey || '') ? ' ✨' : ''}</option>
+                        ))}
+                      </select>
+                      {adminSelectedWeek && (
+                        <span className="text-xs text-purple-500 font-medium">{adminSelectedWeek} 的配对记录</span>
+                      )}
+                    </div>
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-semibold text-sm text-gray-700">
-                        💕 配对详情（共 {matchTotalPairs} 对）
+                        💕 配对详情（共 {matchTotalPairs} 对{adminSelectedWeek ? ` · ${adminSelectedWeek}` : ''}）
                       </h4>
                       <span className="text-xs text-gray-400">
                         第 {matchPage}/{matchTotalPages || 1} 页
@@ -1049,7 +1078,7 @@ export default function AdminPage() {
                         {matchTotalPages > 1 && (
                           <div className="flex items-center justify-center gap-2 mt-5 pt-4 border-t border-gray-100">
                             <button
-                              onClick={() => { setMatchPage(p => Math.max(1, p - 1)); loadMatchDetails(Math.max(1, matchPage - 1)) }}
+                              onClick={() => { setMatchPage(p => Math.max(1, p - 1)); loadMatchDetails(Math.max(1, matchPage - 1), adminSelectedWeek) }}
                               disabled={matchPage <= 1}
                               className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
                               ← 上一页
@@ -1057,7 +1086,7 @@ export default function AdminPage() {
                             {Array.from({ length: matchTotalPages }, (_, i) => i + 1).map(p => (
                               <button
                                 key={p}
-                                onClick={() => { setMatchPage(p); loadMatchDetails(p) }}
+                                onClick={() => { setMatchPage(p); loadMatchDetails(p, adminSelectedWeek) }}
                                 className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
                                   p === matchPage
                                     ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow'
@@ -1067,7 +1096,7 @@ export default function AdminPage() {
                               </button>
                             ))}
                             <button
-                              onClick={() => { setMatchPage(p => Math.min(matchTotalPages, p + 1)); loadMatchDetails(Math.min(matchTotalPages, matchPage + 1)) }}
+                              onClick={() => { setMatchPage(p => Math.min(matchTotalPages, p + 1)); loadMatchDetails(Math.min(matchTotalPages, matchPage + 1), adminSelectedWeek) }}
                               disabled={matchPage >= matchTotalPages}
                               className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
                               下一页 →

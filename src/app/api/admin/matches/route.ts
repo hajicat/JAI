@@ -65,6 +65,13 @@ export async function GET(req: NextRequest) {
 
     const totalPairs = Number((countResult.rows[0] as any)?.cnt || 0)
 
+    // ── 获取所有有匹配记录的历史周（倒序，用于前端周选择器）──
+    const weeksResult = await db.execute({
+      sql: 'SELECT DISTINCT week_key FROM matches ORDER BY week_key DESC',
+      args: [],
+    })
+    const availableWeeks = (weeksResult.rows as any[]).map(r => String(r.week_key))
+
     // ── 匹配状态（从 settings 表读取锁）──
     const lockKey = `matching_lock_${weekKey}`
     const lockResult = await db.execute({
@@ -130,6 +137,7 @@ export async function GET(req: NextRequest) {
         gender: r.gender,
       })),
       unmatchedCount,
+      availableWeeks,
     })
   } catch (error: any) {
     console.error('[admin/matches GET]', error?.message || error)
