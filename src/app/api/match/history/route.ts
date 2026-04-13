@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     let decoded;
     try {
       decoded = await verifyTokenSafe(token);
-    } catch (tokenErr) {
+    } catch (tokenErr: any) {
       console.error('[match/history] token decode error:', tokenErr?.message || tokenErr)
       return NextResponse.json({ error: '认证失败' }, { status: 401 })
     }
