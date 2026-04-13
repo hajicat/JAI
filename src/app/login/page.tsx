@@ -358,7 +358,7 @@ function LoginForm() {
       <div className="relative z-10 w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <span className="text-3xl">🎁</span>
-          <span className="font-bold text-2xl gradient-text">我的闺蜜又胖又丑</span>
+          <span className="font-bold text-2xl gradient-text">吉爱酒窝</span>
         </Link>
 
         <div className="glass-card rounded-3xl p-8 shadow-xl">
@@ -478,7 +478,7 @@ function LoginForm() {
               {isRegister && (
                 <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
                   <span>💡</span>
-                  <span>吉林动画学院同学可用任意邮箱，其他高校需使用校内邮箱（@jlu / @mails.jlu / @nenu / @jisu）</span>
+                  <span>吉林动画学院/长春大学可用任意邮箱，其他高校需校内邮箱（@jlu / @mails.jlu / @nenu / @jisu）</span>
                 </p>
               )}
             </div>

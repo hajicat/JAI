@@ -7,7 +7,7 @@ export default function TermsPage() {
           <p><strong>生效日期：</strong>2026 年 1 月 1 日</p>
 
           <h3 className="font-bold text-gray-800 mt-4">一、服务说明</h3>
-          <p>「我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了」是长春高校专属的匿名匹配交友平台（覆盖吉林大学/东北师范大学/吉林动画学院/吉林外国语大学/长春大学）。本平台通过心理学兼容性测试，每周为完成问卷的用户进行一对一匹配。</p>
+          <p>「吉爱酒窝」是长春高校专属的匿名匹配交友平台（覆盖吉林大学/东北师范大学/吉林动画学院/吉林外国语大学/长春大学）。本平台通过心理学兼容性测试，每周为完成问卷的用户进行一对一匹配。</p>
 
           <h3 className="font-bold text-gray-800 mt-4">二、使用条件</h3>
           <ul className="list-disc pl-5 space-y-1">
@@ -42,7 +42,7 @@ export default function TermsPage() {
           <p>我们保留在必要时修改本协议的权利。重大变更将通过平台公告形式通知用户。</p>
 
           <h3 className="font-bold text-gray-800 mt-4">七、其他</h3>
-          <p>本协议的最终解释权归「我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了」所有。</p>
+          <p>本协议的最终解释权归「吉爱酒窝」所有。</p>
         </div>
         <a href="/" className="inline-block mt-8 text-pink-500 hover:underline">← 返回首页</a>
       </div>

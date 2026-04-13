@@ -7,7 +7,7 @@ import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/
 import { haversineDistance, verifyLocation } from '@/lib/geo'
 import { verifyCode } from '@/lib/email'
 
-// 学校邮箱域名白名单（非吉林动画学院用户必须使用这些域名）
+// 学校邮箱域名白名单（非吉林动画学院/长春大学用户必须使用这些域名）
 const SCHOOL_EMAIL_DOMAINS = [
   'jlu.edu.cn',       // 吉林大学（教职工）
   'mails.jlu.edu.cn', // 吉林大学（学生）
@@ -76,13 +76,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: geoResult.message }, { status: 403 })
       }
 
-      // ── 学校邮箱验证（非吉林动画学院区域需要校内邮箱）──
+      // ── 学校邮箱验证（非吉林动画学院/长春大学区域需要校内邮箱）──
       if (geoResult.requiresSchoolEmail && !isSchoolEmail(email)) {
           return NextResponse.json({
-            error: '你所在的高校需要使用校内邮箱注册（@jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @ccu.edu.cn）',
+            error: '你所在的高校需要使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）',
           }, { status: 403 })
         }
-      }
     }
 
     // --- Input Validation ---

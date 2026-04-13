@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了 | 长春高校盲盒交友',
+  title: '吉爱酒窝 | 长春高校盲盒交友',
   description: '长春高校专属盲盒交友平台（吉林大学/东北师范/吉林动画/吉林外国语/长春大学），每周为你匹配一位灵魂契合的TA',
 }
 
@@ -17,10 +17,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             style={{ animationDuration: '8s' }}
           >
             <span className="text-xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent shrink-0">
-              🎁 我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了
+              🎁 吉爱酒窝！
             </span>
             <span className="text-xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent shrink-0">
-              🎁 我的闺蜜又胖又丑结果他在这个网站找到了帅哥还当着我的面亲嘴了
+              🎁 吉爱酒窝！
             </span>
           </div>
         </div>

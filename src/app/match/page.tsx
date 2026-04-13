@@ -300,7 +300,7 @@ export default function MatchPage() {
       <nav className="flex items-center justify-between px-3 py-2.5 max-w-4xl mx-auto">
         <div className="flex items-center gap-1 min-w-0">
           <span className="text-lg shrink-0">🎁</span>
-          <span className="font-bold text-base gradient-text hidden sm:inline">我的闺蜜又胖又丑</span>
+          <span className="font-bold text-base gradient-text hidden sm:inline">吉爱酒窝</span>
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">

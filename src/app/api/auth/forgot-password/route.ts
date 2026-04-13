@@ -38,7 +38,7 @@ function buildResetEmailHtml(resetUrl: string): string {
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 24px;">
         <span style="font-size: 32px;">🎁</span>
-        <h1 style="color: #333; margin: 12px 0 4px; font-size: 20px;">我的闺蜜又胖又丑</h1>
+        <h1 style="color: #333; margin: 12px 0 4px; font-size: 20px;">吉爱酒窝</h1>
         <p style="color: #888; font-size: 14px; margin: 0;">重置密码</p>
       </div>
 
@@ -62,7 +62,7 @@ function buildResetEmailHtml(resetUrl: string): string {
 
       <p style="text-align: center; color: #aaa; font-size: 12px; margin: 0;">
         此邮件由系统自动发送，请勿回复<br />
-        我的闺蜜又胖又丑 &mdash; 发现校园缘分 ✨
+        吉爱酒窝 &mdash; 发现校园缘分 ✨
       </p>
     </div>
   `
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
         'api-key': apiKey,
       },
       body: JSON.stringify({
-        sender: { name: '我的闺蜜又胖又丑', email: process.env.BREVO_FROM_EMAIL || 'noreply@jaihelp.icu' },
+        sender: { name: '吉爱酒窝', email: process.env.BREVO_FROM_EMAIL || 'noreply@jaihelp.icu' },
         to: [{ email: userEmail }],
         subject: '重置你的密码',
         htmlContent: buildResetEmailHtml(resetUrl),

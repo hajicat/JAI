@@ -177,7 +177,7 @@ export default function Home() {
       <nav className="relative z-10 flex items-center justify-between px-4 py-3 max-w-6xl mx-auto gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-xl shrink-0">🎁</span>
-          <span className="font-bold text-lg gradient-text truncate">我的闺蜜又胖又丑</span>
+          <span className="font-bold text-lg gradient-text truncate">吉爱酒窝</span>
         </div>
         <div className="flex items-center gap-2">
           {isLoggedIn ? (
