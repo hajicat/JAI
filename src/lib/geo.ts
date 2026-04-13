@@ -69,13 +69,14 @@ const CAMPUSES: Campus[] = [
     schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
   { name: '吉林大学(朝阳校区)',   lat: 43.883165, lng: 125.307354,
     schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(南湖校区)',   lat: 43.850500, lng: 125.300000,
+  { name: '吉林大学(南湖校区)',   lat: 43.847944, lng: 125.293245,
     schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(新民校区)',   lat: 43.888000, lng: 125.315000,
+  { name: '吉林大学(新民校区)',   lat: 43.870203, lng: 125.310869,
     schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
 
   // ── 东北师范大学（2 个校区，全部 2km，@nenu 校内邮箱） ──
-  { name: '东北师范本部(自由)',  lat: 43.860000, lng: 125.320000,
+  // GCJ-02 高德地图精确坐标
+  { name: '东北师范(人民大街)',  lat: 43.861880, lng: 125.331370,
     schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
   { name: '东北师范净月校区',    lat: 43.826195, lng: 125.425650,
     schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
