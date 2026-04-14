@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
       })
       const settings = await loadSettings(db, true)
       return NextResponse.json({ success: true, ...settings })
+    }
 
     return NextResponse.json({ error: '无效的设置项' }, { status: 400 })
   } catch (error: any) {
