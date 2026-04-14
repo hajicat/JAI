@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     // 解析请求体
     const body = await req.json()
     const email = sanitizeString(body.email || '', 254).toLowerCase()
+    const nickname = sanitizeString(body.nickname || '', 20)
 
     // 邮箱格式校验
     const emailCheck = validateEmail(email)
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 发送验证码邮件
-    const result = await sendVerificationEmail(email, db, ip)
+    const result = await sendVerificationEmail(email, db, ip, nickname || undefined)
 
     if (!result.success) {
       return NextResponse.json({ error: result.error || '发送失败' }, { status: 429 })

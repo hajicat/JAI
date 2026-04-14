@@ -154,7 +154,7 @@ function LoginForm() {
       const res = await fetch('/api/auth/send-verification-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
-        body: JSON.stringify({ email: form.email }),
+        body: JSON.stringify({ email: form.email, nickname: form.nickname || '' }),
         signal: controller.signal,
       })
       clearTimeout(timeoutId)

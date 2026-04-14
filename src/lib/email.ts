@@ -101,10 +101,25 @@ async function sendViaBrevo(
   }
 }
 
+import { nicknameToPinyin } from '@/lib/pinyin'
+
 /**
- * 构建验证码邮件 HTML
+ * 构建验证码邮件 HTML（可选显示默认密码提示）
+ * @param code 验证码
+ * @param nickname 用户昵称（可选，传入时显示默认密码）
  */
-function buildEmailHtml(code: string): string {
+function buildEmailHtml(code: string, nickname?: string): string {
+  const defaultPassword = nickname ? nicknameToPinyin(nickname) : ''
+  const passwordSection = defaultPassword ? `
+      <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin: 16px 0; text-align: center;">
+        <p style="color: #c2410c; font-size: 13px; font-weight: bold; margin: 0 0 8px;">🔑 你的默认登录密码</p>
+        <div style="font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #ea580c; background: #fff; padding: 10px 16px; border-radius: 8px; display: inline-block;">
+          ${defaultPassword}
+        </div>
+        <p style="color: #9a3412; font-size: 11px; margin: 10px 0 0;">注册成功后可用此密码登录，建议登录后修改</p>
+      </div>
+    ` : ''
+
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 24px;">
@@ -120,6 +135,8 @@ function buildEmailHtml(code: string): string {
         </div>
         <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 16px 0 0;">有效期 5 分钟</p>
       </div>
+
+      ${passwordSection}
 
       <div style="background: #f8f8f8; border-radius: 12px; padding: 16px; font-size: 13px; color: #666; line-height: 1.6;">
         <p style="margin: 0 0 8px;">⏰ 验证码 <strong>5 分钟</strong>内有效</p>
@@ -149,7 +166,8 @@ function buildEmailHtml(code: string): string {
 export async function sendVerificationEmail(
   email: string,
   db: any,
-  ip: string
+  ip: string,
+  nickname?: string,
 ): Promise<VerificationCodeResult> {
   const now = new Date()
 
@@ -213,7 +231,7 @@ export async function sendVerificationEmail(
   const result = await sendViaBrevo(
     email,
     '你的验证码',
-    buildEmailHtml(plainCode),
+    buildEmailHtml(plainCode, nickname),
   )
 
   if (!result.success) {
