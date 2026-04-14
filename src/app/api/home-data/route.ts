@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { setCsrfCookie, getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
     if (token) {
       try {
-        const decoded = await verifyToken(token)
+        const decoded = await verifyTokenSafe(token, db)
         if (decoded) {
           // Only fetch essential fields, no invite codes (keep it light)
           const userResult = await db.execute({
@@ -69,8 +69,8 @@ export async function GET(req: Request) {
       user,
     }, {
       headers: {
-        // 有用户私有数据时必须用 private，防止 CDN 缓存导致数据泄露
-        ...(user ? { 'Cache-Control': 'private, no-store' } : { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }),
+        // 统一用 no-store，避免 CDN 缓存导致用户数据泄露
+        'Cache-Control': 'no-store',
         'Vary': 'Cookie',
       },
     })

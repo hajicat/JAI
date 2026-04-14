@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     await initDb()
 
     const result = await db.execute({
-      sql: 'SELECT * FROM users WHERE email = ?',
+      sql: 'SELECT id, email, password_hash, is_admin, nickname, survey_completed, failed_login_attempts, locked_until FROM users WHERE email = ?',
       args: [email],
     })
 
@@ -59,9 +59,9 @@ export async function POST(req: NextRequest) {
     // Use constant-time approach: always hash even if user doesn't exist
     // to prevent timing-based user enumeration
     if (!user) {
-      // Dummy PBKDF2 hash — 与真实路径使用相同算法，迭代次数降低以匹配耗时
-      // 真实路径: PBKDF2-SHA512×5000 (~20-30ms)
-      // Dummy 路径: PBKDF2-SHA512×500 (~5-10ms) + 额外随机延迟补齐
+      // Dummy PBKDF2 hash — 与真实路径使用相同算法和迭代次数（5000），防止时序攻击
+      // 真实路径: PBKDF2-SHA512×5000 (~20-30ms) + DB 查询
+      // Dummy 路径: PBKDF2-SHA512×5000 (~20-30ms)，耗时基本一致
       const dummySalt = new Uint8Array(32)
       crypto.getRandomValues(dummySalt)
       try {
@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
           'raw', new TextEncoder().encode(`_dummy_:${password}`), { name: 'PBKDF2' }, false, ['deriveBits']
         )
         await crypto.subtle.deriveBits(
-          { name: 'PBKDF2', salt: dummySalt, iterations: 500, hash: 'SHA-512' },
+          { name: 'PBKDF2', salt: dummySalt, iterations: 5000, hash: 'SHA-512' },
           keyMaterial,
           64 * 8
         )
       } catch { /* ignore */ }
-      // 随机延迟补齐（覆盖真实路径中 DB 查询锁定状态的时间差）
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 10 + 15))
+      // 微量随机延迟覆盖 DB 查询锁定状态的微小时间差
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 5 + 5))
       return NextResponse.json({ error: '邮箱或密码错误' }, { status: 401 })
     }
 

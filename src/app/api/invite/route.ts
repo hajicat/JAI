@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyTokenSafe } from '@/lib/auth'
 import { getCookieName } from '@/lib/csrf'
 
 export const runtime = 'edge';
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyToken(token)
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()

@@ -243,7 +243,7 @@ export async function POST(req: NextRequest) {
     }
 
     const matchResult = await db.execute({
-      sql: 'SELECT * FROM matches WHERE id = ? AND (user_a = ? OR user_b = ?)',
+      sql: 'SELECT id, user_a, user_b FROM matches WHERE id = ? AND (user_a = ? OR user_b = ?)',
       args: [id, decoded.id, decoded.id],
     })
     const match = matchResult.rows[0] as any

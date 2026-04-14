@@ -317,17 +317,3 @@ export async function verifyCode(
     return { valid: false, error: '验证失败，请稍后重试' }
   }
 }
-
-/**
- * 常量时间字符串比较 — 防时序攻击
- */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  const aBytes = new TextEncoder().encode(a)
-  const bBytes = new TextEncoder().encode(b)
-  let result = 0
-  for (let i = 0; i < aBytes.length; i++) {
-    result |= aBytes[i] ^ bBytes[i]
-  }
-  return result === 0
-}

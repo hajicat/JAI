@@ -153,9 +153,19 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.BREVO_API_KEY
     if (!apiKey) {
       console.error('[forgot-password] 未配置 BREVO_API_KEY')
-      // 开发环境返回 token 方便调试
+      // 开发环境返回 token 方便调试（仅允许本地访问）
       const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
       if (isDev) {
+        // 安全加固：检查是否来自本地请求，防止生产环境误暴露
+        const origin = req.headers.get('origin') || ''
+        const referer = req.headers.get('referer') || ''
+        const isLocal = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') ||
+                        referer.startsWith('http://localhost') || referer.startsWith('http://127.0.0.1') ||
+                        (!origin && !referer) // curl/直接请求也算本地
+        if (!isLocal) {
+          console.warn('[forgot-password] ⚠️ 非本地请求在开发模式获取 resetUrl，已拒绝')
+          return NextResponse.json({ error: '邮件服务暂时不可用' }, { status: 500 })
+        }
         return NextResponse.json({
           message: '开发模式：重置链接已生成（未配置 Brevo）',
           devResetUrl: resetUrl,

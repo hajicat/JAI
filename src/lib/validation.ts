@@ -61,21 +61,6 @@ export function sanitizeString(input: string, maxLength: number = 500): string {
 }
 
 /**
- * Escape HTML entities — ONLY use when inserting into dangerouslySetInnerHTML.
- * For normal JSX rendering, auto-escape handles this automatically.
- */
-export function escapeHtml(input: string, maxLength: number = 500): string {
-  const s = sanitizeString(input, maxLength)
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
-}
-
-/**
  * Sanitize for storage: strip control chars AND escape HTML entities.
  * Use this for free-text fields (contact info, open-ended answers)
  * before storing in DB. Do NOT use for whitelist-validated fields (q1-q34).

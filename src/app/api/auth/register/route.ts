@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
       }
       // 获取完整的邀请码记录（用于后续 created_by 检查）
       const codeResult = await db.execute({
-        sql: 'SELECT * FROM invite_codes WHERE code = ?',
+        sql: 'SELECT id, code, created_by, current_uses, max_uses FROM invite_codes WHERE code = ?',
         args: [inviteCode],
       })
       const codeRow = codeResult.rows[0] as any
@@ -163,6 +163,15 @@ export async function POST(req: NextRequest) {
         if (creatorEmail === email) {
           return NextResponse.json({ error: '不能使用自己的邀请码注册' }, { status: 400 })
         }
+      }
+
+      // 检查邮箱是否已注册（防止 UNIQUE 冲突返回通用错误）
+      const existingCheck = await db.execute({
+        sql: "SELECT id FROM users WHERE LOWER(email) = ?",
+        args: [email],
+      })
+      if (existingCheck.rows.length > 0) {
+        return NextResponse.json({ error: '该邮箱已注册' }, { status: 400 })
       }
 
       // 邮箱验证码校验（注册必须先验证邮箱）

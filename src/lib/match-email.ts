@@ -306,9 +306,9 @@ export async function sendMatchNotifications(): Promise<{
           failed++
         }
 
-        // 速率控制：每封之间等一下
-        if (i === 0 || rows.indexOf(row) < rows.length - 1) {
-          // 最后一个用户的第二封邮件不需要等待（或者统一都等）
+        // 速率控制：每封邮件间隔 3 秒（最后一封不需要等）
+        const isLastEmail = (i === 1 && row === rows[rows.length - 1])
+        if (!isLastEmail) {
           await new Promise(resolve => setTimeout(resolve, SEND_INTERVAL_MS))
         }
       }
