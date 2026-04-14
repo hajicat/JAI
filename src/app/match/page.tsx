@@ -144,7 +144,7 @@ export default function MatchPage() {
   // 加载当前周数据 + 历史数据（同时请求）
   const loadAllData = async () => {
     try {
-      const [meRes, matchRes, inviteRes, histRes] = await Promise.all([
+      const [meRes, matchRes, inviteRes, histRes, settingsRes] = await Promise.all([
         fetch('/api/auth/me'),
         fetch('/api/match'),
         fetch('/api/invite'),
@@ -155,7 +155,7 @@ export default function MatchPage() {
         meRes.json(),
         matchRes.json(),
         inviteRes.json(),
-        histData.json(),
+        histRes.json(),
         settingsRes.json(),
       ])
       if (!meData.user) { router.push('/login'); return }
