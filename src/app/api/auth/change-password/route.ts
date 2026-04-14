@@ -13,7 +13,9 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyTokenSafe(token, getDb())
+    const db = getDb()
+    await initDb()
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     // CSRF validation
@@ -38,9 +40,6 @@ export async function POST(req: NextRequest) {
 
     const newPwCheck = validatePassword(newPassword)
     if (!newPwCheck.valid) return NextResponse.json({ error: newPwCheck.error }, { status: 400 })
-
-    const db = getDb()
-    await initDb()
 
     // Get current password hash
     const result = await db.execute({

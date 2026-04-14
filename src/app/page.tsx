@@ -29,12 +29,10 @@ function getSurveyStatusFromCookie(): boolean | null {
   return null
 }
 
+// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
 function getCsrfToken(): string {
-  if (typeof document === 'undefined') return ''
-  return document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrf-token='))
-    ?.split('=')[1] || ''
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
+  return match?.[1] || ''
 }
 
 // ── 翻牌数字动画组件 ──

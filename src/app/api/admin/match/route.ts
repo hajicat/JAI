@@ -37,14 +37,21 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}))
 
+    // ── 显式 action 参数，防止空 body 误触发自动匹配 ──
+    const action = body.action
+    if (!action) {
+      return NextResponse.json({ error: '缺少操作类型（action）' }, { status: 400 })
+    }
+
     // ── 模式一：手动指定匹配 ──
-    if (body.userA && body.userB) {
+    if (action === 'manual' && body.userA && body.userB) {
       const result = await handleManualMatch(body)
       const status = result.status || (result.success ? 200 : 500)
       return NextResponse.json(result, { status })
     }
 
-    // ── 模式二：自动批量匹配（使用带锁版本，防止与 auto 端点并发冲突）──
+    // ── 模式二：自动批量匹配（需显式 action: 'auto'）──
+    if (action === 'auto') {
     const safeResult = await executeAutoMatchSafe(db)
 
     // 锁相关状态码需要转换给前端
@@ -75,6 +82,9 @@ export async function POST(req: NextRequest) {
       totalEligible: result.totalEligible || 0,
       safePoolSize: result.safePoolSize || 0,
     })
+    } // end if (action === 'auto')
+
+    return NextResponse.json({ error: '无效的操作类型' }, { status: 400 })
   } catch (error: any) {
     console.error('[admin/match]', error?.message || error)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })

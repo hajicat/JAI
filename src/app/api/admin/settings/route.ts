@@ -8,8 +8,10 @@ export const runtime = 'edge';
 // CF Workers 多 isolate 各自独立内存，不使用模块级缓存
 // 每次请求直接查询数据库，确保多 isolate 间数据一致
 
-async function loadSettings(db: ReturnType<typeof getDb>) {
-  // 先确保表存在
+// GET 响应只暴露前端需要的公共设置，不泄露业务内部状态（匹配锁、通知锁、计数器等）
+const PUBLIC_SETTINGS = ['gpsRequired', 'inviteRequired'] as const
+
+async function loadSettings(db: ReturnType<typeof getDb>, publicOnly = false) {
   try {
     await db.execute(`CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
@@ -19,26 +21,27 @@ async function loadSettings(db: ReturnType<typeof getDb>) {
   } catch { /* ignore */ }
 
   const row = await db.execute("SELECT key, value FROM settings")
-  const settings: any = {}
-  // 敏感键不应通过 API 暴露（密码哈希等）
-  const SENSITIVE_KEYS = ['admin_view_password_hash']
+  const rawSettings: Record<string, any> = {}
   if (row.rows.length > 0) {
     for (const r of row.rows as any[]) {
-      // 跳过敏感键
-      if (SENSITIVE_KEYS.includes(r.key)) continue
-      settings[r.key] = r.value === '1' || r.value === 'true' ? true :
-                       r.value === '0' || r.value === 'false' ? false : r.value
+      rawSettings[r.key] = r.value === '1' || r.value === 'true' ? true :
+                           r.value === '0' || r.value === 'false' ? false : r.value
     }
   }
-  
+
+  // 公共模式：仅返回白名单 key
+  const settings: Record<string, any> = {}
+  const keys = publicOnly ? PUBLIC_SETTINGS : Object.keys(rawSettings)
+  for (const k of keys) {
+    if (k in rawSettings) {
+      settings[k] = rawSettings[k]
+    }
+  }
+
   // 默认设置
-  if (settings.gpsRequired === undefined) {
-    settings.gpsRequired = true
-  }
-  if (settings.inviteRequired === undefined) {
-    settings.inviteRequired = true
-  }
-  
+  if (settings.gpsRequired === undefined) settings.gpsRequired = true
+  if (settings.inviteRequired === undefined) settings.inviteRequired = true
+
   return settings
 }
 
@@ -52,7 +55,7 @@ export async function GET(req: NextRequest) {
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
-    const settings = await loadSettings(db)
+    const settings = await loadSettings(db, true)
     
     return NextResponse.json(settings)
   } catch (error: any) {
@@ -83,7 +86,7 @@ export async function POST(req: NextRequest) {
         args: [body.gpsRequired ? '1' : '0'],
       })
       // 不再使用缓存，重新查询数据库获取最新值
-      const settings = await loadSettings(db)
+      const settings = await loadSettings(db, true)
       return NextResponse.json({ success: true, ...settings })
     }
 
@@ -93,9 +96,8 @@ export async function POST(req: NextRequest) {
                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
         args: [body.inviteRequired ? '1' : '0'],
       })
-      const settings = await loadSettings(db)
+      const settings = await loadSettings(db, true)
       return NextResponse.json({ success: true, ...settings })
-    }
 
     return NextResponse.json({ error: '无效的设置项' }, { status: 400 })
   } catch (error: any) {

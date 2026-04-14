@@ -4,12 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-// 从 cookie 获取 CSRF Token
+// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
 function getCsrfToken(): string {
-  return document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrf-token='))
-    ?.split('=')[1] || ''
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
+  return match?.[1] || ''
 }
 
 // 问卷草稿 localStorage key（前端暂存，不依赖后端 API）

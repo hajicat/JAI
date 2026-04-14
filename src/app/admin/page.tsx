@@ -346,9 +346,13 @@ export default function AdminPage() {
     setGenerating(true)
     try {
       const csrfToken = getCsrfToken()
-      const res = await fetch('/api/admin/match', { 
+      const res = await fetch('/api/admin/match', {
         method: 'POST',
-        headers: { 'x-csrf-token': csrfToken },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({ action: 'auto' }),
       })
       const data = await res.json()
       setMatchResult(data)
@@ -394,6 +398,7 @@ export default function AdminPage() {
     try {
       const csrfToken = getCsrfToken()
       const body: any = {
+        action: 'manual',
         userA: Number(manualUserA),
         userB: Number(manualUserB),
       }
