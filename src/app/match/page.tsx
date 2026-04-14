@@ -131,6 +131,12 @@ export default function MatchPage() {
   const [revealing, setRevealing] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
+
+  // 修改密码状态
+  const [showChangePwd, setShowChangePwd] = useState(false)
+  const [pwdSaving, setPwdSaving] = useState(false)
+  const [pwdMsg, setPwdMsg] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [pwdForm, setPwdForm] = useState({ oldPwd: '', newPwd: '', confirmPwd: '' })
   const [matchEnabled, setMatchEnabled] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [matchedDone, setMatchedDone] = useState<boolean | null>(null)
@@ -938,7 +944,33 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
         </div>
       )}
 
-      {/* ═══ 修改密码弹窗 ═══ */}
+  // 修改密码
+  const handleChangePassword = async () => {
+    setPwdMsg(null)
+    const { oldPwd, newPwd, confirmPwd } = pwdForm
+    if (!oldPwd || !newPwd || !confirmPwd) { setPwdMsg({ msg: '请填写所有字段', type: 'error' }); return }
+    if (newPwd !== confirmPwd) { setPwdMsg({ msg: '两次输入的新密码不一致', type: 'error' }); return }
+    if (newPwd.length < 6) { setPwdMsg({ msg: '新密码至少6位', type: 'error' }); return }
+    setPwdSaving(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setPwdMsg({ msg: '密码修改成功！下次登录请使用新密码', type: 'success' })
+        setTimeout(() => { setShowChangePwd(false); setPwdForm({ oldPwd: '', newPwd: '', confirmPwd: '' }) }, 2000)
+      } else {
+        setPwdMsg({ msg: data.error || '修改失败，请检查旧密码是否正确', type: 'error' })
+      }
+    } catch { setPwdMsg({ msg: '网络错误，请重试', type: 'error' }) }
+    finally { setPwdSaving(false) }
+  }
+
+  {/* ═══ 修改密码弹窗 ═══ */}
       {showChangePwd && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowChangePwd(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
