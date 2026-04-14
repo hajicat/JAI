@@ -43,7 +43,6 @@ function LoginForm() {
   const [codeSent, setCodeSent] = useState(false)
   const [codeSending, setCodeSending] = useState(false)
   const [codeCooldown, setCodeCooldown] = useState(0)       // 倒计时秒数
-  const [devCodeHint, setDevCodeHint] = useState('')         // 开发模式显示的明文码
 
   // 加载系统设置（GPS是否必需）
   useEffect(() => {
@@ -144,7 +143,6 @@ function LoginForm() {
 
     setCodeSending(true)
     setError('')
-    setDevCodeHint('')
 
     try {
       const controller = new AbortController()
@@ -176,14 +174,6 @@ function LoginForm() {
           setError(data.error || '发送失败')
         }
         return
-      }
-
-      // 开发模式：显示明文验证码提示
-      if (data.devCode) {
-        setDevCodeHint(data.devCode)
-        setError(`开发模式验证码：${data.devCode}`)
-      } else {
-        setError('')
       }
 
       setCodeSent(true)
@@ -534,12 +524,6 @@ function LoginForm() {
                   }}
                   className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300 transition tracking-[0.3em] text-center font-mono text-lg"
                 />
-                {/* 开发模式提示 */}
-                {devCodeHint && (
-                  <p className="text-xs text-orange-500 text-center bg-orange-50 rounded-lg p-2">
-                    🔧 开发模式：验证码是 <strong className="tracking-widest">{devCodeHint}</strong>
-                  </p>
-                )}
               </div>
             )}
 

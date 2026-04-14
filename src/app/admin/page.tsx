@@ -3,6 +3,28 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { dateToWeekKey } from '@/lib/week'
+
+// 安全复制到剪贴板（兼容非 HTTPS 环境）
+const safeCopy = async (text: string): Promise<boolean> => {
+  try {
+    if (navigator?.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+    // fallback: 用 textarea 方式（兼容 HTTP / IP 访问）
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    return true
+  } catch {
+    return false
+  }
+}
 
 const GENDER_LABELS: Record<string, string> = { male: '男', female: '女', other: '其他' }
 const SAFETY_LABELS: Record<string, { label: string; color: string }> = {
@@ -180,31 +202,52 @@ export default function AdminPage() {
     finally { setLoadingDetail(false) }
   }
 
+  // 删除用户密码确认状态
+  const [deletePwModal, setDeletePwModal] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
+  const [deletePw, setDeletePw] = useState('')
+  const [deletePwError, setDeletePwError] = useState('')
+  const [deletingConfirmed, setDeletingConfirmed] = useState(false)
+
   /** 删除用户（需在已通过二级密码验证的用户详情页操作） */
   const handleDeleteUser = async (userId: number) => {
     if (!confirm('⚠️ 确定要删除此用户？此操作不可撤销！\n\n将同时删除：\n- 问卷回答\n- 匹配记录\n- 验证码记录\n- 未使用的邀请码')) return
 
-    setDeletingUserId(userId)
+    setPendingDeleteId(userId)
+    setDeletePw('')
+    setDeletePwError('')
+    setDeletePwModal(true)
+  }
+
+  /** 确认删除（已输入二级密码） */
+  const handleConfirmDelete = async () => {
+    if (!deletePw.trim()) { setDeletePwError('请输入管理员密码'); return }
+    const userId = pendingDeleteId
+    if (userId == null) return
+
+    setDeletingConfirmed(true)
+    setDeletePwError('')
     try {
       const csrfToken = getCsrfToken()
       const res = await fetch(`/api/admin/users?id=${userId}`, {
         method: 'DELETE',
-        headers: { 'x-csrf-token': csrfToken },
+        headers: { 'x-csrf-token': csrfToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmPassword: deletePw }),
       })
       const data = await res.json()
       if (data.success) {
+        setDeletePwModal(false)
         setToast({ msg: `✅ ${data.message}`, type: 'success' })
-        // 关闭详情，刷新列表
         setExpandedUserId(null)
         setUserDetail(null)
         loadUsers(currentPage)
       } else {
-        setToast({ msg: data.error || '删除失败', type: 'error' })
+        setDeletePwError(data.error || '删除失败')
       }
     } catch {
-      setToast({ msg: '网络错误，删除失败', type: 'error' })
+      setDeletePwError('网络错误，删除失败')
     } finally {
-      setDeletingUserId(null)
+      setDeletingConfirmed(false)
     }
   }
 
@@ -666,7 +709,7 @@ export default function AdminPage() {
                                             : userDetail.user.contactType === 'qq' ? 'QQ号：'
                                             : ''}{userDetail.user.contactInfo}
                                         </p>
-                                        <button onClick={() => navigator.clipboard.writeText(userDetail.user.contactInfo)}
+                                        <button onClick={async () => { const ok = await safeCopy(userDetail.user.contactInfo); if (!ok) setToast({ msg: '复制失败', type: 'error' }) }}
                                           className="mt-1 text-xs text-green-500 hover:underline">复制</button>
                                       </div>
                                     ) : (
@@ -771,18 +814,29 @@ export default function AdminPage() {
                     className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
                     ← 上一页
                   </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => p !== currentPage && loadUsers(p)}
-                      className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
-                        p === currentPage
-                          ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow'
-                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
-                      }`}>
-                      {p}
-                    </button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => {
+                      // 始终显示首尾页和当前页附近
+                      if (p === 1 || p === totalPages) return true
+                      if (p >= currentPage - 1 && p <= currentPage + 1) return true
+                      return false
+                    })
+                    .map((p, idx, arr) => (
+                      <Fragment key={p}>
+                        {idx > 0 && arr[idx - 1] !== p - 1 && (
+                          <span className="w-8 h-7 flex items-center justify-center text-xs text-gray-400">…</span>
+                        )}
+                        <button
+                          onClick={() => p !== currentPage && loadUsers(p)}
+                          className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
+                            p === currentPage
+                              ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow'
+                              : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
+                          }`}>
+                          {p}
+                        </button>
+                      </Fragment>
+                    ))}
                   <button
                     onClick={() => loadUsers(currentPage + 1)}
                     disabled={currentPage >= totalPages}
@@ -821,7 +875,7 @@ export default function AdminPage() {
                     <tr key={i} className="border-t border-gray-100 hover:bg-pink-50/50 transition">
                       <td className="px-4 py-3">
                         <code className="font-mono font-bold text-pink-600">{c.code}</code>
-                        <button onClick={async () => { await navigator.clipboard.writeText(c.code) }}
+                        <button onClick={async () => { const ok = await safeCopy(c.code); if (!ok) setToast({ msg: '复制失败', type: 'error' }) }}
                           className="ml-2 text-xs text-gray-400 hover:text-pink-500">复制</button>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -903,12 +957,7 @@ export default function AdminPage() {
                   {manualMatching ? '⏳ 匹配中...' : '🔗 立即配对'}
                 </button>
                 {manualDate && (
-                  <span className="text-xs text-gray-400">将写入 {manualDate} 所属周 ({(() => {
-                    const d = new Date(manualDate + 'T00:00:00')
-                    const start = new Date(d.getFullYear(), 0, 1)
-                    const diff = d.getTime() - start.getTime()
-                    return `${d.getFullYear()}-W${String(Math.ceil(diff / (7*24*60*60*1000))).padStart(2,'0')}`
-                  })()})</span>
+                  <span className="text-xs text-gray-400">将写入 {dateToWeekKey(manualDate)}</span>
                 )}
                 {!manualDate && (
                   <span className="text-xs text-green-500">✓ 立即生效（本周）</span>
@@ -1093,18 +1142,28 @@ export default function AdminPage() {
                               className="px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600">
                               ← 上一页
                             </button>
-                            {Array.from({ length: matchTotalPages }, (_, i) => i + 1).map(p => (
-                              <button
-                                key={p}
-                                onClick={() => { setMatchPage(p); loadMatchDetails(p, adminSelectedWeek) }}
-                                className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
-                                  p === matchPage
-                                    ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow'
-                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
-                                }`}>
-                                {p}
-                              </button>
-                            ))}
+                            {Array.from({ length: matchTotalPages }, (_, i) => i + 1)
+                              .filter(p => {
+                                if (p === 1 || p === matchTotalPages) return true
+                                if (p >= matchPage - 1 && p <= matchPage + 1) return true
+                                return false
+                              })
+                              .map((p, idx, arr) => (
+                                <Fragment key={p}>
+                                  {idx > 0 && arr[idx - 1] !== p - 1 && (
+                                    <span className="w-8 h-7 flex items-center justify-center text-xs text-gray-400">…</span>
+                                  )}
+                                  <button
+                                    onClick={() => { setMatchPage(p); loadMatchDetails(p, adminSelectedWeek) }}
+                                    className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
+                                      p === matchPage
+                                        ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow'
+                                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
+                                    }`}>
+                                    {p}
+                                  </button>
+                                </Fragment>
+                              ))}
                             <button
                               onClick={() => { setMatchPage(p => Math.min(matchTotalPages, p + 1)); loadMatchDetails(Math.min(matchTotalPages, matchPage + 1), adminSelectedWeek) }}
                               disabled={matchPage >= matchTotalPages}
@@ -1290,6 +1349,41 @@ export default function AdminPage() {
                   matchVerifyingPw || !matchVerifyPassword.trim() ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                 {matchVerifyingPw ? '验证中...' : '确认'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 删除用户二级密码确认弹窗 */}
+      {deletePwModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDeletePwModal(false)}>
+          <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-red-600 mb-2">⚠️ 危险操作</h3>
+            <p className="text-sm text-gray-400 mb-5">删除用户需要管理员二次确认，请输入管理员密码以继续</p>
+            <input
+              type="password"
+              value={deletePw}
+              onChange={e => { setDeletePw(e.target.value); setDeletePwError('') }}
+              onKeyDown={e => { if (e.key === 'Enter') handleConfirmDelete() }}
+              placeholder="请输入管理员密码"
+              autoFocus
+              className={`w-full px-4 py-3 bg-white/60 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
+                deletePwError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-pink-300'
+              }`}
+              disabled={deletingConfirmed}
+            />
+            {deletePwError && <p className="text-xs text-red-500 mt-1.5">{deletePwError}</p>}
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setDeletePwModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                取消
+              </button>
+              <button onClick={handleConfirmDelete} disabled={deletingConfirmed || !deletePw.trim()}
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-orange-500 rounded-xl hover:opacity-90 transition ${
+                  deletingConfirmed || !deletePw.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                }`}>
+                {deletingConfirmed ? '删除中...' : '确认删除'}
               </button>
             </div>
           </div>

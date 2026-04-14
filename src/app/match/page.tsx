@@ -50,6 +50,26 @@ function getCsrfToken(): string {
 }
 
 // ── 倒计时组件 ──
+// 安全复制到剪贴板（兼容非 HTTPS 环境）
+const safeCopy = async (text: string): Promise<boolean> => {
+  try {
+    if (navigator?.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function MatchCountdown() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
 
@@ -95,7 +115,7 @@ function MatchCountdown() {
             {String(item.val).padStart(2, '0')}
           </span>
           <span className="text-xs text-gray-400">{item.label}</span>
-          {i < 3 && <span className="gray-300">:</span>}
+          {i < 3 && <span className="text-gray-300">:</span>}
         </div>
       ))}
     </div>
@@ -521,7 +541,7 @@ export default function MatchPage() {
               {inviteCodes.length > 0 ? inviteCodes.map((c, i) => (
                 <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                   <code className="text-sm font-mono font-bold text-pink-600">{c.code}</code>
-                  <button onClick={async () => { await navigator.clipboard.writeText(c.code) }}
+                  <button onClick={async () => { const ok = await safeCopy(c.code); if (!ok) alert('复制失败') }}
                     className="text-xs text-gray-400 hover:text-pink-500 transition">复制</button>
                 </div>
               )) : <p className="text-sm text-gray-400 text-center py-4">邀请码已用完</p>}
