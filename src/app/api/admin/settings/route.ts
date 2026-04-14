@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
-    const decoded = await verifyTokenSafe(token, db)
+    const decoded = await verifyTokenSafe(token!, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
     const settings = await loadSettings(db, true)
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const db = getDb()
-    const decoded = await verifyTokenSafe(token, db)
+    const decoded = await verifyTokenSafe(token!, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
     if (!validateCsrfToken(req)) {
