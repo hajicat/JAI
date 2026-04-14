@@ -257,21 +257,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: verifyResult.error }, { status: 400 })
     }
 
-    // Create user (no invited_by — open registration)
-    const passwordHash = await hashPassword(defaultPassword)
-    const userInviteCode = generateInviteCode()
-
-    const insertResult = await db.execute({
-      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, gender, preferred_gender, email_verified)
-            VALUES (?, ?, ?, ?, ?, ?, 1)`,
-      args: [nickname, email, passwordHash, userInviteCode, gender, preferredGender],
-    })
-
-    const newUserId = Number(insertResult.lastInsertRowid)
-
-    // 不生成邀请码（因为关闭了邀请码功能）
-
-    // Check email exists (case-insensitive)
+    // Check email exists (case-insensitive) — 必须在 INSERT 之前！
     const existingResult = await db.execute({
       sql: "SELECT id FROM users WHERE LOWER(email) = ?",
       args: [email],
@@ -288,6 +274,18 @@ export async function POST(req: NextRequest) {
         { status: 429, headers: { 'Retry-After': String(emailRateResult.retryAfter) } }
       )
     }
+
+    // Create user (no invited_by — open registration)
+    const passwordHash = await hashPassword(defaultPassword)
+    const userInviteCode = generateInviteCode()
+
+    const insertResult = await db.execute({
+      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, gender, preferred_gender, email_verified)
+            VALUES (?, ?, ?, ?, ?, ?, 1)`,
+      args: [nickname, email, passwordHash, userInviteCode, gender, preferredGender],
+    })
+
+    const newUserId = Number(insertResult.lastInsertRowid)
 
     const token = await createToken({ id: newUserId, email, isAdmin: false })
 
