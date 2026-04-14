@@ -26,6 +26,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [showRegSuccess, setShowRegSuccess] = useState(false)
+  const [defaultPassword, setDefaultPassword] = useState('')
   // 忘记密码状态
   const [showForgotPwd, setShowForgotPwd] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
@@ -270,7 +271,7 @@ function LoginForm() {
       const body = isRegister
         ? {
             nickname: form.nickname, email: form.email,
-            password: form.password, inviteCode: form.inviteCode,
+            inviteCode: form.inviteCode,
             gender: form.gender, preferredGender: form.preferredGender,
             latitude: coords?.lat, longitude: coords?.lng,
             verificationCode,
@@ -319,8 +320,9 @@ function LoginForm() {
 
       if (isRegister) {
         setLoading(false)
+        setDefaultPassword(data.defaultPassword || '')
         setShowRegSuccess(true)
-        setTimeout(() => router.push('/survey'), 2000)
+        setTimeout(() => router.push('/survey'), 4000)
         return
       } else {
         if (data.user.isAdmin) router.push('/admin')
@@ -345,10 +347,17 @@ function LoginForm() {
       {/* 注册成功提示 */}
       {showRegSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="glass-card rounded-3xl p-10 text-center shadow-2xl animate-fade-in">
+          <div className="glass-card rounded-3xl p-10 text-center shadow-2xl animate-fade-in max-w-sm">
             <div className="text-6xl mb-4 animate-bounce">🎁</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">注册成功！</h2>
-            <p className="text-gray-500">正在进入问卷...</p>
+            <p className="text-gray-500 mb-4">正在进入问卷...</p>
+            {defaultPassword && (
+              <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 mt-3">
+                <p className="text-xs text-pink-500 font-medium mb-1">你的默认密码（请牢记）</p>
+                <p className="text-lg font-mono font-bold text-pink-700 tracking-wider select-all">{defaultPassword}</p>
+                <p className="text-xs text-gray-400 mt-2">登录后可在个人设置中修改</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -531,16 +540,17 @@ function LoginForm() {
               </div>
             )}
 
-            {/* 密码 + 显示/隐藏切换 */}
+            {/* 密码 — 仅登录模式显示（注册自动生成拼音密码） */}
+            {!isRegister && (
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">密码</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"}
-                  placeholder={isRegister ? "设置密码（至少8位，含字母和数字）" : "请输入密码"}
+                  placeholder="请输入密码"
                   value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                   className="w-full px-4 py-3 pr-10 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition"
-                  required minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} />
+                  required minLength={8} autoComplete="current-password" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -551,6 +561,7 @@ function LoginForm() {
                 </button>
               </div>
             </div>
+            )}
 
             {/* 用户协议勾选 */}
             {isRegister && (

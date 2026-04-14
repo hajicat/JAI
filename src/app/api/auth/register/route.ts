@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { hashPassword, createToken, generateInviteCode } from '@/lib/auth'
-import { validateEmail, validatePassword, validateNickname, validateInviteCode, sanitizeString } from '@/lib/validation'
+import { validateEmail, validateNickname, validateInviteCode, sanitizeString } from '@/lib/validation'
+import { nicknameToPinyin } from '@/lib/pinyin'
 import { checkRateLimit, REGISTER_LIMITER, checkRateLimitByEmail, EMAIL_REGISTER_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/lib/csrf'
 import { haversineDistance, verifyLocation } from '@/lib/geo'
@@ -91,8 +92,8 @@ export async function POST(req: NextRequest) {
     const emailCheck = validateEmail(email)
     if (!emailCheck.valid) return NextResponse.json({ error: emailCheck.error }, { status: 400 })
 
-    const passwordCheck = validatePassword(password)
-    if (!passwordCheck.valid) return NextResponse.json({ error: passwordCheck.error }, { status: 400 })
+    // 自动生成默认密码（昵称的拼音）
+    const defaultPassword = nicknameToPinyin(nickname)
 
     // Validate gender（无论是否需要邀请码都必填）
     if (!['male', 'female', 'other'].includes(gender)) {
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Create user (with invited_by from invite code)
-      const passwordHash = await hashPassword(password)
+      const passwordHash = await hashPassword(defaultPassword)
       const userInviteCode = generateInviteCode()
 
       const insertResult = await db.execute({
@@ -213,6 +214,7 @@ export async function POST(req: NextRequest) {
       const response = NextResponse.json({
         success: true,
         user: { id: newUserId, nickname, email, inviteCode: userInviteCode },
+        defaultPassword,
       })
 
       const cookieName = getCookieName('token')
@@ -256,7 +258,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create user (no invited_by — open registration)
-    const passwordHash = await hashPassword(password)
+    const passwordHash = await hashPassword(defaultPassword)
     const userInviteCode = generateInviteCode()
 
     const insertResult = await db.execute({
@@ -292,6 +294,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       user: { id: newUserId, nickname, email, inviteCode: userInviteCode },
+      defaultPassword,
     })
 
     const cookieName = getCookieName('token')

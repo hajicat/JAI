@@ -14,7 +14,8 @@
     "next": "^15.0.0",
     "react": "^18",
     "react-dom": "^18",
-    "@libsql/client": "^0.14.0"
+    "@libsql/client": "^0.14.0",
+    "pinyin": "^3.3.6"
   },
   "devDependencies": {
     "typescript": "^5",
