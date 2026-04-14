@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
         args: [inviteCode],
       })
       if (!updateResult.rowsAffected || (updateResult as any).rowsAffected === 0) {
-        return NextResponse.json({ error: '邀请码无效或已用完（并发耗尽）', { status: 400 } })
+        return NextResponse.json({ error: '邀请码无效或已用完（并发耗尽）' }, { status: 400 })
       }
 
       // Create user (with invited_by from invite code)
