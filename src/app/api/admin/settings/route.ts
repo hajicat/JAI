@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(settings)
   } catch (error) {
-    console.error('[admin/settings GET]', error instanceof Error ? error.name : 'unknown')
+    console.error('[admin/settings GET]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取设置失败' }, { status: 500 })
   }
   try {
