@@ -62,6 +62,9 @@ export async function GET(req: NextRequest) {
     console.error('[admin/settings GET]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取设置失败' }, { status: 500 })
   }
+}
+
+export async function POST(req: NextRequest) {
   try {
     const cookieName = getCookieName('token')
     const token = req.cookies.get(cookieName)?.value
