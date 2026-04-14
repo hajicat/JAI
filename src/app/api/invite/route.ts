@@ -11,11 +11,11 @@ export async function GET(req: NextRequest) {
     const token = req.cookies.get(cookieName)?.value
     if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
-    const decoded = await verifyTokenSafe(token, db)
-    if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
-
     const db = getDb()
     await initDb()
+
+    const decoded = await verifyTokenSafe(token, db)
+    if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const availResult = await db.execute({
       sql: 'SELECT code, current_uses, max_uses FROM invite_codes WHERE created_by = ? AND current_uses < max_uses',
