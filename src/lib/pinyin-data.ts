@@ -187,7 +187,7 @@ export const PINYIN_MAP: Record<string, string> = {
   '们': 'men', '蒙': 'meng', '猛': 'meng', '梦': 'meng', '孟': 'meng', '眯': 'mi',
   '迷': 'mi', '米': 'mi', '密': 'mi', '蜜': 'mi', '秘': 'mi', '眯': 'mi',
   '棉': 'mian', '免': 'mian', '面': 'mian', '绵': 'mian', '眠': 'mian', '苗': 'miao',
-  '描': 'miao', '秒': 'miao', '妙': 'miao', '庙': 'miao', '灭': 'mie', 民': 'min',
+  '描': 'miao', '秒': 'miao', '妙': 'miao', '庙': 'miao', '灭': 'mie', '民': 'min',
   '敏': 'min', '抿': 'min', '名': 'ming', '明': 'ming', '鸣': 'ming', '命': 'ming',
   '铭': 'ming', '摸': 'mo', '模': 'mo', '膜': 'mo', '魔': 'mo', '磨': 'mo',
   '抹': 'mo', '末': 'mo', '莫': 'mo', '墨': 'mo', '默': 'mo', '漠': 'mo',
