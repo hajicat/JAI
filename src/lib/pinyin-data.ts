@@ -23,7 +23,7 @@ export const PINYIN_MAP: Record<string, string> = {
   '逼': 'bi', '鼻': 'bi', '比': 'bi', '笔': 'bi', '币': 'bi', '必': 'bi',
   '毕': 'bi', '闭': 'bi', '壁': 'bi', '避': 'bi', '臂': 'bi', '彼': 'bi',
   '碧': 'bi', '边': 'bian', '变': 'bian', '便': 'bian', '遍': 'bian', '辨': 'bian',
-  '辩': 'bian', '辩': 'bian', '编': 'bian', '鞭': 'bian', '标': 'biao', '表': 'biao',
+  '辩': 'bian', '编': 'bian', '鞭': 'bian', '标': 'biao', '表': 'biao',
   '别': 'bie', '宾': 'bin', '冰': 'bing', '兵': 'bing', '饼': 'bing', '并': 'bing',
   '病': 'bing', '柄': 'bing', '拨': 'bo', '波': 'bo', '伯': 'bo', '博': 'bo',
   '播': 'bo', '勃': 'bo', '脖': 'bo', '玻': 'bo', '补': 'bu', '布': 'bu',
