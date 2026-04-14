@@ -310,6 +310,51 @@ export default function MatchPage() {
     } catch (e) { /* ignore */ }
   }
 
+  // ═══ 修改密码 ═══
+  const [showChangePwd, setShowChangePwd] = useState(false)
+  const [pwdForm, setPwdForm] = useState({ oldPwd: '', newPwd: '', confirmPwd: '' })
+  const [pwdSaving, setPwdSaving] = useState(false)
+  const [pwdMsg, setPwdMsg] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  const handleChangePassword = async () => {
+    if (!pwdForm.oldPwd || !pwdForm.newPwd || !pwdForm.confirmPwd) {
+      setPwdMsg({ msg: '请填写完整', type: 'error' }); return
+    }
+    if (pwdForm.newPwd !== pwdForm.confirmPwd) {
+      setPwdMsg({ msg: '两次输入的新密码不一致', type: 'error' }); return
+    }
+    if (pwdForm.newPwd.length < 6) {
+      setPwdMsg({ msg: '新密码至少6个字符', type: 'error' }); return
+    }
+    setPwdSaving(true)
+    setPwdMsg(null)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          oldPassword: pwdForm.oldPwd,
+          newPassword: pwdForm.newPwd,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPwdMsg({ msg: '✅ 密码修改成功！下次登录使用新密码', type: 'success' })
+        setTimeout(() => { setShowChangePwd(false); setPwdForm({ oldPwd: '', newPwd: '', confirmPwd: '' }) }, 2000)
+      } else {
+        setPwdMsg({ msg: data.error || '修改失败，请检查旧密码是否正确', type: 'error' })
+      }
+    } catch {
+      setPwdMsg({ msg: '网络错误，请重试', type: 'error' })
+    } finally {
+      setPwdSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center">
@@ -351,6 +396,11 @@ export default function MatchPage() {
             title="重新测试问卷">
             📝
           </Link>
+          <button onClick={() => setShowChangePwd(true)}
+            className="text-xs px-2 py-1 text-blue-500 border border-blue-200 rounded-full hover:text-blue-600 hover:bg-blue-50 transition"
+            title="修改密码">
+            🔐
+          </button>
           <button onClick={handleLogout}
             className="text-xs px-2.5 py-1 text-red-400 border border-red-200 rounded-full hover:text-red-600 hover:bg-red-50 transition"
             title="退出登录">
@@ -885,6 +935,48 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* ═══ 修改密码弹窗 ═══ */}
+      {showChangePwd && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowChangePwd(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-gray-800">🔐 修改密码</h3>
+              <button onClick={() => setShowChangePwd(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            </div>
+
+            {pwdMsg && (
+              <div className={`mb-3 p-2.5 rounded-xl text-sm ${pwdMsg.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+                {pwdMsg.msg}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <input type="password" placeholder="当前密码" value={pwdForm.oldPwd}
+                onChange={e => setPwdForm(p => ({ ...p, oldPwd: e.target.value }))}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              <input type="password" placeholder="新密码（至少6位）" value={pwdForm.newPwd}
+                onChange={e => setPwdForm(p => ({ ...p, newPwd: e.target.value }))}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              <input type="password" placeholder="确认新密码" value={pwdForm.confirmPwd}
+                onChange={e => setPwdForm(p => ({ ...p, confirmPwd: e.target.value }))}
+                onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setShowChangePwd(false)}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition">
+                  取消
+                </button>
+                <button onClick={handleChangePassword} disabled={pwdSaving}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+                  {pwdSaving ? '...' : '确认修改'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
