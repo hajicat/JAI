@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ error: '无效的设置项' }, { status: 400 })
   } catch (error) {
-    console.error('[admin/settings POST]', error instanceof Error ? error.name : 'unknown')
+    console.error('[admin/settings POST]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '更新设置失败' }, { status: 500 })
   }
 }
