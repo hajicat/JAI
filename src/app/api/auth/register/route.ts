@@ -122,6 +122,9 @@ export async function POST(req: NextRequest) {
       // ── 先完成所有校验（不消耗使用次数）──
       // 获取完整的邀请码记录
       const codeResult = await db.execute({
+        sql: 'SELECT * FROM invite_codes WHERE code = ?',
+        args: [inviteCode],
+      })
       const codeRow = codeResult.rows[0] as any
       if (!codeRow) {
         return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
