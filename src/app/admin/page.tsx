@@ -66,6 +66,7 @@ export default function AdminPage() {
 
   // 系统设置状态
   const [gpsRequired, setGpsRequired] = useState(true)
+  const [inviteRequired, setInviteRequired] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
@@ -521,6 +522,7 @@ export default function AdminPage() {
       .then(r => r.json())
       .then(d => {
         if (d.gpsRequired !== undefined) setGpsRequired(d.gpsRequired)
+        if (d.inviteRequired !== undefined) setInviteRequired(d.inviteRequired)
       })
       .catch(() => {})
 
@@ -547,6 +549,27 @@ export default function AdminPage() {
       })
       const data = await res.json()
       if (data.success) setGpsRequired(newValue)
+      else setToast({ msg: data.error || '保存失败', type: 'error' })
+    } catch { setToast({ msg: '保存失败', type: 'error' }) }
+    finally { setSavingSettings(false) }
+  }
+
+  // 保存邀请码设置
+  const toggleInviteRequired = async () => {
+    setSavingSettings(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const newValue = !inviteRequired
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({ inviteRequired: newValue })
+      })
+      const data = await res.json()
+      if (data.success) setInviteRequired(newValue)
       else setToast({ msg: data.error || '保存失败', type: 'error' })
     } catch { setToast({ msg: '保存失败', type: 'error' }) }
     finally { setSavingSettings(false) }
@@ -617,7 +640,7 @@ export default function AdminPage() {
         <div className="flex gap-2 mb-8">
           {[
             { key: 'users', label: '👥 用户管理', count: totalUserCount || users.length },
-            { key: 'codes', label: '📨 邀请码', count: codes.length },
+            ...(inviteRequired ? [{ key: 'codes', label: '📨 邀请码', count: codes.length }] : []),
             { key: 'match', label: '💌 执行匹配', count: null },
             { key: 'settings', label: '⚙️ 系统设置', count: null },
           ].map(t => (
@@ -849,7 +872,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {tab === 'codes' && (
+        {tab === 'codes' && inviteRequired && (
           <div>
             <div className="flex items-center gap-3 mb-6">
               <input type="number" value={newCodeCount} onChange={e => setNewCodeCount(Number(e.target.value))} min={1} max={20}
@@ -1201,6 +1224,27 @@ export default function AdminPage() {
                   <div
                     className={`w-6 h-6 bg-white rounded-full shadow transition-transform ${
                       gpsRequired ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* 邀请码功能开关 */}
+              <div className="flex items-center justify-between py-4 border-b border-gray-100">
+                <div>
+                  <p className="font-medium text-gray-800">📨 邀请码注册</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    开启后，新用户必须使用邀请码才能注册（{inviteRequired ? '当前已开启' : '当前已关闭'}）
+                  </p>
+                </div>
+                <button
+                  onClick={toggleInviteRequired}
+                  disabled={savingSettings}
+                  className={`w-14 h-8 rounded-full transition-colors ${inviteRequired ? 'bg-pink-500' : 'bg-gray-300'}`}
+                >
+                  <div
+                    className={`w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                      inviteRequired ? 'translate-x-7' : 'translate-x-1'
                     }`}
                   />
                 </button>

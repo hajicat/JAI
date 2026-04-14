@@ -134,6 +134,7 @@ export default function MatchPage() {
   const [matchEnabled, setMatchEnabled] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [matchedDone, setMatchedDone] = useState<boolean | null>(null)
+  const [inviteRequired, setInviteRequired] = useState(true)
 
   // ── 历史数据状态 ──
   const [historyWeeks, setHistoryWeeks] = useState<WeekData[]>([])
@@ -148,12 +149,14 @@ export default function MatchPage() {
         fetch('/api/match'),
         fetch('/api/invite'),
         fetch('/api/match/history'),
+        fetch('/api/public-settings'),
       ])
-      const [meData, matchData, inviteData, histData] = await Promise.all([
+      const [meData, matchData, inviteData, histData, settingsData] = await Promise.all([
         meRes.json(),
         matchRes.json(),
         inviteRes.json(),
-        histRes.json(),
+        histData.json(),
+        settingsRes.json(),
       ])
       if (!meData.user) { router.push('/login'); return }
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
@@ -166,6 +169,10 @@ export default function MatchPage() {
       if (histData.weeks) {
         setHistoryWeeks(histData.weeks)
         setSelectedWeekIndex(0)
+      }
+      // 邀请码功能开关
+      if (typeof settingsData.inviteRequired === 'boolean') {
+        setInviteRequired(settingsData.inviteRequired)
       }
     } catch (err) {
       console.error(err)
@@ -524,7 +531,8 @@ export default function MatchPage() {
           </div>
         </div>
 
-        {/* Invite Codes */}
+        {/* Invite Codes — 仅在开启时显示 */}
+        {inviteRequired && (
         <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg">
           <button onClick={() => setShowInvite(!showInvite)} className="w-full flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -549,6 +557,7 @@ export default function MatchPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Contact Settings */}
         <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg">

@@ -35,6 +35,7 @@ function LoginForm() {
   const [gpsMsg, setGpsMsg] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [gpsRequired, setGpsRequired] = useState(true)
+  const [inviteRequired, setInviteRequired] = useState(true)
   const [requiresSchoolEmail, setRequiresSchoolEmail] = useState(false)
   const [emailHint, setEmailHint] = useState('')
 
@@ -44,12 +45,13 @@ function LoginForm() {
   const [codeSending, setCodeSending] = useState(false)
   const [codeCooldown, setCodeCooldown] = useState(0)       // 倒计时秒数
 
-  // 加载系统设置（GPS是否必需）
+  // 加载系统设置（GPS是否必需、邀请码是否必需）
   useEffect(() => {
     fetch('/api/public-settings')
       .then(r => r.json())
       .then(d => {
         if (typeof d.gpsRequired === 'boolean') setGpsRequired(d.gpsRequired)
+        if (typeof d.inviteRequired === 'boolean') setInviteRequired(d.inviteRequired)
       })
       .catch(() => {})
   }, [])
@@ -456,13 +458,15 @@ function LoginForm() {
                   </div>
                 </div>
 
-                {/* Invite Code */}
+                {/* Invite Code — 仅在开启时显示 */}
+                {inviteRequired && (
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">邀请码</label>
                   <input type="text" placeholder="输入邀请码（找同学要）"
                     value={form.inviteCode} onChange={e => setForm({ ...form, inviteCode: e.target.value.toUpperCase() })}
                     className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition uppercase" required />
                 </div>
+                )}
               </>
             )}
 

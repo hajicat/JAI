@@ -35,6 +35,9 @@ async function loadSettings(db: ReturnType<typeof getDb>) {
   if (settings.gpsRequired === undefined) {
     settings.gpsRequired = true
   }
+  if (settings.inviteRequired === undefined) {
+    settings.inviteRequired = true
+  }
   
   return settings
 }
@@ -80,6 +83,16 @@ export async function POST(req: NextRequest) {
         args: [body.gpsRequired ? '1' : '0'],
       })
       // 不再使用缓存，重新查询数据库获取最新值
+      const settings = await loadSettings(db)
+      return NextResponse.json({ success: true, ...settings })
+    }
+
+    if (typeof body.inviteRequired === 'boolean') {
+      await db.execute({
+        sql: `INSERT INTO settings (key, value, updated_at) VALUES ('inviteRequired', ?, datetime('now'))
+               ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+        args: [body.inviteRequired ? '1' : '0'],
+      })
       const settings = await loadSettings(db)
       return NextResponse.json({ success: true, ...settings })
     }
