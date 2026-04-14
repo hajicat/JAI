@@ -323,8 +323,12 @@ export default function MatchPage() {
     if (pwdForm.newPwd !== pwdForm.confirmPwd) {
       setPwdMsg({ msg: '两次输入的新密码不一致', type: 'error' }); return
     }
-    if (pwdForm.newPwd.length < 6) {
-      setPwdMsg({ msg: '新密码至少6个字符', type: 'error' }); return
+    // 与后端 validatePassword 规则保持一致：≥8位 + 含字母和数字
+    if (pwdForm.newPwd.length < 8) {
+      setPwdMsg({ msg: '新密码至少8个字符', type: 'error' }); return
+    }
+    if (!/[a-zA-Z]/.test(pwdForm.newPwd) || !/[0-9]/.test(pwdForm.newPwd)) {
+      setPwdMsg({ msg: '密码必须包含字母和数字', type: 'error' }); return
     }
     setPwdSaving(true)
     setPwdMsg(null)
@@ -633,7 +637,7 @@ export default function MatchPage() {
                 <input type="password" placeholder="当前密码" value={pwdForm.oldPwd}
                   onChange={e => setPwdForm(p => ({ ...p, oldPwd: e.target.value }))}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-                <input type="password" placeholder="新密码（至少6位）" value={pwdForm.newPwd}
+                <input type="password" placeholder="新密码（至少8位，含字母+数字）" value={pwdForm.newPwd}
                   onChange={e => setPwdForm(p => ({ ...p, newPwd: e.target.value }))}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
                 <input type="password" placeholder="确认新密码" value={pwdForm.confirmPwd}
