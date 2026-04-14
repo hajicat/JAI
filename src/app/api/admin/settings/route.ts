@@ -58,12 +58,10 @@ export async function GET(req: NextRequest) {
     const settings = await loadSettings(db, true)
     
     return NextResponse.json(settings)
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    console.error('[admin/settings GET]', error instanceof Error ? error.name : 'unknown')
+    return NextResponse.json({ error: '获取设置失败' }, { status: 500 })
   }
-}
-
-export async function POST(req: NextRequest) {
   try {
     const cookieName = getCookieName('token')
     const token = req.cookies.get(cookieName)?.value
@@ -101,7 +99,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: '无效的设置项' }, { status: 400 })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    console.error('[admin/settings POST]', error instanceof Error ? error.name : 'unknown')
+    return NextResponse.json({ error: '更新设置失败' }, { status: 500 })
   }
 }

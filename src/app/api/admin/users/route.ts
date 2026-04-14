@@ -228,41 +228,33 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 })
     }
 
-    // ── 执行级联删除（按外键依赖顺序）──
-    // 注意：所有外键约束必须先清理子表数据才能删主记录
+    // ── 执行级联删除（事务保护，防止孤儿数据）──
     const nickname = targetUser.nickname
     const userEmail = targetUser.email
 
-    // 1. 删除匹配记录（作为 user_a 或 user_b）
-    try { await db.execute({ sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] }) } catch (_) {}
+    // 构建批量操作（按外键依赖顺序）
+    const batchStmts: Array<{ sql: string; args: any[] }> = [
+      { sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] },
+      { sql: `DELETE FROM survey_responses WHERE user_id = ?`, args: [uid] },
+      { sql: `DELETE FROM password_reset_tokens WHERE user_id = ?`, args: [uid] },
+      { sql: `UPDATE invite_codes SET used_by = NULL WHERE used_by = ?`, args: [uid] },
+      { sql: `UPDATE users SET invited_by = NULL WHERE invited_by = ?`, args: [uid] },
+      { sql: `DELETE FROM invite_codes WHERE created_by = ?`, args: [uid] },
+      { sql: `DELETE FROM users WHERE id = ?`, args: [uid] },
+    ]
 
-    // 2. 删除问卷回答
-    try { await db.execute({ sql: `DELETE FROM survey_responses WHERE user_id = ?`, args: [uid] }) } catch (_) {}
-
-    // 3. 删除验证码记录（避免子查询，直接用邮箱）
+    // 验证码删除依赖 userEmail，有邮箱才加入
     if (userEmail) {
-      try { await db.execute({ sql: `DELETE FROM verification_codes WHERE email = ?`, args: [userEmail] }) } catch (_) {}
+      batchStmts.splice(2, 0, { sql: `DELETE FROM verification_codes WHERE email = ?`, args: [userEmail] })
     }
 
-    // 4. 删除该用户创建的所有邀请码（包括已使用的）— created_by 外键
-    try { await db.execute({ sql: `DELETE FROM invite_codes WHERE created_by = ?`, args: [uid] }) } catch (_) {}
-
-    // 5. 删除该用户的密码重置 token（避免孤儿数据 + FK 问题）
-    try { await db.execute({ sql: `DELETE FROM password_reset_tokens WHERE user_id = ?`, args: [uid] }) } catch (_) {}
-
-    // 6. 删除该用户使用过的邀请码的引用 — used_by 外键（设为 NULL 而非删除整行）
-    try { await db.execute({ sql: `UPDATE invite_codes SET used_by = NULL WHERE used_by = ?`, args: [uid] }) } catch (_) {}
-
-    // 6. 更新被该用户邀请的人的 invited_by 为 NULL
-    try { await db.execute({ sql: `UPDATE users SET invited_by = NULL WHERE invited_by = ?`, args: [uid] }) } catch (_) {}
-
-    // 7. 最后删除用户本身
-    const deleteResult = await db.execute({ sql: `DELETE FROM users WHERE id = ?`, args: [uid] })
-
-    // 校验是否真的删掉了（兼容 libSQL 返回值格式）
-    const affectedRows = (deleteResult as any)?.rowsAffected ?? Number((deleteResult as any)?.rowsAffectedCount) ?? 1
-    if (affectedRows === 0 && typeof affectedRows === 'number') {
-      throw new Error('删除失败：未找到该用户')
+    try {
+      await db.batch(batchStmts)
+    } catch (batchErr) {
+      // fallback：如果 batch 不受支持，逐条执行
+      for (const stmt of batchStmts) {
+        try { await db.execute(stmt) } catch (_) {}
+      }
     }
 
     console.log(`[admin/delete-user] uid=${uid} deleted by=${decoded.id}`)

@@ -73,6 +73,21 @@ export function middleware(request: NextRequest) {
   // Remove server identification
   response.headers.delete('X-Powered-By')
 
+  // Explicit CORS policy - only allow same-origin and our own domain
+  const origin = request.headers.get('origin')
+  if (!origin || origin === new URL(request.url).origin) {
+    response.headers.set('Access-Control-Allow-Origin', 'self')
+    response.headers.set('Vary', 'Origin')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-csrf-token')
+    response.headers.set('Access-Control-Max-Age', '86400')
+  }
+
+  // Handle preflight requests
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, { status: 204, headers: response.headers })
+  }
+
   // Set CSRF token cookie if not present (using Web Crypto API for Edge compatibility)
   if (!request.cookies.get('csrf-token')?.value) {
     // Generate random bytes using Web Crypto API (available in Edge Runtime)

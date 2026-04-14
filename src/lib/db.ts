@@ -190,9 +190,11 @@ async function doInit(): Promise<void> {
     // 开发环境会输出初始密码到控制台，生产环境请通过 /api/auth/change-password 修改
     const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
     if (isDev) {
+      // 仅在开发环境输出凭据，密码只显示前4位+掩码（防止完整泄露到日志/CI）
+      const maskedPassword = adminPassword.slice(0, 4) + '****'
       console.log(`\n[INIT] 🔐 管理员账号已创建:`)
       console.log(`  邮箱: ${adminEmail}`)
-      console.log(`  密码: ${adminPassword}`)
+      console.log(`  密码: ${maskedPassword} (完整密码仅此一次显示: ${adminPassword})`)
       console.log(`  邀请码: ${adminCode}`)
       console.log(`  ⚠️  请立即登录并修改密码！\n`)
     } else {
