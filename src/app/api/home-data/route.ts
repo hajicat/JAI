@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
 import { verifyTokenSafe } from '@/lib/auth'
 import { setCsrfCookie, getCookieName } from '@/lib/csrf'
@@ -11,7 +11,7 @@ export const runtime = 'edge';
  * This replaces calling /api/public-stats + /api/auth/me separately,
  * cutting cold-start latency in half.
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const db = getDb()
     await initDb()
