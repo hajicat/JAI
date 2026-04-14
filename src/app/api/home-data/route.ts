@@ -33,11 +33,8 @@ export async function GET(req: Request) {
 
     // Check if user is authenticated
     let user = null
-    const cookieHeader = req.headers.get('cookie') || ''
-    const cookieName = process.env.NODE_ENV === 'production' ? '__Host-token' : 'token'
-    // 用正则提取，避免 split('=')[1] 截断值中的 = 号（如 JWT payload 含 = 的情况）
-    const tokenMatch = new RegExp('(?:^|;\\s*)' + cookieName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)').exec(cookieHeader)
-    const token = tokenMatch?.[1] || null
+    const cookieName = getCookieName('token')
+    const token = req.cookies.get(cookieName)?.value || null
 
     if (token) {
       try {

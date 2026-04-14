@@ -88,3 +88,13 @@ function isValidIp(ip: string): boolean {
 export function getCookieName(name: string): string {
   return process.env.NODE_ENV === 'production' ? `__Host-${name}` : name
 }
+
+/**
+ * 从 cookie 获取 CSRF Token — 前端公共工具函数
+ * 使用正则提取，兼容 base64 值中的 '=' 字符
+ */
+export function getCsrfToken(): string {
+  if (typeof document === 'undefined') return ''
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
+  return match?.[1] || ''
+}

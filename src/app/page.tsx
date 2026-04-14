@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { getCsrfToken } from '@/lib/csrf'
 
 // ── 同步工具（纯字符串操作，无网络请求，渲染时即可调用）──
 
@@ -29,11 +30,7 @@ function getSurveyStatusFromCookie(): boolean | null {
   return null
 }
 
-// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
-function getCsrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
-  return match?.[1] || ''
-}
+// 从 cookie 获取 CSRF Token — 已提取到 @/lib/csrf（getCsrfToken）
 
 // ── 翻牌数字动画组件 ──
 

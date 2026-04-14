@@ -3,12 +3,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { getCsrfToken } from '@/lib/csrf'
 
-// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
-function getCsrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
-  return match?.[1] || ''
-}
+// 从 cookie 获取 CSRF Token — 已提取到 @/lib/csrf（getCsrfToken）
 
 type GenderOption = 'male' | 'female' | 'other' | ''
 type PrefGenderOption = 'male' | 'female' | 'all' | ''

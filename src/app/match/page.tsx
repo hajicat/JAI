@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getCsrfToken } from '@/lib/csrf'
 
 interface DimScore { name: string; score: number; compatible: boolean }
 interface MatchData {
@@ -44,10 +45,7 @@ const DIM_COLORS: Record<string, string> = {
   '日常节奏': 'from-blue-400 to-cyan-400',
 }
 
-function getCsrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
-  return match?.[1] || ''
-}
+// getCsrfToken 已从 @/lib/csrf 导入
 
 // ── 倒计时组件 ──
 // 安全复制到剪贴板（兼容非 HTTPS 环境）

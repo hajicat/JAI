@@ -119,24 +119,17 @@ export async function POST(req: NextRequest) {
       const codeCheck = validateInviteCode(inviteCode)
       if (!codeCheck.valid) return NextResponse.json({ error: codeCheck.error }, { status: 400 })
 
-      // Check invite code + atomic usage increment (TOCTOU fix)
-      // 使用原子操作：在单条 SQL 中检查并递增使用计数，防止并发竞态
-      const updateResult = await db.execute({
-        sql: `UPDATE invite_codes SET current_uses = current_uses + 1
-              WHERE code = ? AND current_uses < max_uses`,
-        args: [inviteCode],
-      })
-      if (!updateResult.rowsAffected || (updateResult as any).rowsAffected === 0) {
-        return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
-      }
-      // 获取完整的邀请码记录（用于后续 created_by 检查）
+      // ── 先完成所有校验（不消耗使用次数）──
+      // 获取完整的邀请码记录
       const codeResult = await db.execute({
-        sql: 'SELECT id, code, created_by, current_uses, max_uses FROM invite_codes WHERE code = ?',
-        args: [inviteCode],
-      })
       const codeRow = codeResult.rows[0] as any
       if (!codeRow) {
-        return NextResponse.json({ error: '邀请码记录不存在' }, { status: 400 })
+        return NextResponse.json({ error: '邀请码无效或已用完' }, { status: 400 })
+      }
+
+      // 检查是否已达上限（预检查，最终由原子 UPDATE 保证）
+      if (Number(codeRow.current_uses) >= Number(codeRow.max_uses)) {
+        return NextResponse.json({ error: '邀请码已用完' }, { status: 400 })
       }
 
       // 验证 created_by 对应的用户是否存在（防止 FK 约束失败）
@@ -182,6 +175,16 @@ export async function POST(req: NextRequest) {
       const verifyResult = await verifyCode(email, verificationCode, db)
       if (!verifyResult.valid) {
         return NextResponse.json({ error: verifyResult.error }, { status: 400 })
+      }
+
+      // ── 所有校验通过，原子递增使用次数（防止并发竞态）──
+      const updateResult = await db.execute({
+        sql: `UPDATE invite_codes SET current_uses = current_uses + 1
+              WHERE code = ? AND current_uses < max_uses`,
+        args: [inviteCode],
+      })
+      if (!updateResult.rowsAffected || (updateResult as any).rowsAffected === 0) {
+        return NextResponse.json({ error: '邀请码无效或已用完（并发耗尽）', { status: 400 } })
       }
 
       // Create user (with invited_by from invite code)

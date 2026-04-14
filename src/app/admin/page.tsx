@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { dateToWeekKey } from '@/lib/week'
+import { getCsrfToken } from '@/lib/csrf'
 
 // 安全复制到剪贴板（兼容非 HTTPS 环境）
 const safeCopy = async (text: string): Promise<boolean> => {
@@ -47,11 +48,7 @@ function formatBeijingTime(utcStr: string | null | undefined): string {
   }
 }
 
-// 从 cookie 获取 CSRF Token — 使用正则提取，兼容 base64 值中的 '=' 字符
-function getCsrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
-  return match?.[1] || ''
-}
+// getCsrfToken 已从 @/lib/csrf 导入
 
 export default function AdminPage() {
   const router = useRouter()

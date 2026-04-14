@@ -3,11 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-
-function getCsrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
-  return match?.[1] || ''
-}
+import { getCsrfToken } from '@/lib/csrf'
 
 export default function ResetPasswordPage() {
   return (

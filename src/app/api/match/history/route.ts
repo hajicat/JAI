@@ -27,14 +27,8 @@ export async function GET(req: NextRequest) {
     const db = getDb()
     await initDb()
     
-    // 使用 verifyTokenSafe（安全验证，带密码变更检查）
-    // 如果失败返回 null 而不是抛出异常
-    let decoded;
-    try {
-      decoded = await verifyTokenSafe(token, db);
-    } catch (tokenErr: any) {
-      return NextResponse.json({ error: '认证失败' }, { status: 401 })
-    }
+    // 使用 verifyTokenSafe（内部已处理所有异常，失败返回 null）
+    const decoded = await verifyTokenSafe(token, db)
     if (!decoded) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
     const uid = decoded.id
