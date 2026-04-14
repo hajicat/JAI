@@ -337,7 +337,7 @@ export default function MatchPage() {
           'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
-          oldPassword: pwdForm.oldPwd,
+          currentPassword: pwdForm.oldPwd,
           newPassword: pwdForm.newPwd,
         }),
       })
