@@ -215,6 +215,15 @@ export default function AdminPage() {
   const [deletePwError, setDeletePwError] = useState('')
   const [deletingConfirmed, setDeletingConfirmed] = useState(false)
 
+  // 重置用户密码弹窗状态
+  const [resetPwModal, setResetPwModal] = useState(false)
+  const [resetPwUserId, setResetPwUserId] = useState<number | null>(null)
+  const [resetPwNickname, setResetPwNickname] = useState('')
+  const [resetPwNew, setResetPwNew] = useState('')
+  const [resetPwConfirm, setResetPwConfirm] = useState('')
+  const [resetPwError, setResetPwError] = useState('')
+  const [resettingPw, setResettingPw] = useState(false)
+
   /** 删除用户（需在已通过二级密码验证的用户详情页操作） */
   const handleDeleteUser = async (userId: number) => {
     if (!confirm('⚠️ 确定要删除此用户？此操作不可撤销！\n\n将同时删除：\n- 问卷回答\n- 匹配记录\n- 验证码记录\n- 未使用的邀请码')) return
@@ -254,6 +263,51 @@ export default function AdminPage() {
       setDeletePwError('网络错误，删除失败')
     } finally {
       setDeletingConfirmed(false)
+    }
+  }
+
+  /** 打开重置密码弹窗 */
+  const handleOpenResetPw = (uid: number, nickname: string) => {
+    setResetPwUserId(uid)
+    setResetPwNickname(nickname)
+    setResetPwNew('')
+    setResetPwConfirm('')
+    setResetPwError('')
+    setResetPwModal(true)
+  }
+
+  /** 提交重置密码 */
+  const handleResetPassword = async () => {
+    if (!resetPwNew.trim()) { setResetPwError('请输入新密码'); return }
+    if (resetPwNew.length < 8) { setResetPwError('密码至少8位'); return }
+    if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(resetPwNew)) { setResetPwError('密码需同时包含字母和数字'); return }
+    if (resetPwNew !== resetPwConfirm) { setResetPwError('两次输入的密码不一致'); return }
+    if (resetPwUserId == null) return
+
+    setResettingPw(true)
+    setResetPwError('')
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/reset-user-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({
+          userId: resetPwUserId,
+          newPassword: resetPwNew,
+          confirmPassword: resetPwConfirm,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setResetPwModal(false)
+        setToast({ msg: `✅ ${data.message}`, type: 'success' })
+      } else {
+        setResetPwError(data.error || '重置失败')
+      }
+    } catch {
+      setResetPwError('网络错误，请重试')
+    } finally {
+      setResettingPw(false)
     }
   }
 
@@ -753,8 +807,15 @@ export default function AdminPage() {
                         <tr key={`${u.id}-detail`}>
                           <td colSpan={9} className="px-0 py-0 bg-pink-50/30">
                             <div className="p-5 border-t border-pink-100">
-                              {/* 删除用户按钮 */}
-                              <div className="flex justify-end mb-3">
+                              {/* 操作按钮 */}
+                              <div className="flex justify-end gap-2 mb-3">
+                                <button
+                                  onClick={() => handleOpenResetPw(u.id, String(u.nickname))}
+                                  className="text-xs font-medium px-4 py-2 rounded-lg border transition
+                                    text-orange-600 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
+                                >
+                                  🔑 重置密码
+                                </button>
                                 <button
                                   onClick={() => handleDeleteUser(u.id)}
                                   disabled={deletingUserId === u.id}
@@ -1563,6 +1624,61 @@ export default function AdminPage() {
                   deletingConfirmed || !deletePw.trim() ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                 {deletingConfirmed ? '删除中...' : '确认删除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 重置用户密码弹窗 */}
+      {resetPwModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setResetPwModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-orange-600 mb-1">🔑 重置用户密码</h3>
+            <p className="text-sm text-gray-400 mb-4">为用户「<span className="font-medium text-gray-600">{resetPwNickname}</span>」设置新密码</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">新密码</label>
+                <input
+                  type="password"
+                  value={resetPwNew}
+                  onChange={e => { setResetPwNew(e.target.value); setResetPwError('') }}
+                  placeholder="至少8位，含字母和数字"
+                  autoFocus
+                  className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
+                    resetPwError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-orange-300'
+                  }`}
+                  disabled={resettingPw}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">确认新密码</label>
+                <input
+                  type="password"
+                  value={resetPwConfirm}
+                  onChange={e => { setResetPwConfirm(e.target.value); setResetPwError('') }}
+                  onKeyDown={e => { if (e.key === 'Enter') handleResetPassword() }}
+                  placeholder="再次输入新密码"
+                  className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
+                    resetPwError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-orange-300'
+                  }`}
+                  disabled={resettingPw}
+                />
+              </div>
+              {resetPwError && <p className="text-xs text-red-500">{resetPwError}</p>}
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setResetPwModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                取消
+              </button>
+              <button onClick={handleResetPassword} disabled={resettingPw || !resetPwNew.trim() || !resetPwConfirm.trim()}
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl hover:opacity-90 transition ${
+                  resettingPw ? 'opacity-50 cursor-not-allowed' : ''
+                }`}>
+                {resettingPw ? '重置中...' : '确认重置'}
               </button>
             </div>
           </div>
