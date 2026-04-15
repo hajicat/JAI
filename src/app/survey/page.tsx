@@ -156,7 +156,6 @@ export default function SurveyPage() {
       initGpsSampling()
     }
   }, [router])
-  }, [router])
 
   /** 初始化静默 GPS 采样 */
   function initGpsSampling() {
