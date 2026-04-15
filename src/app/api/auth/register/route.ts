@@ -8,6 +8,8 @@ import { getClientIp, setCsrfCookie, getCookieName, validateCsrfToken } from '@/
 import { haversineDistance, verifyLocation } from '@/lib/geo'
 import { verifyCode } from '@/lib/email'
 
+export const runtime = 'edge'
+
 // 学校邮箱域名白名单（非吉林动画学院/长春大学用户必须使用这些域名）
 const SCHOOL_EMAIL_DOMAINS = [
   'jlu.edu.cn',       // 吉林大学（教职工）
