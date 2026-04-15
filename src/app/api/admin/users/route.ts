@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
       survey: surveyAnswers,
     })
   } catch (error) {
-    console.error('[admin/user-detail]', (error as any)?.message || error)
+    console.error('[admin/user-detail]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取用户详情失败' }, { status: 500 })
   }
 }
@@ -248,6 +248,7 @@ export async function DELETE(req: NextRequest) {
 
     // 构建批量操作（按外键依赖顺序）
     const batchStmts: Array<{ sql: string; args: any[] }> = [
+      { sql: `DELETE FROM verification_samples WHERE user_id = ?`, args: [uid] },
       { sql: `DELETE FROM matches WHERE user_a = ? OR user_b = ?`, args: [uid, uid] },
       { sql: `DELETE FROM survey_responses WHERE user_id = ?`, args: [uid] },
       { sql: `DELETE FROM password_reset_tokens WHERE user_id = ?`, args: [uid] },
@@ -278,7 +279,7 @@ export async function DELETE(req: NextRequest) {
       message: `已删除用户「${nickname}」`,
     })
   } catch (error) {
-    console.error('[admin/delete-user]', (error as any)?.message || error)
+    console.error('[admin/delete-user]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '删除用户失败' }, { status: 500 })
   }
 }
@@ -340,7 +341,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: `已将「${nickname}」的验证状态更新为「${statusValue || '未设置'}」` })
   } catch (error) {
-    console.error('[admin/patch-user]', (error as any)?.message || error)
+    console.error('[admin/patch-user]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '更新失败' }, { status: 500 })
   }
 }

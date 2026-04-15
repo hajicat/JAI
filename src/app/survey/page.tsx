@@ -305,10 +305,7 @@ export default function SurveyPage() {
     setSaving(true)
     setError('')
     try {
-      const csrfToken = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('csrf-token='))
-        ?.split('=')[1] || ''
+      const csrfToken = getCsrfToken()
       const res = await fetch('/api/survey', {
         method: 'POST',
         headers: {
