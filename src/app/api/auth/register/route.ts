@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       /* 表不存在则默认开启 */
     }
 
+    let requiresSchoolEmail = false
     if (gpsEnabled) {
       if (typeof latitude !== 'number' || typeof longitude !== 'number') {
         return NextResponse.json({ error: '请先在页面上完成GPS校内验证（点击"点击验证位置"按钮）' }, { status: 400 })
@@ -76,9 +77,10 @@ export async function POST(req: NextRequest) {
       if (!geoResult.valid) {
         return NextResponse.json({ error: geoResult.message }, { status: 403 })
       }
+      requiresSchoolEmail = geoResult.requiresSchoolEmail
 
       // ── 学校邮箱验证（非吉林动画学院/长春大学区域需要校内邮箱）──
-      if (geoResult.requiresSchoolEmail && !isSchoolEmail(email)) {
+      if (requiresSchoolEmail && !isSchoolEmail(email)) {
           return NextResponse.json({
             error: '你所在的高校需要使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）',
           }, { status: 403 })
@@ -198,7 +200,7 @@ export async function POST(req: NextRequest) {
         sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by, gender, preferred_gender, email_verified, verification_status)
               VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
         args: [nickname, email, passwordHash, userInviteCode, Number(codeRow.created_by), gender, preferredGender,
-          geoResult.requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
+          requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
       })
 
       const newUserId = Number(insertResult.lastInsertRowid)
@@ -299,7 +301,7 @@ export async function POST(req: NextRequest) {
       sql: `INSERT INTO users (nickname, email, password_hash, invite_code, gender, preferred_gender, email_verified, verification_status)
             VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
       args: [nickname, email, passwordHash, userInviteCode, gender, preferredGender,
-        gpsEnabled && geoResult?.requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
+        requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
     })
 
     const newUserId = Number(insertResult.lastInsertRowid)
