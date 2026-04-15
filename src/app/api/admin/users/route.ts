@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       // ?all=1: return all users without pagination (for match dropdown)
       if (req.nextUrl.searchParams.get('all') === '1') {
         const allResult = await db.execute({
-          sql: `SELECT u.id, u.nickname, u.gender, u.survey_completed
+          sql: `SELECT u.id, u.nickname, u.gender, u.survey_completed, u.verification_status
                 FROM users u ORDER BY u.created_at DESC`,
           args: [],
         })
@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
       const result = await db.execute({
         sql: `SELECT u.id, u.nickname, u.gender,
                 u.survey_completed, u.match_enabled,
+                u.verification_status, u.verification_score,
                 u.created_at, u.invited_by,
                 (SELECT COUNT(*) FROM invite_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
                 inv.nickname as invited_by_name,
@@ -75,17 +76,26 @@ export async function GET(req: NextRequest) {
         args: [pageSize, offset],
       })
 
+      const VERIFY_LABELS: Record<string, { label: string; color: string }> = {
+        verified_student:      { label: '✅ 已验证', color: 'text-green-600' },
+        pending_verification:  { label: '⏳ 待验证', color: 'text-yellow-600' },
+        verification_failed:   { label: '❌ 未通过', color: 'text-red-500' },
+      }
+
       const userList = result.rows.map((row: any) => ({
         id: row.id,
         nickname: row.nickname,
         gender: row.gender,
         survey_completed: !!row.survey_completed,
         match_enabled: !!row.match_enabled,
+        verification_status: row.verification_status || null,
+        verification_score: row.verification_score,
         remaining_codes: Number(row.remaining_codes) || 0,
         invited_by_name: row.invited_by_name,
         created_at: row.created_at,
         // 计算真实安全等级（使用 match-engine 导出的统一函数）
         safety_level: row.survey_completed ? calcSafety(row).level : null,
+        _verifyLabel: VERIFY_LABELS[row.verification_status || ''] || { label: '—', color: 'text-gray-400' },
       }))
 
       return NextResponse.json({
@@ -103,6 +113,7 @@ export async function GET(req: NextRequest) {
     const userResult = await db.execute({
       sql: `SELECT id, nickname, email, gender, preferred_gender, conflict_type,
                 is_admin, survey_completed, match_enabled, contact_type, contact_info,
+                verification_status, verification_score, verified_at,
                 created_at FROM users WHERE id = ?`,
       args: [uid],
     })
@@ -149,6 +160,9 @@ export async function GET(req: NextRequest) {
         matchEnabled: !!userRow.match_enabled,
         contactType: contact.type,
         contactInfo: contact.info,
+        verificationStatus: userRow.verification_status || null,
+        verificationScore: userRow.verification_score,
+        verifiedAt: userRow.verified_at,
         createdAt: userRow.created_at,
       },
       survey: surveyAnswers,

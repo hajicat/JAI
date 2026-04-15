@@ -661,14 +661,15 @@ export default function AdminPage() {
               <table className="w-full text-sm table-fixed" style={{ minWidth: '700px' }}>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'15%'}}>昵称</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'6%'}}>性别</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'6%'}}>问卷</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'8%'}}>安全等级</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'7%'}}>参与匹配</th>
-                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'10%'}}>剩余邀请码</th>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'14%'}}>邀请人</th>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'17%'}}>注册时间</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'14%'}}>昵称</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'5%'}}>性别</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'5%'}}>问卷</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'7%'}}>安全等级</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'5%'}}>参与匹配</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'7%'}}>学生验证</th>
+                    <th className="px-2 py-3 text-center text-gray-500 font-medium" style={{width:'9%'}}>剩余邀请码</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'13%'}}>邀请人</th>
+                    <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'15%'}}>注册时间</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -689,6 +690,13 @@ export default function AdminPage() {
                           {SAFETY_LABELS[u.safety_level || 'normal']?.label || '-'}
                         </td>
                         <td className="px-4 py-3 text-center">{u.match_enabled ? '🟢' : '⏸️'}</td>
+                        {/* 学生验证 — 无密码也能看到 */}
+                        <td className={`px-4 py-3 text-center text-xs font-medium ${u._verifyLabel?.color || 'text-gray-400'}`}>
+                          {u._verifyLabel?.label || '—'}
+                          {typeof u.verification_score === 'number' && (
+                            <span className="ml-0.5 text-gray-400 font-normal">({u.verification_score})</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-center">{u.remaining_codes}</td>
                         <td className="px-4 py-3 text-gray-400">{u.invited_by_name || '管理员'}</td>
                         <td className="px-4 py-3 text-gray-400">{formatBeijingTime(u.created_at)}</td>
@@ -696,7 +704,7 @@ export default function AdminPage() {
                       {/* Expanded detail row */}
                       {expandedUserId === u.id && (
                         <tr key={`${u.id}-detail`}>
-                          <td colSpan={8} className="px-0 py-0 bg-pink-50/30">
+                          <td colSpan={9} className="px-0 py-0 bg-pink-50/30">
                             <div className="p-5 border-t border-pink-100">
                               {/* 删除用户按钮 */}
                               <div className="flex justify-end mb-3">
@@ -721,9 +729,25 @@ export default function AdminPage() {
                                     <h4 className="font-bold text-gray-700 text-sm border-b pb-2">基本信息 & 联系方式</h4>
 
                                     <div className="grid grid-cols-2 gap-3 text-sm">
-                                      <div><span className="text-gray-400">邮箱：</span>{userDetail.user.email}</div>
-                                      <div><span className="text-gray-400">想匹配：</span>{GENDER_LABELS[userDetail.user.preferredGender]}</div>
+                                      <div><span className="text-gray-400">邮箱：</span>{userDetail.user.email || '-'}</div>
+                                      <div><span className="text-gray-400">想匹配：</span>{GENDER_LABELS[userDetail.user.preferredGender] || '-'}</div>
                                       <div><span className="text-gray-400">注册时间：</span>{formatBeijingTime(userDetail.user.createdAt)}</div>
+                                      {/* 学生验证状态 */}
+                                      <div>
+                                        <span className="text-gray-400">学生验证：</span>
+                                        {userDetail.user.verificationStatus === 'verified_student' ? (
+                                          <span className="text-green-600 font-medium">✅ 已验证（{userDetail.user.verificationScore}分）</span>
+                                        ) : userDetail.user.verificationStatus === 'pending_verification' ? (
+                                          <span className="text-yellow-600 font-medium">⏳ 待验证（{userDetail.user.verificationScore ?? 0}分）</span>
+                                        ) : userDetail.user.verificationStatus === 'verification_failed' ? (
+                                          <span className="text-red-500 font-medium">❌ 未通过</span>
+                                        ) : (
+                                          <span className="text-gray-400">—</span>
+                                        )}
+                                        {userDetail.user.verifiedAt && (
+                                          <span className="text-xs text-gray-400 ml-1">通过时间：{formatBeijingTime(userDetail.user.verifiedAt)}</span>
+                                        )}
+                                      </div>
                                     </div>
 
                                     {userDetail.user.contactInfo ? (
@@ -821,7 +845,7 @@ export default function AdminPage() {
                     </Fragment>
                   ))}
                   {users.length === 0 && (
-                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>
+                    <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>
                   )}
                 </tbody>
               </table>

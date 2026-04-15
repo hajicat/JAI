@@ -173,53 +173,61 @@ export function scoreGpsSamples(
     return { score: 0, details: '无 GPS 采样数据' }
   }
 
-  // 基础门槛：至少 2 个采样点
+  // 总采样数
   const sampleCount = samples.length
-  const countBonus = Math.min(sampleCount * 10, 30) // 最多 30 分
-
-  // 校内命中统计
   let insideCount = 0
-  const distances: number[] = []
+  const validDistances: number[] = [] // 仅有效采样的校内距离
+  let validSampleCount = 0              // 有效采样数（精度合理的）
 
   for (let i = 0; i < samples.length; i++) {
     const s = samples[i]
+    // 精度 > 200m 的采样点视为无效，不参与评分（可能是 GPS 信号差）
+    if (s.accuracy && s.accuracy > 200) continue
+    validSampleCount++
     const dist = haversineDistance(campus.lat, campus.lng, s.lat, s.lng)
-    distances.push(dist)
+    validDistances.push(dist)
     if (dist <= campus.radiusKm) {
       insideCount++
     }
-    // 计算采样点间距离（稳定性）
   }
 
-  // 位置稳定性评分（采样点之间距离标准差）
+  // 基础分：以有效采样数计算（防止低精度无效采样拉低分数）
+  const effectiveCount = validSampleCount || sampleCount
+  const countBonus = Math.min(effectiveCount * 10, 30) // 最多 30 分
+
+  // 位置稳定性评分（基于有效采样点的校内平均距离）
   let stabilityBonus = 0
-  if (distances.length >= 2) {
-    const avgDist = distances.reduce((a, b) => a + b, 0) / distances.length
+  if (validDistances.length >= 2) {
+    const avgDist = validDistances.reduce((a, b) => a + b, 0) / validDistances.length
     // 校内平均距离越小越稳定
     const stableBonus = Math.max(0, 20 - avgDist * 10) // 校内平均距离 0→20分，2km→0分
     stabilityBonus = Math.round(stableBonus)
   }
 
-  // 校内命中比例（主要指标）
-  const insideRatio = insideCount / sampleCount
+  // 校内命中比例（主要指标，基于有效采样）
+  const insideRatio = effectiveCount > 0 ? insideCount / effectiveCount : 0
   const insideBonus = Math.round(insideRatio * 50) // 最多 50 分
 
-  // GPS 精度加权（精度高的采样点权重更高）
+  // GPS 精度加权（精度合理 10-100m 的采样点权重更高；<5m 可能为虚拟定位）
   let weightedInsideRatio = insideCount
-  let totalWeight = sampleCount
+  let totalWeight = effectiveCount
   for (const s of samples) {
-    if (s.accuracy && s.accuracy < 50) {
-      // 高精度点（<50m）额外加权
+    if (s.accuracy && s.accuracy > 5 && s.accuracy <= 100) {
+      // 合理精度（6-100m）额外加权
       weightedInsideRatio += 0.1
       totalWeight += 0.1
     }
   }
-  const precisionBonus = Math.round((weightedInsideRatio / totalWeight) * 10) // 最多 10 分
+  const precisionBonus = effectiveCount > 0
+    ? Math.round((weightedInsideRatio / totalWeight) * 10)
+    : 0 // 最多 10 分
 
   const totalScore = Math.min(countBonus + insideBonus + stabilityBonus + precisionBonus, 100)
 
+  const invalidCount = sampleCount - validSampleCount
   const details = [
-    `采样${sampleCount}次，校内命中${insideCount}次（${Math.round(insideRatio * 100)}%）`,
+    `采样${sampleCount}次（有效${validSampleCount}次${invalidCount > 0 ? `，精度过差${invalidCount}次已排除` : ''}）`,
+    `校内命中${insideCount}次（${Math.round(insideRatio * 100)}%）`,
     `位置稳定性+${stabilityBonus}，精度加权+${precisionBonus}`,
     `总评分：${totalScore}`,
   ].join('；')
