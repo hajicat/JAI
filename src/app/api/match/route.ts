@@ -76,27 +76,22 @@ export async function GET(req: NextRequest) {
     }
 
     if (matchResult.rows.length === 0) {
-      // ── 三种状态区分：等待中 / 轮空 / 新用户待下周 ──
+      // ── 无匹配记录时的状态判断 ──
       //
-      // 1. 匹配未完成（或非管理员且未到揭晓时间）→ 等待中
-      // 2. 匹配已完成 + 用户已在匹配前做完问卷 → 真正的轮空
-      // 3. 匹配已完成 + 用户在匹配后才做问卷 → 新用户，等待下周参与
+      // 只在「揭晓窗口内」且「当前周匹配已完成」且「用户参与了本轮」时显示轮空。
+      // 其他所有情况统一显示"你的缘分在路上"（倒计时）。
       //
-      // 判断方式：对比 survey.updated_at 和 lock 的 updated_at
-      //   survey 更新时间 <= lock 完成时间 → 参与了本轮但没配上
-      //   survey 更新时间 > lock 完成时间 → 本轮跑的时候还没做问卷
-      //
-      // ⚠️ 关键：必须查最近一次已完成的匹配锁，而非仅本周锁。
-      //   因为用户可能上周参与了匹配（回退查询也取到了那条记录），
-      //   但主查询按 weekKey 过滤找不到。此时若只查本周锁会误判为"等待中"。
+      // 锁只查当前周的 matching_lock_{weekKey}，
+      // 不查历史锁——过了揭晓窗口后历史锁不应影响当前状态判断。
 
+      const currentWeekLockKey = `matching_lock_${weekKey}`
       const [lockRes, surveyRes] = await Promise.all([
         db.execute({
-          sql: "SELECT key, value, updated_at FROM settings WHERE key LIKE 'matching_lock_%' AND value = ? ORDER BY updated_at DESC LIMIT 1",
-          args: ['done'],
+          sql: `SELECT key, value, updated_at FROM settings WHERE key = ?`,
+          args: [currentWeekLockKey],
         }),
         db.execute({
-          sql: "SELECT updated_at FROM survey_responses WHERE user_id = ? LIMIT 1",
+          sql: `SELECT updated_at FROM survey_responses WHERE user_id = ? LIMIT 1`,
           args: [uid],
         }),
       ])
@@ -104,39 +99,36 @@ export async function GET(req: NextRequest) {
       const lockStatus = lockRow?.value
       const lockUpdatedAt = lockRow?.updated_at || ''
       const matchedDone = lockStatus === 'done'
-      const surveyRow = surveyRes.rows[0] as any
-      const surveyUpdatedAt = surveyRow?.updated_at || ''
-      const hasSurvey = !!surveyRow
       const canSeeStatus = isRevealWindow() || !!decoded.isAdmin
 
-      // ── 情况A：匹配未完成 / 未到揭晓时间 → 统一显示等待中 ──
-      if (!matchedDone || (!canSeeStatus && matchedDone && !hasSurvey)) {
+      // ── 情况A：匹配未完成（当前周没跑或还在跑中）/ 非窗口期 → 等待中 ──
+      //    包括：还没跑匹配、跑完了但不在揭晓窗口、新用户、后补问卷等所有非轮空场景
+      if (!matchedDone || !canSeeStatus) {
         return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待', matchedDone: false })
       }
 
-      // ── 情况B：没做问卷 → 引导去做题 ──
+      // ── 情况B：揭晓窗口内 + 匹配已完成 → 判断是否真正轮空 ──
+      //    对比 survey.updated_at 和 lock.updated_at
+      const surveyRow = surveyRes.rows[0] as any
+      const surveyUpdatedAt = surveyRow?.updated_at || ''
+      const hasSurvey = !!surveyRow
+
       if (!hasSurvey) {
-        return NextResponse.json({ match: null, message: '请先完成问卷才能参与匹配', matchedDone: false })
+        return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待', matchedDone: false })
       }
 
-      // ── 情况C & D：匹配已完成 + 已做问卷 ──
-      // 判断用户是否在匹配执行前就已经提交了问卷
       const participatedInThisRound = lockUpdatedAt && surveyUpdatedAt && (surveyUpdatedAt <= lockUpdatedAt)
 
       if (participatedInThisRound) {
-        // 情况C：参与了本轮匹配但没有配上 → 真正的轮空
+        // 参与了本轮匹配但没有配上 → 轮空（仅在揭晓窗口内显示）
         return NextResponse.json({
           match: null,
-          message: canSeeStatus ? '本周暂未匹配到合适的搭档' : '本周匹配尚未完成，请耐心等待',
+          message: '本周暂未匹配到合适的搭档',
           matchedDone: true,
         })
       } else {
-        // 情况D：匹配结束后才做的问卷（新注册/后补问卷）→ 不算轮空，等下周
-        return NextResponse.json({
-          match: null,
-          message: '你已完成问卷，系统将在下周日为你匹配',
-          matchedDone: false,
-        })
+        // 在匹配执行后才做的问卷（新注册/后补问卷）→ 也显示等待中
+        return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待', matchedDone: false })
       }
     }
 
