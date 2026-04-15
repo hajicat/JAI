@@ -504,9 +504,6 @@ export default function SurveyPage() {
                   </button>
                 )
               })}
-                <span className="font-medium"><span className="text-pink-300 mr-2">{String.fromCharCode(65 + i)}.</span>{opt}</span>
-              </button>
-            ))}
           </div>
         )}
 
