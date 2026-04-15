@@ -93,70 +93,6 @@ function FlipBoardCount({ value, loading }: { value: number; loading: boolean })
   )
 }
 
-// ── 聊天预览卡片（"如何运作"区域右侧）──
-
-function ChatPreviewCard() {
-  const [currentMsg, setCurrentMsg] = useState(0)
-  const messages = [
-    { from: 'them', text: '周末有空一起喝杯咖啡吗？我知道一家很好喝的店～', delay: 800 },
-    { from: 'me', text: '好呀，周六下午怎么样？', delay: 2000 },
-  ]
-
-  useEffect(() => {
-    messages.forEach((msg, i) => {
-      if (i === 0) setCurrentMsg(1)
-      setTimeout(() => setCurrentMsg(i + 1), msg.delay)
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  return (
-    <div className="glass-card rounded-3xl p-6 bg-gradient-to-br from-[#5b4a7a] to-[#4a3868] shadow-xl">
-      {/* Chat Header */}
-      <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/10">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 flex items-center justify-center text-sm font-bold text-white shadow-md">
-          明
-        </div>
-        <div>
-          <p className="text-white font-semibold text-sm">小明</p>
-          <p className="text-white/40 text-xs">刚刚在线</p>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="space-y-3 min-h-[160px]">
-        {currentMsg >= 1 && (
-          <div className="flex justify-start animate-fade-in">
-            <div className="bg-gradient-to-r from-pink-600/90 to-purple-600/90 text-white text-sm px-4 py-2.5 rounded-2xl rounded-bl-md max-w-[85%] leading-relaxed shadow-md">
-              {messages[0].text}
-            </div>
-          </div>
-        )}
-        {currentMsg >= 2 && (
-          <div className="flex justify-end animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <div className="bg-white text-gray-700 text-sm px-4 py-2.5 rounded-2xl rounded-br-md max-w-[85%] leading-relaxed shadow-md">
-              {messages[1].text}
-            </div>
-          </div>
-        )}
-
-        {/* Input (always shown) */}
-        <div className="flex items-center gap-2 pt-2">
-          <input
-            type="text"
-            placeholder="输入消息..."
-            readOnly
-            className="flex-1 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none cursor-default"
-          />
-          <button className="w-9 h-9 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm shadow-md shrink-0">
-            ➤
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function Home() {
   const router = useRouter()
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
@@ -224,6 +160,14 @@ export default function Home() {
   }, [])
 
   const displayCount = <FlipBoardCount value={stats.completedSurvey} loading={!statsLoaded} />
+
+  // ── Interactive "How it works" state ──
+  const [activeStep, setActiveStep] = useState(0)
+  const steps = [
+    { num: '01', title: '完成深度问卷', desc: '涵盖性格底色、自我观察、人生方向等六大维度，35道题，约15分钟', cardType: 'survey' as const },
+    { num: '02', title: '收到匹配邀请', desc: '每周轮次中为你匹配契合对象，并说明匹配原因', cardType: 'match' as const },
+    { num: '03', title: '开启真诚对话', desc: '交换联系方式后，约见面、聊天，故事由你们续写', cardType: 'chat' as const },
+  ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
@@ -318,52 +262,208 @@ export default function Home() {
         )}
       </main>
 
-      {/* How it works */}
+      {/* How it works - Interactive */}
       <section className="relative z-10 max-w-5xl mx-auto px-6 py-20">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-16">如何运作</h2>
-        <div className="grid lg:grid-cols-5 gap-12 items-start">
-          {/* Left: Steps */}
-          <div className="lg:col-span-3 flex flex-col gap-6">
-            {[
-              {
-                num: '01', title: '完成深度问卷', icon: '📝',
-                desc: '涵盖性格底色、自我观察、人生方向、相处之道、生活节奏、个人画像六大维度，35道题，大约15分钟',
-                detail: '你最认同哪种「爱的安全感」来源？\nA. 事事有回应  B. 我的后盾与港湾\nC. 自由的牵挂  D. 共同进步的战友'
-              },
-              {
-                num: '02', title: '收到匹配邀请', icon: '💌',
-                desc: '系统根据五维度兼容性自动匹配合适的TA，每周日揭晓结果',
-                detail: '你的匹配：小林\n🎯 87% 契合度\n安全联结 92% | 互动模式 85%\n意义系统 88% | 动力发展 76%'
-              },
-              {
-                num: '03', title: '开启真诚对话', icon: '☕',
-                desc: '交换联系方式后，约见面、聊天，故事由你们续写。',
-                detail: ''
-              },
-            ].map((step, i) => (
-              <div key={i} className={`glass-card rounded-2xl p-6 hover:shadow-lg transition-all duration-300 group ${i === 2 ? 'lg:opacity-50' : ''}`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
-                    i === 2 ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white' : 'bg-white border-2 border-pink-200 text-pink-400'
-                  }`}>
-                    {i === 2 ? '03' : step.num}
-                  </span>
-                  <span className="text-2xl">{step.icon}</span>
-                  <h3 className="text-lg font-bold text-gray-800">{step.title}</h3>
+
+        <div className="grid md:grid-cols-[1fr_1.1fr] gap-0 rounded-3xl overflow-hidden shadow-xl border border-white/20 bg-white/40 backdrop-blur-sm">
+          {/* ── Left Panel: Steps Timeline ── */}
+          <div className="p-10 md:p-14 flex flex-col justify-center relative">
+            {/* Vertical timeline line */}
+            <div className="absolute left-[22px] top-10 bottom-10 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent" />
+
+            {steps.map((step, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveStep(i)}
+                className={`relative flex items-start gap-5 mb-10 last:mb-0 text-left transition-all duration-300 cursor-pointer ${
+                  activeStep === i ? 'scale-[1.03]' : 'opacity-50 hover:opacity-75'
+                }`}
+              >
+                <div
+                  className={`relative z-10 shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 ${
+                    activeStep === i
+                      ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-md scale-110'
+                      : 'border-2 border-gray-300 text-gray-400'
+                  }`}
+                >
+                  {step.num}
                 </div>
-                <p className="text-gray-500 text-sm ml-14">{step.desc}</p>
-                {step.detail && (
-                  <div className="mt-3 ml-14 bg-gray-50/80 rounded-xl p-3 text-xs text-gray-400 whitespace-pre-line group-hover:bg-pink-50/60 transition">
-                    {step.detail}
-                  </div>
-                )}
-              </div>
+                <div className="pt-1.5">
+                  <h3
+                    className={`font-bold text-lg mb-1.5 transition-colors duration-300 ${
+                      activeStep === i ? 'text-gray-900' : 'text-gray-600'
+                    }`}
+                  >
+                    {step.title}
+                  </h3>
+                  <p className={`text-sm leading-relaxed transition-colors duration-300 ${
+                    activeStep === i ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    {step.desc}
+                  </p>
+                </div>
+              </button>
             ))}
           </div>
 
-          {/* Right: Chat Preview Card */}
-          <div className="lg:col-span-2 lg:sticky lg:top-24">
-            <ChatPreviewCard />
+          {/* ── Right Panel: Interactive Preview Card ── */}
+          <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 p-8 md:p-12 flex items-center justify-center min-h-[420px] overflow-hidden">
+            {/* Decorative circles */}
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-purple-400/10 rounded-full blur-2xl" />
+            <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-blue-400/10 rounded-full blur-2xl" />
+
+            <div
+              key={activeStep}
+              className="w-full max-w-xs animate-slideIn"
+              style={{ animationDuration: '0.5s' }}
+            >
+              {(() => {
+                switch (steps[activeStep].cardType) {
+                  case 'survey':
+                    return (
+                      <div className="bg-white/95 backdrop-blur rounded-2xl p-6 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-base">📝</div>
+                          <div>
+                            <p className="font-bold text-gray-900 text-sm">深度问卷</p>
+                            <p className="text-xs text-gray-400">6大维度 · 35题</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <p className="text-xs text-gray-500 font-medium">你更认同哪种「安全感」？</p>
+                          <div className="space-y-2">
+                            {[
+                              { label: '事事有回应', selected: false },
+                              { label: '我的港湾与后盾', selected: true },
+                              { label: '自由的牵挂', selected: false },
+                              { label: '共同进步的战友', selected: false },
+                            ].map((opt, j) => (
+                              <div
+                                key={j}
+                                className={`px-3 py-2.5 rounded-xl text-xs font-medium ${
+                                  opt.selected
+                                    ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md'
+                                    : 'bg-gray-50 text-gray-500'
+                                }`}
+                                style={{
+                                  opacity: 0,
+                                  animation: `fadeInUp 0.4s ease-out ${j * 120 + 200}ms forwards`,
+                                  transform: 'translateY(10px)',
+                                }}
+                              >
+                                {opt.selected && <span>✓ </span>}{opt.label}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )
+
+                  case 'match':
+                    return (
+                      <div className="bg-white/95 backdrop-blur rounded-2xl p-6 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                          <span className="text-base">💫</span>
+                          <p className="font-bold text-gray-900 text-sm">你的匹配：小明</p>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <span>📧</span>
+                            <span>xiaoming@example.com</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span>💜</span>
+                            <span className="font-bold text-orange-500">94.7%</span>
+                            <span className="text-gray-400">契合度</span>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
+                            <p className="text-xs text-gray-500 font-medium mb-2">匹配原因：</p>
+                            <ul className="space-y-1.5 text-xs text-gray-500">
+                              {[
+                                '你们在「安全联结」维度高度契合',
+                                '核心价值观：情绪价值 · 个人成长',
+                                '面对冲突时，双方都是海豚型',
+                              ].map((line, j) => (
+                                <li
+                                  key={j}
+                                  style={{
+                                    opacity: 0,
+                                    animation: `fadeInUp 0.35s ease-out ${j * 130 + 250}ms forwards`,
+                                    transform: 'translateY(8px)',
+                                  }}
+                                >
+                                  <span className="text-gray-300 mr-1">·</span>{line}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )
+
+                  case 'chat':
+                    return (
+                      <div className="bg-white/95 backdrop-blur rounded-2xl p-5 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center text-white text-xs font-bold">明</div>
+                          <div>
+                            <p className="font-bold text-gray-900 text-sm">小明</p>
+                            <p className="text-[10px] text-gray-400">刚刚在线</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mb-3">
+                          <div
+                            className="self-start max-w-[85%] bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed shadow"
+                            style={{ opacity: 0, animation: 'fadeInUp 0.4s ease-out 200ms forwards', transform: 'translateY(8px)' }}
+                          >
+                            周末有空一起喝杯咖啡吗？我知道一家很安静的书店 ☕
+                          </div>
+
+                          <div
+                            className="max-w-[80%] ml-auto bg-gray-50 text-gray-700 px-4 py-2.5 rounded-2xl rounded-tr-sm text-xs leading-relaxed"
+                            style={{ opacity: 0, animation: 'fadeInUp 0.4s ease-out 450ms forwards', transform: 'translateY(8px)' }}
+                          >
+                            好呀，周六下午怎么样？☺️
+                          </div>
+                        </div>
+
+                        <div
+                          className="flex items-center gap-2 bg-gray-50 rounded-full px-4 py-2.5 border border-gray-100"
+                          style={{ opacity: 0, animation: 'fadeInUp 0.4s ease-out 650ms forwards', transform: 'translateY(8px)' }}
+                        >
+                          <input
+                            type="text"
+                            placeholder="输入消息..."
+                            readOnly
+                            className="flex-1 bg-transparent text-xs text-gray-400 outline-none placeholder:text-gray-300"
+                          />
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center text-white text-[10px]">
+                            ➤
+                          </div>
+                        </div>
+                      </div>
+                    )
+                }
+              })()}
+            </div>
+
+            {/* Page indicator dots at bottom */}
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              {steps.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveStep(i)}
+                  className={`rounded-full transition-all duration-300 cursor-pointer ${
+                    activeStep === i ? 'w-6 h-2.5 bg-white/90 shadow-sm' : 'w-2 h-2 bg-white/30 hover:bg-white/50'
+                  }`}
+                  aria-label={`步骤 ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
