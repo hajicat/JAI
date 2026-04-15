@@ -182,18 +182,12 @@ export async function POST(req: NextRequest) {
     })
 
     // ── GPS 采样验证（仅针对无邮箱学校：吉动/长大）──
-    // 读取用户的注册 GPS 信息，判断是否需要验证
-    const userRow = await db.execute({
-      sql: 'SELECT id FROM users WHERE id = ?',
-      args: [decoded.id],
-    })
+    // 前端只对 needsGpsVerification=true 的用户发送 gpsSamples（吉动/长大）
+    // 吉大/东师/吉外用户不发送，不进入此逻辑
     const userId = Number(decoded.id)
 
-    // 读取注册时记录的学校信息（从 settings 表的临时记录获取，或从 GPS 采样推断）
-    // 注册时后端验证了 GPS，记录了学校类型。问卷提交时需要这个信息来判断是否需要 GPS 验证。
-    // 为了实现最小侵入，我们不在 users 表额外存储学校类型，
-    // 而是直接根据请求中附带的 gpsSamples 数据来判断。
-    // 前端在提交时会判断用户是否属于吉动/长大（通过之前 GPS 验证的结果）。
+    // 前端传来的历史最高分（重做题时保留）
+    const bodyPrevScore = typeof body.prevScore === 'number' ? body.prevScore : null
 
     let verificationStatus: string | null = null
     let verificationScore: number | null = null
@@ -207,14 +201,24 @@ export async function POST(req: NextRequest) {
 
       // 取两个学校中评分较高的（实际只会命中一个）
       const bestResult = scoreResult.score >= scoreResult2.score ? scoreResult : scoreResult2
-      verificationScore = bestResult.score
+      let newScore = bestResult.score
       verificationMessage = bestResult.details
 
-      // 阈值 50 分：通过验证
-      if (bestResult.score >= 50) {
+      // 保留历史最高分：如果之前已经通过验证或分数更高，不降级
+      if (bodyPrevScore != null && bodyPrevScore > newScore) {
+        // 历史分数更高 → 保留历史分数和状态，不降级
+        newScore = bodyPrevScore
         verificationStatus = 'verified_student'
+        verificationScore = newScore
+        verificationMessage += `（保留历史最高分 ${bodyPrevScore}）`
+      } else if (bestResult.score >= 50) {
+        // 新分数 >= 50 且不低于历史 → 通过
+        verificationStatus = 'verified_student'
+        verificationScore = newScore
       } else {
+        // 新分数 < 50 且没有更高历史记录 → 不通过
         verificationStatus = 'pending_verification'
+        verificationScore = newScore
       }
 
       // 写入采样数据到 verification_samples 表
@@ -243,12 +247,28 @@ export async function POST(req: NextRequest) {
         args: [verificationStatus, verificationScore!, userId],
       })
     } else {
-      // 无采样数据时，设置默认值（允许答题，但不进入匹配池）
-      verificationStatus = 'pending_verification'
-      verificationScore = 0
+      // 无采样数据（吉大/东师/吉外用户不采集GPS，或前端未获取到位置）
+      // 不降级已有验证状态——如果之前已通过验证则保留
+      if (bodyPrevScore != null && bodyPrevScore >= 50) {
+        verificationStatus = 'verified_student'
+        verificationScore = bodyPrevScore
+        verificationMessage = '无新采样数据，保留历史验证状态'
+      } else if (bodyPrevScore != null) {
+        // 有历史记录但分数不够
+        verificationStatus = 'pending_verification'
+        verificationScore = bodyPrevScore
+        verificationMessage = '无新采样数据，保持当前状态'
+      }
+      // 如果 bodyPrevScore 为 null（首次提交且无数据）→ 保持默认 null 不写入
+    }
+
+    // 只有当需要更新时才写 DB（避免无意义的降级）
+    if (verificationStatus !== null) {
       await db.execute({
-        sql: 'UPDATE users SET verification_status = ?, verification_score = ? WHERE id = ?',
-        args: [verificationStatus, verificationScore, userId],
+        sql: 'UPDATE users SET verification_status = ?, verification_score = ?' +
+          (verificationStatus === 'verified_student' ? ', verified_at = datetime(\'now\')' : '') +
+          ' WHERE id = ?',
+        args: [verificationStatus, verificationScore!, userId],
       })
     }
 

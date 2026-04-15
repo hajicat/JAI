@@ -120,6 +120,8 @@ export default function SurveyPage() {
   const [showPrivacyNote, setShowPrivacyNote] = useState(false)
   const [gpsSamples, setGpsSamples] = useState<Array<{ lat: number; lng: number; accuracy?: number }>>([])
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'sampling' | 'done' | 'denied'>('idle')
+  const [needsGpsVerification, setNeedsGpsVerification] = useState(false)
+  const [prevScore, setPrevScore] = useState<number | null>(null)
   const [verificationResult, setVerificationResult] = useState<{ status: string; score: number | null; message: string } | null>(null)
   const gpsWatchId = useRef<number | null>(null)
   const sampleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -132,6 +134,10 @@ export default function SurveyPage() {
         setAlreadyCompleted(true)
         return
       }
+      // 判断是否需要 GPS 验证（吉动/长大用户需要）
+      setNeedsGpsVerification(!!data.user.needsGpsVerification)
+      // 记录历史最高分，用于重做时保留
+      if (data.user.verificationScore != null) setPrevScore(data.user.verificationScore)
       // 恢复本地草稿
       try {
         const saved = localStorage.getItem(DRAFT_KEY)
@@ -144,8 +150,12 @@ export default function SurveyPage() {
     }).catch(() => router.push('/login'))
     .finally(() => setLoading(false))
 
-    // 静默 GPS 采样（答题期间持续采集，不打扰用户）
-    initGpsSampling()
+    // 仅对需要 GPS 验证的用户（吉动/长大）启动静默采样
+    // 吉大/东师/吉外用户靠邮箱验证身份，不需要 GPS
+    if (needsGpsVerification) {
+      initGpsSampling()
+    }
+  }, [router])
   }, [router])
 
   /** 初始化静默 GPS 采样 */
@@ -315,6 +325,7 @@ export default function SurveyPage() {
         body: JSON.stringify({
           ...answers,
           gpsSamples: gpsSamples.length > 0 ? gpsSamples : undefined,
+          prevScore: prevScore,
         })
       })
       if (res.ok) {

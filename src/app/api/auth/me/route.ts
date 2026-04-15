@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
 
     const userResult = await db.execute({
       sql: `SELECT id, nickname, email, is_admin, survey_completed,
-                  contact_info, contact_type, gender, preferred_gender, conflict_type, match_enabled
+                  contact_info, contact_type, gender, preferred_gender, conflict_type,
+                  match_enabled, verification_status, verification_score
             FROM users WHERE id = ?`,
       args: [decoded.id],
     })
@@ -50,6 +51,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 判断是否需要 GPS 验证：吉动/长大用户（无校内邮箱）需要，吉大/东师/吉外不需要
+    const emailDomain = String(user.email || '').split('@')[1] || ''
+    const needsGpsVerification = !emailDomain.match(/@jlu|@mails\.jlu|@nenu|@jisu$/)
+    const currentVerificationStatus = user.verification_status || null
+    const currentScore = user.verification_score != null ? Number(user.verification_score) : null
+
     return NextResponse.json({
       user: {
         id: Number(user.id),
@@ -64,6 +71,9 @@ export async function GET(req: NextRequest) {
         conflictType: user.conflict_type,
         matchEnabled: !!user.match_enabled,
         availableInviteCodes: codesResult.rows,
+        verificationStatus: currentVerificationStatus,
+        verificationScore: currentScore,
+        needsGpsVerification,
       },
     })
   } catch (error) {
