@@ -234,6 +234,30 @@ function LoginForm() {
     e.preventDefault()
     setError('')
 
+    // 注册基础字段前端校验
+    if (isRegister) {
+      if (!form.nickname.trim()) {
+        setError('请输入昵称')
+        return
+      }
+      if (form.nickname.trim().length > 20) {
+        setError('昵称最多20个字符')
+        return
+      }
+      if (!/^[\u4e00-\u9fa5a-zA-Z0-9_\-·\s]{1,20}$/.test(form.nickname.trim())) {
+        setError('昵称包含非法字符')
+        return
+      }
+      if (!form.email.trim()) {
+        setError('请输入邮箱')
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+        setError('请输入正确的邮箱格式')
+        return
+      }
+    }
+
     if (isRegister && gpsRequired && gpsStatus !== 'ok') {
       setError('请先完成高校圈定位验证')
       return
