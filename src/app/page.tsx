@@ -93,6 +93,70 @@ function FlipBoardCount({ value, loading }: { value: number; loading: boolean })
   )
 }
 
+// ── 聊天预览卡片（"如何运作"区域右侧）──
+
+function ChatPreviewCard() {
+  const [currentMsg, setCurrentMsg] = useState(0)
+  const messages = [
+    { from: 'them', text: '周末有空一起喝杯咖啡吗？我知道一家很好喝的店～', delay: 800 },
+    { from: 'me', text: '好呀，周六下午怎么样？', delay: 2000 },
+  ]
+
+  useEffect(() => {
+    messages.forEach((msg, i) => {
+      if (i === 0) setCurrentMsg(1)
+      setTimeout(() => setCurrentMsg(i + 1), msg.delay)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="glass-card rounded-3xl p-6 bg-gradient-to-br from-[#5b4a7a] to-[#4a3868] shadow-xl">
+      {/* Chat Header */}
+      <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/10">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 flex items-center justify-center text-sm font-bold text-white shadow-md">
+          明
+        </div>
+        <div>
+          <p className="text-white font-semibold text-sm">小明</p>
+          <p className="text-white/40 text-xs">刚刚在线</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="space-y-3 min-h-[160px]">
+        {currentMsg >= 1 && (
+          <div className="flex justify-start animate-fade-in">
+            <div className="bg-gradient-to-r from-pink-600/90 to-purple-600/90 text-white text-sm px-4 py-2.5 rounded-2xl rounded-bl-md max-w-[85%] leading-relaxed shadow-md">
+              {messages[0].text}
+            </div>
+          </div>
+        )}
+        {currentMsg >= 2 && (
+          <div className="flex justify-end animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="bg-white text-gray-700 text-sm px-4 py-2.5 rounded-2xl rounded-br-md max-w-[85%] leading-relaxed shadow-md">
+              {messages[1].text}
+            </div>
+          </div>
+        )}
+
+        {/* Input (always shown) */}
+        <div className="flex items-center gap-2 pt-2">
+          <input
+            type="text"
+            placeholder="输入消息..."
+            readOnly
+            className="flex-1 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none cursor-default"
+          />
+          <button className="w-9 h-9 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm shadow-md shrink-0">
+            ➤
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const router = useRouter()
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
@@ -257,36 +321,50 @@ export default function Home() {
       {/* How it works */}
       <section className="relative z-10 max-w-5xl mx-auto px-6 py-20">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-16">如何运作</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
-            {
-              num: '01', title: '完成深度问卷', icon: '📝',
-              desc: '涵盖性格底色、自我观察、人生方向、相处之道、生活节奏、个人画像六大维度，35道题，大约15分钟',
-              detail: '你最认同哪种「爱的安全感」来源？\nA. 事事有回应  B. 我的后盾与港湾\nC. 自由的牵挂  D. 共同进步的战友'
-            },
-            {
-              num: '02', title: '每周收到匹配', icon: '💌',
-              desc: '系统每周日自动匹配，告诉你五维度分别的契合度和冲突类型',
-              detail: '你的匹配：小林\n🎯 87% 契合度\n安全联结 92% | 互动模式 85%\n意义系统 88% | 动力发展 76% | 日常系统 90%\n🐬×🐕 冲突风格互补'
-            },
-            {
-              num: '03', title: '开启真诚对话', icon: '☕',
-              desc: '双方确认后交换联系方式，接下来的故事由你们自己书写',
-              detail: '约一杯奶茶，聊聊彼此的人生剧本，看看会发生什么有趣的事～'
-            },
-          ].map((step, i) => (
-            <div key={i} className="glass-card rounded-2xl p-8 hover:shadow-lg transition-all duration-300 group">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">{step.icon}</span>
-                <span className="text-sm font-bold text-pink-400">{step.num}</span>
+        <div className="grid lg:grid-cols-5 gap-12 items-start">
+          {/* Left: Steps */}
+          <div className="lg:col-span-3 flex flex-col gap-6">
+            {[
+              {
+                num: '01', title: '完成深度问卷', icon: '📝',
+                desc: '涵盖性格底色、自我观察、人生方向、相处之道、生活节奏、个人画像六大维度，35道题，大约15分钟',
+                detail: '你最认同哪种「爱的安全感」来源？\nA. 事事有回应  B. 我的后盾与港湾\nC. 自由的牵挂  D. 共同进步的战友'
+              },
+              {
+                num: '02', title: '收到匹配邀请', icon: '💌',
+                desc: '系统根据五维度兼容性自动匹配合适的TA，每周日揭晓结果',
+                detail: '你的匹配：小林\n🎯 87% 契合度\n安全联结 92% | 互动模式 85%\n意义系统 88% | 动力发展 76%'
+              },
+              {
+                num: '03', title: '开启真诚对话', icon: '☕',
+                desc: '交换联系方式后，约见面、聊天，故事由你们续写。',
+                detail: ''
+              },
+            ].map((step, i) => (
+              <div key={i} className={`glass-card rounded-2xl p-6 hover:shadow-lg transition-all duration-300 group ${i === 2 ? 'lg:opacity-50' : ''}`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                    i === 2 ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white' : 'bg-white border-2 border-pink-200 text-pink-400'
+                  }`}>
+                    {i === 2 ? '03' : step.num}
+                  </span>
+                  <span className="text-2xl">{step.icon}</span>
+                  <h3 className="text-lg font-bold text-gray-800">{step.title}</h3>
+                </div>
+                <p className="text-gray-500 text-sm ml-14">{step.desc}</p>
+                {step.detail && (
+                  <div className="mt-3 ml-14 bg-gray-50/80 rounded-xl p-3 text-xs text-gray-400 whitespace-pre-line group-hover:bg-pink-50/60 transition">
+                    {step.detail}
+                  </div>
+                )}
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">{step.title}</h3>
-              <p className="text-gray-500 text-sm mb-4">{step.desc}</p>
-              <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-400 whitespace-pre-line group-hover:bg-pink-50 transition">
-                {step.detail}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Right: Chat Preview Card */}
+          <div className="lg:col-span-2 lg:sticky lg:top-24">
+            <ChatPreviewCard />
+          </div>
         </div>
       </section>
 
