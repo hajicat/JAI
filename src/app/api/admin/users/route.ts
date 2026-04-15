@@ -320,11 +320,12 @@ export async function PATCH(req: NextRequest) {
     const nickname = (userResult.rows[0] as any).nickname
     const statusValue = verificationStatus === 'null' ? null : verificationStatus
 
+    const scoreValue = verificationScore !== undefined ? verificationScore : null
     await db.execute({
       sql: `UPDATE users SET verification_status = ?, verification_score = ?` +
         (statusValue === 'verified_student' ? `, verified_at = datetime('now')` : `, verified_at = NULL`) +
         ` WHERE id = ?`,
-      args: [statusValue, verificationScore ?? null, uid],
+      args: [statusValue, scoreValue, uid],
     })
 
     console.log(`[admin/patch-user] uid=${uid} verification_status=${statusValue} by=${decoded.id}`)
