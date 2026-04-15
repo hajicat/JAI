@@ -393,8 +393,8 @@ export default function SurveyPage() {
 
       {/* 提交完成弹窗 */}
       {verificationResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-out">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center animate-modal-in">
             <div className="text-5xl mb-4">🎉</div>
             <h2 className="text-xl font-bold text-gray-800 mb-2">问卷提交成功</h2>
             <p className="text-sm text-gray-500 mb-6">
@@ -437,9 +437,19 @@ export default function SurveyPage() {
         </div>
 
         {/* Progress bar */}
-        <div className="h-1.5 bg-gray-100 rounded-full mb-3 overflow-hidden">
-          <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-pink-500 to-purple-500'} transition-all duration-500`}
-            style={{ width: `${progress}%` }} />
+        <div className="relative h-1.5 bg-gray-100 rounded-full mb-3 overflow-hidden">
+          <div
+            className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-pink-500 to-purple-500'} transition-all duration-300 ease-out`}
+            style={{ width: `${progress}%` }}
+          />
+          {/* 进度条前端光晕效果 */}
+          {progress > 0 && (
+            <div
+              className="absolute top-0 right-0 h-1.5 w-8 bg-white/40 rounded-full blur-sm pointer-events-none"
+              style={{ marginLeft: '-8px', animation: 'glowPulse 2s ease-in-out infinite' }}
+            />
+          )}
+        </div>
         </div>
 
         {error && (
@@ -475,15 +485,25 @@ export default function SurveyPage() {
         </h2>
 
         {/* ====== 选择题渲染 ====== */}
-        {currentQ.type === 'choice' && (
-          <div className="space-y-3 mb-10">
-            {currentQ.options!.map((opt, i) => (
-              <button key={`${step}-${i}`} onClick={() => handleSelect(opt)}
-                className={`w-full text-left px-6 py-4 rounded-2xl border-2 transition-all duration-300 ${
-                  answers[`q${step + 1}`] === opt
-                    ? 'border-pink-400 bg-gradient-to-r from-pink-50 to-purple-50 text-pink-700 shadow-md'
-                    : 'border-gray-100 bg-white/60 hover:border-pink-200 hover:bg-pink-50/50 text-gray-600'
-                }`}>
+          {currentQ.type === 'choice' && (
+            <div className="space-y-3 mb-10">
+              {currentQ.options!.map((opt, i) => {
+                const selected = answers[`q${step + 1}`] === opt
+                return (
+                  <button key={`${step}-${i}`} onClick={() => handleSelect(opt)}
+                    style={{
+                      transition: `all var(--duration-normal) var(--ease-spring)`,
+                      transform: selected ? 'scale(1.00)' : 'scale(1)',
+                    }}
+                    className={`w-full text-left px-6 py-4 rounded-2xl border-2 ${
+                      selected
+                        ? 'border-pink-400 bg-gradient-to-r from-pink-50 to-purple-50 text-pink-700 shadow-md'
+                        : 'border-gray-100 bg-white/60 hover:border-pink-200 hover:bg-pink-50/50 text-gray-600'
+                    }`}>
+                    <span className="font-medium"><span className="text-pink-300 mr-2">{String.fromCharCode(65 + i)}.</span>{opt}</span>
+                  </button>
+                )
+              })}
                 <span className="font-medium"><span className="text-pink-300 mr-2">{String.fromCharCode(65 + i)}.</span>{opt}</span>
               </button>
             ))}

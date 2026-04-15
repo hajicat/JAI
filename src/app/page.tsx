@@ -1,9 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getCsrfToken } from '@/lib/csrf'
+
+// ── 滚动渐显 Hook（Intersection Observer，Apple 风格交错入场）──
+function useScrollReveal(options?: { threshold?: number; rootMargin?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.unobserve(el) } },
+      { threshold: options?.threshold ?? 0.15, rootMargin: options?.rootMargin ?? '0px 0px -40px 0px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return { ref, visible }
+}
 
 // ── 同步工具（纯字符串操作，无网络请求，渲染时即可调用）──
 
@@ -95,6 +114,10 @@ function FlipBoardCount({ value, loading }: { value: number; loading: boolean })
 
 export default function Home() {
   const router = useRouter()
+  const { ref: heroRef, visible: heroVisible } = useScrollReveal()
+  const { ref: howRef, visible: howVisible } = useScrollReveal()
+  const { ref: campusRef, visible: campusVisible } = useScrollReveal({ threshold: 0.1 })
+  const { ref: pricingRef, visible: pricingVisible } = useScrollReveal({ threshold: 0.1 })
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
   const [stats, setStats] = useState({ totalUsers: 0, completedSurvey: 0 })
   // ── 关键改进：用 cookie 同步判断初始登录状态，首帧即可渲染正确按钮 ──
@@ -216,23 +239,27 @@ export default function Home() {
       </nav>
 
       <main className="relative z-10 max-w-4xl mx-auto px-6 pt-16 pb-24 text-center">
-        <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur rounded-full text-sm text-gray-500 border border-white/30">
+        <div ref={heroRef} className={`mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur rounded-full text-sm text-gray-500 border border-white/30 ${heroVisible ? 'animate-fade-in' : 'opacity-0'}`}>
           <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
           已有 <span className="font-semibold text-pink-600">{displayCount}</span> 位同学完成测试
         </div>
 
-        <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-          <span className="gradient-text">不止于相遇</span>
-          <br />
-          <span className="text-gray-800">致力于相知</span>
-        </h1>
+        <div className={heroVisible ? 'animate-fade-in' : 'opacity-0'} style={{ animationDelay: '80ms' }}>
+          <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+            <span className="gradient-text">不止于相遇</span>
+            <br />
+            <span className="text-gray-800">致力于相知</span>
+          </h1>
+        </div>
 
-        <p className="text-lg text-gray-500 mb-10 max-w-xl mx-auto leading-relaxed">
-          长春高校专属盲盒交友平台<br />
-          基于心理学深度兼容性测试，每周为你匹配一位灵魂契合的TA
-        </p>
+        <div className={heroVisible ? 'animate-fade-in' : 'opacity-0'} style={{ animationDelay: '160ms' }}>
+          <p className="text-lg text-gray-500 mb-10 max-w-xl mx-auto leading-relaxed">
+            长春高校专属盲盒交友平台<br />
+            基于心理学深度兼容性测试，每周为你匹配一位灵魂契合的TA
+          </p>
+        </div>
 
-        <div className="glass-card rounded-2xl p-6 mb-10 max-w-md mx-auto">
+        <div className={`glass-card rounded-2xl p-6 mb-10 max-w-md mx-auto interactive-card ${heroVisible ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '240ms' }}>
           <p className="text-sm text-gray-400 mb-3">距下次匹配</p>
           <div className="flex items-center justify-center gap-3">
             {[
@@ -252,18 +279,18 @@ export default function Home() {
         </div>
 
         {isLoggedIn ? (
-          <Link href={localSurveyDone ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+          <Link href={localSurveyDone ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
             {localSurveyDone ? '💌 查看匹配' : '🎁 继续测试'}
           </Link>
         ) : (
-          <Link href="/login?mode=register" className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+          <Link href="/login?mode=register" className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
             🎁 开始测试
           </Link>
         )}
       </main>
 
       {/* How it works - Interactive */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+      <section ref={howRef} className={`relative z-10 max-w-5xl mx-auto px-6 py-20 ${howVisible ? 'animate-fade-in' : 'opacity-0'}`}>
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-16">如何运作</h2>
 
         <div className="grid md:grid-cols-[1fr_1.1fr] gap-0 rounded-3xl overflow-hidden shadow-xl border border-white/20 bg-white/40 backdrop-blur-sm">
@@ -469,8 +496,8 @@ export default function Home() {
       </section>
 
       {/* Campus only */}
-      <section className="relative z-10 max-w-3xl mx-auto px-6 py-12">
-        <div className="glass-card rounded-3xl p-8 text-center">
+      <section ref={campusRef} className={`relative z-10 max-w-3xl mx-auto px-6 py-12 ${campusVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+        <div className="glass-card rounded-3xl p-8 text-center interactive-card">
           <div className="text-4xl mb-3">📍</div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">仅限长春高校同学</h3>
           <p className="text-gray-500 text-sm">
@@ -482,8 +509,8 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section className="relative z-10 max-w-3xl mx-auto px-6 py-16 text-center">
-        <div className="glass-card rounded-3xl p-10">
+      <section ref={pricingRef} className={`relative z-10 max-w-3xl mx-auto px-6 py-16 text-center ${pricingVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+        <div className="glass-card rounded-3xl p-10 interactive-card">
           <h2 className="text-3xl font-bold text-gray-800 mb-3">完全免费，纯靠缘分</h2>
           <p className="text-gray-500 mb-8">校内平台，不收任何费用。每周日20:00自动匹配。</p>
           <Link href={isLoggedIn ? (localSurveyDone ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full font-medium hover:opacity-90 transition">

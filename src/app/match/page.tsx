@@ -529,7 +529,7 @@ export default function MatchPage() {
             </div>
           </div>
         ) : matchedDone ? (
-          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
+          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in interactive-card">
             <div className="text-6xl mb-4">🍃</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">本周暂未匹配到搭档</h2>
             <p className="text-gray-500 mb-6 leading-relaxed">
@@ -541,7 +541,7 @@ export default function MatchPage() {
             </div>
           </div>
         ) : (
-          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in">
+          <div className="glass-card rounded-3xl p-10 shadow-xl text-center animate-fade-in interactive-card">
             <div className="text-6xl mb-4">🔮</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">你的缘分在路上</h2>
             <p className="text-gray-500 mb-6 leading-relaxed">
@@ -567,7 +567,7 @@ export default function MatchPage() {
         )}
 
         {/* Match Toggle */}
-        <div className="mt-8 glass-card rounded-3xl p-6 shadow-lg">
+        <div className="mt-8 glass-card rounded-3xl p-6 shadow-lg interactive-card animate-fade-in" style={{ animationDelay: '100ms' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{matchEnabled ? '🎯' : '⏸️'}</span>
@@ -618,8 +618,8 @@ export default function MatchPage() {
 
         {/* ═══ 修改密码弹窗 ═══ */}
         {showChangePwd && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowChangePwd(false)}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-modal-out" onClick={() => setShowChangePwd(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 animate-modal-in" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-lg font-bold text-gray-800">🔐 修改密码</h3>
                 <button onClick={() => setShowChangePwd(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
