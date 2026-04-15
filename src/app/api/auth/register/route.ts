@@ -195,9 +195,10 @@ export async function POST(req: NextRequest) {
       const userInviteCode = generateInviteCode()
 
       const insertResult = await db.execute({
-        sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by, gender, preferred_gender, email_verified)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-        args: [nickname, email, passwordHash, userInviteCode, Number(codeRow.created_by), gender, preferredGender],
+        sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by, gender, preferred_gender, email_verified, verification_status)
+              VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        args: [nickname, email, passwordHash, userInviteCode, Number(codeRow.created_by), gender, preferredGender,
+          geoResult.requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
       })
 
       const newUserId = Number(insertResult.lastInsertRowid)
@@ -295,9 +296,10 @@ export async function POST(req: NextRequest) {
     const userInviteCode = generateInviteCode()
 
     const insertResult = await db.execute({
-      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, gender, preferred_gender, email_verified)
-            VALUES (?, ?, ?, ?, ?, ?, 1)`,
-      args: [nickname, email, passwordHash, userInviteCode, gender, preferredGender],
+      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, gender, preferred_gender, email_verified, verification_status)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+      args: [nickname, email, passwordHash, userInviteCode, gender, preferredGender,
+        gpsEnabled && geoResult?.requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
     })
 
     const newUserId = Number(insertResult.lastInsertRowid)
