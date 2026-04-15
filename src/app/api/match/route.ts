@@ -66,12 +66,12 @@ export async function GET(req: NextRequest) {
         'FROM matches m ' +
         'JOIN users u1 ON m.user_a = u1.id ' +
         'JOIN users u2 ON m.user_b = u2.id ' +
-        'WHERE (m.user_a = ? OR m.user_b = ?) ' +
+        'WHERE (m.user_a = ? OR m.user_b = ?) AND m.week_key = ? ' +
         'ORDER BY m.created_at DESC LIMIT 1'
 
       matchResult = await db.execute({
         sql: fallbackSql,
-        args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
+        args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, weekKey],
       })
     }
 
