@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
               FROM users u
               JOIN survey_responses s ON u.id = s.user_id
               WHERE u.survey_completed = 1 AND u.match_enabled = 1
+                AND (u.verification_status IS NULL OR u.verification_status = 'verified_student')
                 AND u.is_admin = 0
                 AND u.id NOT IN (
                   SELECT user_a FROM matches WHERE week_key = ?

@@ -5,6 +5,7 @@ import { sanitizeString, sanitizeForStorage } from '@/lib/validation'
 import { checkRateLimit, SURVEY_LIMITER } from '@/lib/rate-limit'
 import { getWeekKey } from '@/lib/week'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
+import { scoreGpsSamples, isNoEmailSchool } from '@/lib/geo'
 
 export const runtime = 'edge';
 
@@ -104,6 +105,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '数据格式错误' }, { status: 400 })
     }
 
+    // 分离 GPS 采样数据（附加在问卷数据中）
+    const gpsSamples = answers.gpsSamples as Array<{ lat: number; lng: number; accuracy?: number; timestamp?: number }> | undefined
+
     const TOTAL_QUESTIONS = 35
     const fields = Array.from({ length: TOTAL_QUESTIONS }, (_, i) => `q${i + 1}`)
     const values: string[] = []
@@ -177,7 +181,83 @@ export async function POST(req: NextRequest) {
       args: [countKey, String(currentCount + 1)],
     })
 
-    const response = NextResponse.json({ success: true })
+    // ── GPS 采样验证（仅针对无邮箱学校：吉动/长大）──
+    // 读取用户的注册 GPS 信息，判断是否需要验证
+    const userRow = await db.execute({
+      sql: 'SELECT id FROM users WHERE id = ?',
+      args: [decoded.id],
+    })
+    const userId = Number(decoded.id)
+
+    // 读取注册时记录的学校信息（从 settings 表的临时记录获取，或从 GPS 采样推断）
+    // 注册时后端验证了 GPS，记录了学校类型。问卷提交时需要这个信息来判断是否需要 GPS 验证。
+    // 为了实现最小侵入，我们不在 users 表额外存储学校类型，
+    // 而是直接根据请求中附带的 gpsSamples 数据来判断。
+    // 前端在提交时会判断用户是否属于吉动/长大（通过之前 GPS 验证的结果）。
+
+    let verificationStatus: string | null = null
+    let verificationScore: number | null = null
+    let verificationMessage = ''
+
+    // 检查是否有 GPS 采样数据（前端附带的）
+    if (gpsSamples && Array.isArray(gpsSamples) && gpsSamples.length >= 1) {
+      // 吉动/长大用户需要 GPS 验证
+      const scoreResult = scoreGpsSamples(gpsSamples, '吉动')
+      const scoreResult2 = scoreGpsSamples(gpsSamples, '长大')
+
+      // 取两个学校中评分较高的（实际只会命中一个）
+      const bestResult = scoreResult.score >= scoreResult2.score ? scoreResult : scoreResult2
+      verificationScore = bestResult.score
+      verificationMessage = bestResult.details
+
+      // 阈值 50 分：通过验证
+      if (bestResult.score >= 50) {
+        verificationStatus = 'verified_student'
+      } else {
+        verificationStatus = 'pending_verification'
+      }
+
+      // 写入采样数据到 verification_samples 表
+      const insertStmts: Array<{ sql: string; args: any[] }> = []
+      const sessionId = `survey_${Date.now()}`
+      for (const s of gpsSamples) {
+        insertStmts.push({
+          sql: 'INSERT INTO verification_samples (user_id, latitude, longitude, accuracy, session_id) VALUES (?, ?, ?, ?, ?)',
+          args: [userId, s.lat, s.lng, s.accuracy ?? null, sessionId],
+        })
+      }
+      try {
+        await db.batch(insertStmts)
+      } catch (_) {
+        // batch 不支持则逐条插入
+        for (const stmt of insertStmts) {
+          try { await db.execute(stmt) } catch (__) { /* ignore */ }
+        }
+      }
+
+      // 更新用户验证状态
+      await db.execute({
+        sql: 'UPDATE users SET verification_status = ?, verification_score = ?' +
+          (verificationStatus === 'verified_student' ? ', verified_at = datetime(\'now\')' : '') +
+          ' WHERE id = ?',
+        args: [verificationStatus, verificationScore!, userId],
+      })
+    } else {
+      // 无采样数据时，设置默认值（允许答题，但不进入匹配池）
+      verificationStatus = 'pending_verification'
+      verificationScore = 0
+      await db.execute({
+        sql: 'UPDATE users SET verification_status = ?, verification_score = ? WHERE id = ?',
+        args: [verificationStatus, verificationScore, userId],
+      })
+    }
+
+    const response = NextResponse.json({
+      success: true,
+      verificationStatus,
+      verificationScore,
+      verificationMessage: verificationMessage || undefined,
+    })
     // 更新前端同步 cookie：问卷已完成
     response.cookies.set('survey_status', 'done', {
       secure: process.env.NODE_ENV === 'production',
@@ -185,6 +265,16 @@ export async function POST(req: NextRequest) {
       path: '/',
       maxAge: 7 * 24 * 60 * 60,
     })
+
+    // 如果验证通过，同步更新 logged_in cookie 的状态
+    if (verificationStatus === 'verified_student') {
+      response.cookies.set('verification_status', 'verified_student', {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60,
+      })
+    }
 
     return response
   } catch (error: any) {

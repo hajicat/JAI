@@ -126,6 +126,16 @@ async function doInit(): Promise<void> {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS verification_samples (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      accuracy REAL,
+      sampled_at TEXT DEFAULT (datetime('now')),
+      session_id TEXT
+    );
+
     -- 所有索引（IF NOT EXISTS 幂等）
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_invite ON users(invite_code);
@@ -137,6 +147,7 @@ async function doInit(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_verification_codes_expires ON verification_codes(expires_at);
     CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
     CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
+    CREATE INDEX IF NOT EXISTS idx_verification_samples_user ON verification_samples(user_id);
   `)
 
   // ── 种子管理员：直接查事实（is_admin），不依赖间接缓存 ──
@@ -230,6 +241,12 @@ async function doInit(): Promise<void> {
     { sql: `ALTER TABLE survey_responses ADD COLUMN q33 TEXT`, table: 'survey_responses', column: 'q33' },
     { sql: `ALTER TABLE survey_responses ADD COLUMN q34 TEXT`, table: 'survey_responses', column: 'q34' },
     { sql: `ALTER TABLE survey_responses ADD COLUMN q35 TEXT`, table: 'survey_responses', column: 'q35' },
+    // users 表新增学生验证状态字段
+    { sql: `ALTER TABLE users ADD COLUMN verification_status TEXT DEFAULT 'pending_verification'`, table: 'users', column: 'verification_status' },
+    { sql: `ALTER TABLE users ADD COLUMN verification_score INTEGER DEFAULT 0`, table: 'users', column: 'verification_score' },
+    { sql: `ALTER TABLE users ADD COLUMN verified_at TEXT`, table: 'users', column: 'verified_at' },
+    // verification_samples 表
+    { sql: `ALTER TABLE verification_samples ADD COLUMN session_id TEXT`, table: 'verification_samples', column: 'session_id' },
   ]
 
   // 收集需要 ALTER 的表名，批量查询
