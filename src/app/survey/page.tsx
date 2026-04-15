@@ -118,10 +118,8 @@ export default function SurveyPage() {
   const [alreadyCompleted, setAlreadyCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showPrivacyNote, setShowPrivacyNote] = useState(false)
-  const [showComplete, setShowComplete] = useState(false)
   const [gpsSamples, setGpsSamples] = useState<Array<{ lat: number; lng: number; accuracy?: number }>>([])
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'sampling' | 'done' | 'denied'>('idle')
-  const [verificationResult, setVerificationResult] = useState<{ status: string; score?: number; message?: string } | null>(null)
   const gpsWatchId = useRef<number | null>(null)
   const sampleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sampleCount = useRef(0)
@@ -322,19 +320,9 @@ export default function SurveyPage() {
         })
       })
       if (res.ok) {
-        const data = await res.json()
-        // 清除草稿，显示庆祝页，延迟跳转
         clearDraft()
         setSaving(false)
-        setVerificationResult({
-          status: data.verificationStatus,
-          score: data.verificationScore,
-          message: data.verificationMessage,
-        })
-        setShowComplete(true)
-        // 验证通过跳匹配页，未通过跳首页
-        const nextPage = data.verificationStatus === 'verified_student' ? '/match' : '/'
-        setTimeout(() => router.push(nextPage), data.verificationStatus === 'verified_student' ? 3000 : 5000)
+        router.push('/')
         return
       } else {
         const data = await res.json()
@@ -355,47 +343,6 @@ export default function SurveyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-      {/* 问卷完成庆祝弹窗 */}
-      {showComplete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="glass-card rounded-3xl p-10 text-center shadow-2xl animate-fade-in max-w-sm mx-4">
-            {verificationResult?.status === 'verified_student' ? (
-              <>
-                <div className="text-6xl mb-4 animate-bounce">🎉</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">验证通过！</h2>
-                <p className="text-gray-500 mb-2">
-                  你的学生身份已确认<br />
-                  现在可以参与匹配了！
-                </p>
-                {verificationResult.score && (
-                  <p className="text-xs text-gray-400 mb-4">
-                    GPS 验证评分：{verificationResult.score}
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="text-6xl mb-4">📋</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">问卷已提交</h2>
-                <p className="text-gray-500 mb-2">
-                  你的问卷已保存<br />
-                  由于未能完成学生验证<br />
-                  目前暂时无法进入匹配池
-                </p>
-                <p className="text-xs text-amber-500 mb-2">
-                  💡 请在校园内答题，系统会静默验证
-                </p>
-              </>
-            )}
-            <div className="text-sm text-gray-400">
-              {verificationResult?.status === 'verified_student'
-                ? '3 秒后跳转匹配页...'
-                : '5 秒后返回首页...'}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 right-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
         <div className="absolute bottom-20 left-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '1s' }} />
@@ -445,18 +392,6 @@ export default function SurveyPage() {
       {!loading && !alreadyCompleted && (
       <>
       <div className="relative z-10 max-w-2xl mx-auto px-6 py-10">
-        {/* GPS 验证状态提示（静默，不打扰答题） */}
-        {gpsStatus === 'sampling' && (
-          <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-2 text-xs text-blue-600">
-            <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            答题期间系统自动完成环境验证，不需要上传证件
-          </div>
-        )}
-        {gpsStatus === 'denied' && (
-          <div className="mb-4 px-4 py-2 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-600">
-            ⚠️ 未开启定位权限，将无法通过学生验证（但仍可提交问卷）
-          </div>
-        )}
 
         <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-1.5 min-w-0">
