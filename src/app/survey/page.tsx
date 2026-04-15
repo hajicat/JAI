@@ -394,33 +394,15 @@ export default function SurveyPage() {
         </div>
       )}
 
-      {/* 验证结果弹窗 */}
+      {/* 提交完成弹窗 */}
       {verificationResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center animate-fade-in">
-            {verificationResult.status === 'verified_student' ? (
-              <>
-                <div className="text-5xl mb-4">✅</div>
-                <h2 className="text-xl font-bold text-gray-800 mb-2">现场验证已通过</h2>
-                <p className="text-sm text-gray-500 mb-6">
-                  你已进入匹配池，周日 20:00 揭示搭档
-                </p>
-                {verificationResult.message && (
-                  <p className="text-xs text-gray-400 mb-6">{verificationResult.message}</p>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="text-5xl mb-4">⏳</div>
-                <h2 className="text-xl font-bold text-gray-800 mb-2">现场验证未通过</h2>
-                <p className="text-sm text-gray-500 mb-6">
-                  暂时无法进入匹配池，请确保答题期间在校园核心区域开启定位
-                </p>
-                {verificationResult.message && (
-                  <p className="text-xs text-gray-400 mb-6">{verificationResult.message}</p>
-                )}
-              </>
-            )}
+            <div className="text-5xl mb-4">🎉</div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">问卷提交成功</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              你已进入匹配池，周日 20:00 揭示搭档
+            </p>
             <button
               onClick={() => router.push('/')}
               className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full font-semibold hover:opacity-90 transition"
