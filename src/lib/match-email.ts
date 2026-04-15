@@ -165,7 +165,7 @@ async function sendOneEmail(
     }
 
     return true
-  } catch (err: any) {
+  } catch {
     return false
   }
 }

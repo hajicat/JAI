@@ -91,7 +91,7 @@ export async function executeAutoMatchSafe(db: ReturnType<typeof getDb>): Promis
 
   // 5. 执行匹配
   try {
-    const result = await executeAutoMatch()
+    const result = await executeAutoMatch(weekKey)
 
     // 标记完成
     await db.execute({
@@ -650,9 +650,9 @@ export async function handleManualMatch(body: any): Promise<ManualMatchResult> {
  *
  * 注意：此函数不做权限检查/锁机制，由调用方负责
  */
-export async function executeAutoMatch(): Promise<AutoMatchResult> {
+export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResult> {
   const db = getDb()
-  const weekKey = getWeekKey()
+  const wk = weekKey || getWeekKey()
 
   const usersResult = await db.execute({
     sql: `SELECT u.id, u.gender, u.preferred_gender,
@@ -669,14 +669,14 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
               UNION
               SELECT user_b FROM matches WHERE week_key = ?
             )`,
-    args: [weekKey, weekKey],
+    args: [wk, wk],
   })
 
   const users = usersResult.rows as any[]
 
   if (users.length < 2) {
     return {
-      success: false, weekKey,
+      success: false, weekKey: wk,
       matchedPairs: 0, unmatchedUsers: users.length,
       totalEligible: users.length, safePoolSize: 0,
     }
@@ -692,7 +692,7 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
 
   if (safeUsers.length < 2) {
     return {
-      success: false, weekKey,
+      success: false, weekKey: wk,
       matchedPairs: 0, unmatchedUsers: users.length,
       totalEligible: users.length, safePoolSize: safeUsers.length,
     }
@@ -739,7 +739,7 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
           bestScore,
           JSON.stringify(bestResult.dimScores),
           JSON.stringify(bestResult.reasons),
-          weekKey,
+          wk,
         ],
       })
       matched.add(Number(shuffled[i].user.id))
@@ -762,7 +762,7 @@ export async function executeAutoMatch(): Promise<AutoMatchResult> {
 
   return {
     success: true,
-    weekKey,
+    weekKey: wk,
     matchedPairs: matches.length,
     unmatchedUsers: shuffled.length - matched.size,
     totalEligible: users.length,

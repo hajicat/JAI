@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
           }
         } catch {
           contact = { type: row.partner_contact_type, info: '[解密失败]', decryptError: true }
+          console.error(`[match/history] 解密用户 ${uid} 的历史匹配 #${row.id} 联系方式失败`)
         }
       } else if (bothRevealed && !row.partner_contact_info) {
         contact = { type: null, info: null, empty: true }
@@ -130,6 +131,7 @@ export async function GET(req: NextRequest) {
       totalWeeks: weeks.length,
     })
   } catch (error) {
+    console.error('[match/history]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取历史匹配失败' }, { status: 500 })
   }
 }
