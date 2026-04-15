@@ -282,3 +282,56 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: '删除用户失败' }, { status: 500 })
   }
 }
+
+/**
+ * PATCH /api/admin/users?id=xxx
+ * 更新指定用户的验证状态（管理员手动操作，无需二级密码）
+ * Body: { verificationStatus: string; verificationScore?: number }
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const cookieName = getCookieName('token')
+    const token = req.cookies.get(cookieName)?.value
+    if (!token) return NextResponse.json({ error: '请先登录' }, { status: 401 })
+
+    const db = getDb()
+    await initDb()
+    const decoded = await verifyTokenSafe(token, db)
+    if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
+
+    const userId = req.nextUrl.searchParams.get('id')
+    const uid = Number(userId)
+    if (!Number.isInteger(uid) || uid <= 0) {
+      return NextResponse.json({ error: '无效的用户ID' }, { status: 400 })
+    }
+
+    const body = await req.json() as { verificationStatus?: string; verificationScore?: number }
+    const { verificationStatus, verificationScore } = body
+
+    const validStatuses = ['verified_student', 'pending_verification', 'verification_failed', 'null']
+    if (!validStatuses.includes(verificationStatus as string)) {
+      return NextResponse.json({ error: '无效的验证状态' }, { status: 400 })
+    }
+
+    // 检查用户是否存在
+    const userResult = await db.execute({ sql: 'SELECT id, nickname FROM users WHERE id = ?', args: [uid] })
+    if (!userResult.rows[0]) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
+
+    const nickname = (userResult.rows[0] as any).nickname
+    const statusValue = verificationStatus === 'null' ? null : verificationStatus
+
+    await db.execute({
+      sql: `UPDATE users SET verification_status = ?, verification_score = ?` +
+        (statusValue === 'verified_student' ? `, verified_at = datetime('now')` : `, verified_at = NULL`) +
+        ` WHERE id = ?`,
+      args: [statusValue, verificationScore ?? null, uid],
+    })
+
+    console.log(`[admin/patch-user] uid=${uid} verification_status=${statusValue} by=${decoded.id}`)
+
+    return NextResponse.json({ success: true, message: `已将「${nickname}」的验证状态更新为「${statusValue || '未设置'}」` })
+  } catch (error) {
+    console.error('[admin/patch-user]', (error as any)?.message || error)
+    return NextResponse.json({ error: '更新失败' }, { status: 500 })
+  }
+}
