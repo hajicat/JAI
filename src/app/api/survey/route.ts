@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     const userId = Number(decoded.id)
 
     // 前端传来的历史最高分（重做题时保留）
-    const bodyPrevScore = typeof body.prevScore === 'number' ? body.prevScore : null
+    const bodyPrevScore = typeof answers.prevScore === 'number' ? answers.prevScore : null
 
     let verificationStatus: string | null = null
     let verificationScore: number | null = null
