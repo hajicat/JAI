@@ -318,9 +318,12 @@ export async function PATCH(req: NextRequest) {
     if (!userResult.rows[0]) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
 
     const nickname = (userResult.rows[0] as any).nickname
-    const statusValue = verificationStatus === 'null' ? null : verificationStatus
+    // 确保无 undefined：undefined/null → null，其余直接用
+    const statusValue: string | null =
+      verificationStatus == null || verificationStatus === 'null' ? null : verificationStatus
+    const scoreValue: number | null =
+      verificationScore !== undefined && verificationScore !== '' ? Number(verificationScore) : null
 
-    const scoreValue = verificationScore !== undefined ? verificationScore : null
     await db.execute({
       sql: `UPDATE users SET verification_status = ?, verification_score = ?` +
         (statusValue === 'verified_student' ? `, verified_at = datetime('now')` : `, verified_at = NULL`) +
