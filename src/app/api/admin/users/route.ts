@@ -322,7 +322,7 @@ export async function PATCH(req: NextRequest) {
     const statusValue: string | null =
       verificationStatus == null || verificationStatus === 'null' ? null : verificationStatus
     const scoreValue: number | null =
-      verificationScore !== undefined && verificationScore !== '' ? Number(verificationScore) : null
+      verificationScore !== undefined ? Number(verificationScore) : null
 
     await db.execute({
       sql: `UPDATE users SET verification_status = ?, verification_score = ?` +
