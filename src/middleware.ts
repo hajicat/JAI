@@ -73,10 +73,11 @@ export function middleware(request: NextRequest) {
   // Remove server identification
   response.headers.delete('X-Powered-By')
 
-  // Explicit CORS policy - only allow same-origin and our own domain
+  // Explicit CORS policy - only allow same-origin requests
   const origin = request.headers.get('origin')
-  if (!origin || origin === new URL(request.url).origin) {
-    response.headers.set('Access-Control-Allow-Origin', 'self')
+  if (origin === new URL(request.url).origin) {
+    // CORS header 必须回显浏览器发送的实际 origin，不能用字面量 'self'
+    response.headers.set('Access-Control-Allow-Origin', origin)
     response.headers.set('Vary', 'Origin')
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-csrf-token')
