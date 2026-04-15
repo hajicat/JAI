@@ -198,16 +198,16 @@ async function doInit(): Promise<void> {
     }
 
     // ⚠️ 管理员初始凭据（首次部署时请查看控制台/日志）
-    // 开发环境会输出初始密码到控制台，生产环境请通过 /api/auth/change-password 修改
+    // 仅输出掩码密码（前4位+****），完整密码不输出到任何日志/控制台，
+    // 防止 CI/CD 日志、Docker 日志等意外暴露。
     const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
     if (isDev) {
-      // 仅在开发环境输出凭据，密码只显示前4位+掩码（防止完整泄露到日志/CI）
       const maskedPassword = adminPassword.slice(0, 4) + '****'
       console.log(`\n[INIT] 🔐 管理员账号已创建:`)
       console.log(`  邮箱: ${adminEmail}`)
-      console.log(`  密码: ${maskedPassword} (完整密码仅此一次显示: ${adminPassword})`)
+      console.log(`  密码: ${maskedPassword}`)
       console.log(`  邀请码: ${adminCode}`)
-      console.log(`  ⚠️  请立即登录并修改密码！\n`)
+      console.log(`  ⚠️  请立即登录并修改密码！如需查看完整密码，请使用 /api/auth/change-password 重置。\n`)
     } else {
       console.warn(`[INIT] 管理员已创建 (${adminEmail})，生产环境密码不输出到日志。如需重置请通过数据库直接操作。`)
     }

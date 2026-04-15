@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
       weeks,
       totalWeeks: weeks.length,
     })
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json({ error: '获取历史匹配失败' }, { status: 500 })
   }
 }

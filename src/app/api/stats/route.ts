@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
       completedSurvey: Number(row.completedSurvey),
       totalMatches: Number(row.totalMatches),
     })
-  } catch (error: any) {
-    console.error('[stats]', error?.message || error)
+  } catch (error) {
+    console.error('[stats]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ totalUsers: 0, completedSurvey: 0, totalMatches: 0 })
   }
 }

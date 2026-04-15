@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
       available: availResult.rows,
       used: usedResult.rows,
     })
-  } catch (error: any) {
-    console.error('[invite GET]', error?.message || error)
+  } catch (error) {
+    console.error('[invite GET]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取邀请码失败' }, { status: 500 })
   }
 }

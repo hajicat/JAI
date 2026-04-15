@@ -85,8 +85,8 @@ export async function POST(req: NextRequest) {
     } // end if (action === 'auto')
 
     return NextResponse.json({ error: '无效的操作类型' }, { status: 400 })
-  } catch (error: any) {
-    console.error('[admin/match]', error?.message || error)
+  } catch (error) {
+    console.error('[admin/match]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }
 }

@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('[admin/reset-match]', error?.message || error)
+  } catch (error) {
+    console.error('[admin/reset-match]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '重置失败' }, { status: 500 })
   }
 }

@@ -86,8 +86,8 @@ export async function GET(req: NextRequest) {
     }
 
     return response
-  } catch (error: any) {
-    console.error('[home-data]', error?.message || error)
+  } catch (error) {
+    console.error('[home-data]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({
       totalUsers: 0,
       completedSurvey: 0,
@@ -95,8 +95,8 @@ export async function GET(req: NextRequest) {
       user: null,
     }, {
       headers: {
-        // Cache error response briefly to avoid thundering herd
-        'Cache-Control': 'public, s-maxage=5',
+        // 错误响应不缓存，避免认证错误等用户状态信息被 CDN 缓存并跨用户共享
+        'Cache-Control': 'no-store',
       },
     })
   }

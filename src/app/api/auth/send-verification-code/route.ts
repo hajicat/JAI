@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: result.message })
 
-  } catch (error: any) {
-    console.error('[send-verification-code]', error?.message || error)
+  } catch (error) {
+    console.error('[send-verification-code]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '系统错误，请稍后重试' }, { status: 500 })
   }
 }

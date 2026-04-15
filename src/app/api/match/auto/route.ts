@@ -50,8 +50,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result)
 
-  } catch (error: any) {
-    console.error('[match/auto]', error?.message || error)
+  } catch (error) {
+    console.error('[match/auto]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '匹配触发失败' }, { status: 500 })
   }
 }

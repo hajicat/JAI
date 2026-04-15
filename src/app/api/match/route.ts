@@ -201,8 +201,8 @@ export async function GET(req: NextRequest) {
         partnerSurvey,
       },
     })
-  } catch (error: any) {
-    console.error('[match GET]', error && error.message ? error.message : error)
+  } catch (error) {
+    console.error('[match GET]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取匹配失败' }, { status: 500 })
   }
 }
@@ -259,8 +259,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('[match POST]', error && error.message ? error.message : error)
+  } catch (error) {
+    console.error('[match POST]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
 }

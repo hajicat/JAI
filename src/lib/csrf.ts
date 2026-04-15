@@ -43,6 +43,9 @@ export function validateCsrfToken(req: NextRequest): boolean {
  */
 export function setCsrfCookie(response: NextResponse): NextResponse {
   const token = generateCsrfToken()
+  // ⚠️ 有意设计：httpOnly: false
+  // Double Submit Cookie 模式要求前端 JS 能读取 cookie 并设置 x-csrf-token header。
+  // 风险通过 CSP script-src 限制缓解。
   response.cookies.set('csrf-token', token, {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',

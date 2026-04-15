@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json(result, { status: 500 })
     }
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json({ error: '通知发送失败' }, { status: 500 })
   }
 }

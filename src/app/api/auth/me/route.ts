@@ -66,8 +66,8 @@ export async function GET(req: NextRequest) {
         availableInviteCodes: codesResult.rows,
       },
     })
-  } catch (error: any) {
-    console.error('[me GET]', error?.message || error)
+  } catch (error) {
+    console.error('[me GET]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ user: null })
   }
 }
@@ -137,8 +137,8 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('[me POST]', error?.message || error)
+  } catch (error) {
+    console.error('[me POST]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '保存失败' }, { status: 500 })
   }
 }

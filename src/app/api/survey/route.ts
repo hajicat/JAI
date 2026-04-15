@@ -277,8 +277,8 @@ export async function POST(req: NextRequest) {
     }
 
     return response
-  } catch (error: any) {
-    console.error('[survey]', error?.message || error)
+  } catch (error) {
+    console.error('[survey]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '保存失败，请稍后重试' }, { status: 500 })
   }
 }

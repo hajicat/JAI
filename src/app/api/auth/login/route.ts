@@ -164,8 +164,8 @@ export async function POST(req: NextRequest) {
     })
 
     return setCsrfCookie(response)
-  } catch (error: any) {
-    console.error('[login]', error)
+  } catch (error) {
+    console.error('[login]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '登录失败，请稍后重试' }, { status: 500 })
   }
 }

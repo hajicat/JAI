@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
     `)
 
     return NextResponse.json({ codes: result.rows })
-  } catch (error: any) {
-    console.error('[admin/codes GET]', error?.message || error)
+  } catch (error) {
+    console.error('[admin/codes GET]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取邀请码失败' }, { status: 500 })
   }
 }
@@ -78,8 +78,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, codes: newCodes })
-  } catch (error: any) {
-    console.error('[admin/codes POST]', error?.message || error)
+  } catch (error) {
+    console.error('[admin/codes POST]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '生成邀请码失败' }, { status: 500 })
   }
 }

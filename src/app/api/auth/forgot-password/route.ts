@@ -31,9 +31,39 @@ async function hashToken(token: string): Promise<string> {
 }
 
 /**
+ * HTML entity 转义，防止嵌入邮件模板时被注入
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
+ * 校验重置 URL 是否属于预期域名（防止 NEXT_PUBLIC_APP_URL 被污染时的注入风险）
+ */
+function validateResetDomain(resetUrl: string): boolean {
+  try {
+    const url = new URL(resetUrl)
+    // 只允许 http/https 协议
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
+    // 域名不能以 javascript:, data: 等危险协议开头（URL parser 已处理）
+    return true
+  } catch {
+    // 无效 URL（构造失败）
+    return false
+  }
+}
+
+/**
  * 构建重置密码邮件 HTML
  */
 function buildResetEmailHtml(resetUrl: string): string {
+  // 安全：先校验域名合法性，再做 HTML 转义后嵌入模板
+  const safeUrl = escapeHtml(resetUrl)
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 24px;">
@@ -47,7 +77,7 @@ function buildResetEmailHtml(resetUrl: string): string {
         <p style="color: rgba(255,255,255,0.7); font-size: 13px; margin: 0;">点击下方按钮设置新密码（30 分钟内有效）</p>
       </div>
 
-      <a href="${resetUrl}"
+      <a href="${safeUrl}"
          style="display: block; width: 100%; padding: 14px; background: #333; color: #fff; text-align: center; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; margin: 20px 0;">
          🔑 重置密码
       </a>
@@ -55,7 +85,7 @@ function buildResetEmailHtml(resetUrl: string): string {
       <div style="background: #f8f8f8; border-radius: 12px; padding: 16px; font-size: 13px; color: #666; line-height: 1.6;">
         <p style="margin: 0 0 8px;">⏰ 链接 <strong>30 分钟</strong>内有效</p>
         <p style="margin: 0 0 8px;">🔒 如果这不是你本人操作，请忽略此邮件</p>
-        <p style="margin: 0; word-break: break-all; font-size: 11px; color: #999;">如果按钮无法点击，请复制此链接到浏览器打开：<br />${resetUrl}</p>
+        <p style="margin: 0; word-break: break-all; font-size: 11px; color: #999;">如果按钮无法点击，请复制此链接到浏览器打开：<br />${safeUrl}</p>
       </div>
 
       <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
@@ -150,6 +180,12 @@ export async function POST(req: NextRequest) {
     const appOrigin = process.env.NEXT_PUBLIC_APP_URL || (new URL(req.url).origin)
     const resetUrl = `${appOrigin}/reset-password?token=${plainToken}`
 
+    // 安全校验：确保 URL 合法（防止环境变量污染导致注入）
+    if (!validateResetDomain(resetUrl)) {
+      console.error('[forgot-password] resetUrl 域名校验失败:', appOrigin)
+      return NextResponse.json({ error: '服务器配置错误' }, { status: 500 })
+    }
+
     const apiKey = process.env.BREVO_API_KEY
     if (!apiKey) {
       console.error('[forgot-password] 未配置 BREVO_API_KEY')
@@ -197,8 +233,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: '重置链接已发送，请查收邮箱' })
 
-  } catch (error: any) {
-    console.error('[forgot-password]', error?.message || error)
+  } catch (error) {
+    console.error('[forgot-password]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '服务器错误，请稍后重试' }, { status: 500 })
   }
 }

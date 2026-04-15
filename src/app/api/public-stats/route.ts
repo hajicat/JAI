@@ -30,8 +30,8 @@ export async function GET() {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
       },
     })
-  } catch (error: any) {
-    console.error('[public-stats]', error?.message || error)
+  } catch (error) {
+    console.error('[public-stats]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ totalUsers: 0, completedSurvey: 0, totalMatches: 0 })
   }
 }

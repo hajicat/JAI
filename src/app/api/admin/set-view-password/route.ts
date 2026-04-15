@@ -75,8 +75,8 @@ export async function POST(req: NextRequest) {
 
     const msg = existingHash ? '二级密码已更新' : '二级密码已设置'
     return NextResponse.json({ success: true, message: msg })
-  } catch (error: any) {
-    console.error('[admin set-view-password]', error?.message || error)
+  } catch (error) {
+    console.error('[admin set-view-password]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '设置失败', success: false }, { status: 500 })
   }
 }
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       hasPassword: !!row?.value,
     })
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json({ hasPassword: false }, { status: 500 })
   }
 }

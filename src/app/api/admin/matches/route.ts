@@ -140,8 +140,8 @@ export async function GET(req: NextRequest) {
       unmatchedCount,
       availableWeeks,
     })
-  } catch (error: any) {
-    console.error('[admin/matches GET]', error?.message || error)
+  } catch (error) {
+    console.error('[admin/matches GET]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '获取匹配列表失败' }, { status: 500 })
   }
 }

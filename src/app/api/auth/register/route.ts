@@ -22,7 +22,44 @@ function isSchoolEmail(email: string): boolean {
   return !!domain && SCHOOL_EMAIL_DOMAINS.includes(domain)
 }
 
-export const runtime = 'edge';
+// ── 公共函数：注册成功后的统一处理（消除两个分支的重复代码）──
+
+/** 设置所有认证和状态 cookie（token + logged_in + survey_status） */
+function setAuthCookies(response: NextResponse, token: string): void {
+  const cookieName = getCookieName('token')
+  response.cookies.set(cookieName, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60,
+  })
+  // 非敏感状态 cookie：前端同步读取，新用户默认 pending
+  response.cookies.set('logged_in', 'true', {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60,
+  })
+  response.cookies.set('survey_status', 'pending', {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60,
+  })
+}
+
+/** 构建注册成功的标准响应（JSON + CSRF cookie） */
+async function buildSuccessResponse(userId: number, nickname: string, email: string, userInviteCode: string, defaultPassword: string): Promise<NextResponse> {
+  const token = await createToken({ id: userId, email, isAdmin: false })
+  const response = NextResponse.json({
+    success: true,
+    user: { id: userId, nickname, email, inviteCode: userInviteCode },
+    defaultPassword,
+  })
+  setAuthCookies(response, token)
+  return setCsrfCookie(response)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -227,38 +264,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const token = await createToken({ id: newUserId, email, isAdmin: false })
-
-      const response = NextResponse.json({
-        success: true,
-        user: { id: newUserId, nickname, email, inviteCode: userInviteCode },
-        defaultPassword,
-      })
-
-      const cookieName = getCookieName('token')
-      response.cookies.set(cookieName, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      })
-
-      // 非敏感状态 cookie：前端同步读取，新用户默认 pending
-      response.cookies.set('logged_in', 'true', {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      })
-      response.cookies.set('survey_status', 'pending', {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      })
-
-      return setCsrfCookie(response)
+      return await buildSuccessResponse(newUserId, nickname, email, userInviteCode, defaultPassword)
     }
 
     // ════════════════════════════════════════════
@@ -306,40 +312,9 @@ export async function POST(req: NextRequest) {
 
     const newUserId = Number(insertResult.lastInsertRowid)
 
-    const token = await createToken({ id: newUserId, email, isAdmin: false })
-
-    const response = NextResponse.json({
-      success: true,
-      user: { id: newUserId, nickname, email, inviteCode: userInviteCode },
-      defaultPassword,
-    })
-
-    const cookieName = getCookieName('token')
-    response.cookies.set(cookieName, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60,
-    })
-
-    // 非敏感状态 cookie：前端同步读取，新用户默认 pending
-    response.cookies.set('logged_in', 'true', {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60,
-    })
-    response.cookies.set('survey_status', 'pending', {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60,
-    })
-
-    return setCsrfCookie(response)
-  } catch (error: any) {
-    const errMsg = error?.message || error || 'unknown'
+    return await buildSuccessResponse(newUserId, nickname, email, userInviteCode, defaultPassword)
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error)
     console.error('[register]', errMsg)
     return NextResponse.json(
       { error: '注册失败，请稍后重试' },

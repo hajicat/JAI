@@ -98,6 +98,9 @@ export function middleware(request: NextRequest) {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
 
+    // ⚠️ 有意设计：httpOnly: false
+    // Double Submit Cookie 模式要求前端 JS 能读取 cookie 值并设置到 x-csrf-token header，
+    // 因此必须允许 JS 访问此 cookie。风险已通过 CSP script-src 限制缓解。
     response.cookies.set('csrf-token', csrfToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',

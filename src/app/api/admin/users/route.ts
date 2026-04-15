@@ -299,6 +299,11 @@ export async function PATCH(req: NextRequest) {
     const decoded = await verifyTokenSafe(token, db)
     if (!decoded?.isAdmin) return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
 
+    // ── CSRF 校验 ──
+    if (!validateCsrfToken(req)) {
+      return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
+    }
+
     const userId = req.nextUrl.searchParams.get('id')
     const uid = Number(userId)
     if (!Number.isInteger(uid) || uid <= 0) {

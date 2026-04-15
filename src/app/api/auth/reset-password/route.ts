@@ -82,8 +82,8 @@ export async function POST(req: NextRequest) {
     console.log(`[reset-password] 用户 ${tokenRow.user_id} 密码已重置`)
     return NextResponse.json({ message: '密码重置成功，请使用新密码登录' })
 
-  } catch (error: any) {
-    console.error('[reset-password]', error?.message || error)
+  } catch (error) {
+    console.error('[reset-password]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '服务器错误，请稍后重试' }, { status: 500 })
   }
 }
