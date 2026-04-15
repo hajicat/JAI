@@ -85,11 +85,15 @@ export async function GET(req: NextRequest) {
       // 判断方式：对比 survey.updated_at 和 lock 的 updated_at
       //   survey 更新时间 <= lock 完成时间 → 参与了本轮但没配上
       //   survey 更新时间 > lock 完成时间 → 本轮跑的时候还没做问卷
+      //
+      // ⚠️ 关键：必须查最近一次已完成的匹配锁，而非仅本周锁。
+      //   因为用户可能上周参与了匹配（回退查询也取到了那条记录），
+      //   但主查询按 weekKey 过滤找不到。此时若只查本周锁会误判为"等待中"。
 
       const [lockRes, surveyRes] = await Promise.all([
         db.execute({
-          sql: "SELECT value, updated_at FROM settings WHERE key = ?",
-          args: [`matching_lock_${weekKey}`],
+          sql: "SELECT key, value, updated_at FROM settings WHERE key LIKE 'matching_lock_%' AND value = ? ORDER BY updated_at DESC LIMIT 1",
+          args: ['done'],
         }),
         db.execute({
           sql: "SELECT updated_at FROM survey_responses WHERE user_id = ? LIMIT 1",
