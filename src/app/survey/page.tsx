@@ -450,7 +450,6 @@ export default function SurveyPage() {
             />
           )}
         </div>
-        </div>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-500 text-center">
