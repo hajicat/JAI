@@ -174,12 +174,41 @@ export default function Home() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" />
-        <div className="absolute top-40 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '2s' }} />
-      </div>
+    <div>
+      {/* ══ HERO SECTION with Changchun night photo + La La Land overlay ══ */}
+      <div className="relative min-h-[100vh] overflow-hidden">
+        {/* Background photo */}
+        <div className="absolute inset-0 z-0" style={{ margin: '-40px', width: 'calc(100% + 80px)', height: 'calc(100% + 80px)' }}>
+          <img
+            src="https://cloudflareimg.cdn.sn/i/69e0bb57e5d70_1776335703.webp"
+            alt=""
+            className="w-full h-full object-cover"
+            style={{ objectPosition: 'center 55%' }}
+          />
+        </div>
+
+        {/* La La Land gradient overlay */}
+        <div className="absolute inset-0 z-[1]" style={{
+          background: `
+            linear-gradient(to bottom,
+              rgba(255,255,255,0) 0%, rgba(255,255,255,0) 18%,
+              rgba(155,114,207,0.06) 28%,
+              rgba(194,164,212,0.15) 40%,
+              rgba(216,200,232,0.35) 52%,
+              rgba(255,255,255,0.68) 65%,
+              rgba(255,255,255,0.92) 78%,
+              rgba(255,255,255,1) 88%
+            ),
+            linear-gradient(to top,
+              rgba(10,5,24,0.6) 0%, rgba(45,27,105,0.38) 14%,
+              rgba(155,114,207,0.12) 32%, transparent 54%
+            )
+          `,
+          pointerEvents: 'none'
+        }} />
+
+        {/* Subtle purple blob (top-right only) */}
+        <div className="fixed top-40 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float pointer-events-none" style={{ animationDelay: '1s', zIndex: 1 }} />
 
       <nav className="relative z-10 flex items-center justify-between px-4 py-3 max-w-6xl mx-auto gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -269,6 +298,9 @@ export default function Home() {
           </Link>
         )}
       </main>
+
+      {/* End of Hero section */}
+      </div>
 
       {/* How it works - Interactive */}
       <section ref={howRef} className={`relative z-10 max-w-5xl mx-auto px-6 py-20 ${howVisible ? 'animate-fade-in' : 'opacity-0'}`}>
