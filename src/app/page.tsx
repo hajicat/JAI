@@ -176,9 +176,9 @@ export default function Home() {
   return (
     <div>
       {/* ══ HERO SECTION with Changchun night photo + La La Land overlay ══ */}
-      <div className="relative min-h-[100vh] overflow-hidden">
-        {/* Background photo */}
-        <div className="absolute inset-0 z-0" style={{ margin: '-40px', width: 'calc(100% + 80px)', height: 'calc(100% + 80px)' }}>
+      <div className="relative overflow-hidden" style={{ minHeight: '100vh', paddingBottom: '12vh' }}>
+        {/* Background photo — extends well below fold for smooth transition */}
+        <div className="absolute inset-0 z-0" style={{ margin: '-40px', width: 'calc(100% + 80px)', height: 'calc(100% + 120px)' }}>
           <img
             src="/hero-bg.webp"
             alt=""
@@ -187,21 +187,24 @@ export default function Home() {
           />
         </div>
 
-        {/* La La Land gradient overlay — bottom fades to page bg color, no hard white edge */}
+        {/* La La Land gradient overlay — very long gentle fade to page bg, no hard edge */}
         <div className="absolute inset-0 z-[1]" style={{
           background: `
             linear-gradient(to bottom,
-              rgba(255,255,255,0) 0%, rgba(255,255,255,0) 18%,
-              rgba(155,114,207,0.06) 28%,
-              rgba(194,164,212,0.12) 40%,
-              rgba(216,200,232,0.28) 52%,
-              rgba(251,244,252,0.60) 65%,
-              rgba(251,244,252,0.85) 78%,
-              rgba(251,244,252,0.97) 88%
+              rgba(255,255,255,0) 0%,
+              rgba(255,255,255,0) 20%,
+              rgba(155,114,207,0.04) 32%,
+              rgba(194,164,212,0.08) 44%,
+              rgba(216,200,232,0.18) 55%,
+              rgba(240,232,245,0.42) 66%,
+              rgba(248,243,250,0.68) 76%,
+              rgba(251,245,251,0.86) 84%,
+              rgba(252,247,252,0.95) 90%,
+              rgba(253,248,253,1) 96%
             ),
             linear-gradient(to top,
-              rgba(10,5,24,0.55) 0%, rgba(45,27,105,0.32) 14%,
-              rgba(155,114,207,0.10) 32%, transparent 54%
+              rgba(10,5,24,0.45) 0%, rgba(45,27,105,0.28) 14%,
+              rgba(155,114,207,0.08) 32%, transparent 52%
             )
           `,
           pointerEvents: 'none'
