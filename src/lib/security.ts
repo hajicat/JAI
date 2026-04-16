@@ -369,7 +369,7 @@ export async function encrypt(plaintext: string): Promise<string> {
 export async function decrypt(data: string): Promise<string> {
   try {
     const parts = data.split(':')
-    if (parts.length !== 3) return '[加密格式异常]'
+    if (parts.length !== 3) return ''
 
     const [ivHex, tagHex, encHex] = parts
     const key = await deriveKey(getEncryptKey())
