@@ -618,7 +618,7 @@ export default function MatchPage() {
 
         {/* ═══ 修改密码弹窗 ═══ */}
         {showChangePwd && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-modal-out" onClick={() => setShowChangePwd(false)}>
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setShowChangePwd(false)}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 animate-modal-in" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-lg font-bold text-gray-800">🔐 修改密码</h3>

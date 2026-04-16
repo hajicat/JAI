@@ -1476,7 +1476,7 @@ export default function AdminPage() {
 
       {/* 二级密码验证弹窗（用户详情） */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-out" onClick={() => setShowPasswordModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)}>
           <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-modal-in" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-800 mb-2">🔐 安全验证</h3>
             <p className="text-sm text-gray-400 mb-5">查看用户详情需要输入独立的查看详情密码</p>
@@ -1511,7 +1511,7 @@ export default function AdminPage() {
 
       {/* 二级密码验证弹窗（匹配详情） */}
       {showMatchPwModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-out" onClick={() => setShowMatchPwModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowMatchPwModal(false)}>
           <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-modal-in" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-800 mb-2">🔐 查看匹配详情</h3>
             <p className="text-sm text-gray-400 mb-5">查看匹配详情需要输入独立的查看详情二级密码</p>
@@ -1546,7 +1546,7 @@ export default function AdminPage() {
 
       {/* 验证状态修改弹窗 */}
       {editVerifOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-out" onClick={() => setEditVerifOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditVerifOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-modal-in" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-800 mb-4">修改验证状态</h3>
             <p className="text-sm text-gray-500 mb-4">用户：<span className="font-medium text-gray-700">{editVerifNickname}</span></p>
@@ -1597,7 +1597,7 @@ export default function AdminPage() {
 
       {/* 删除用户二级密码确认弹窗 */}
       {deletePwModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-out" onClick={() => setDeletePwModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDeletePwModal(false)}>
           <div className="glass-card rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-modal-in" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-red-600 mb-2">⚠️ 危险操作</h3>
             <p className="text-sm text-gray-400 mb-5">删除用户需要管理员二次确认，请输入管理员密码以继续</p>
@@ -1632,7 +1632,7 @@ export default function AdminPage() {
 
       {/* 重置用户密码弹窗 */}
       {resetPwModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-out" onClick={() => setResetPwModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setResetPwModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-modal-in" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-orange-600 mb-1">🔑 重置用户密码</h3>
             <p className="text-sm text-gray-400 mb-4">为用户「<span className="font-medium text-gray-600">{resetPwNickname}</span>」设置新密码</p>
