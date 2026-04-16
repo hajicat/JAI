@@ -114,9 +114,15 @@ export default function Home() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
   const [stats, setStats] = useState({ totalUsers: 0, completedSurvey: 0 })
   const [user, setUser] = useState<any>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(hasLoggedInCookie())
-  const [localSurveyDone, setLocalSurveyDone] = useState(getSurveyStatusFromCookie())
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [localSurveyDone, setLocalSurveyDone] = useState<boolean | null>(null)
   const [statsLoaded, setStatsLoaded] = useState(false)
+
+  // Hydration-safe: read login state from cookies only on client
+  useEffect(() => {
+    setIsLoggedIn(hasLoggedInCookie())
+    setLocalSurveyDone(getSurveyStatusFromCookie())
+  }, [])
 
   useEffect(() => {
     function updateCountdown() {
