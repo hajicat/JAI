@@ -389,6 +389,6 @@ export async function decrypt(data: string): Promise<string> {
 
     return bytesToStr(new Uint8Array(decrypted))
   } catch {
-    return '[解密失败]'
+    return ''
   }
 }

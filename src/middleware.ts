@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCookieName } from '@/lib/csrf'
 
 // Max request body size: 1MB (prevent DoS / large payload attacks)
 const MAX_BODY_SIZE = 1024 * 1024
@@ -90,7 +91,8 @@ export function middleware(request: NextRequest) {
   }
 
   // Set CSRF token cookie if not present (using Web Crypto API for Edge compatibility)
-  if (!request.cookies.get('csrf-token')?.value) {
+  const csrfCookieName = getCookieName('csrf-token')
+  if (!request.cookies.get(csrfCookieName)?.value) {
     // Generate random bytes using Web Crypto API (available in Edge Runtime)
     const bytes = new Uint8Array(32)
     crypto.getRandomValues(bytes)
@@ -101,7 +103,7 @@ export function middleware(request: NextRequest) {
     // ⚠️ 有意设计：httpOnly: false
     // Double Submit Cookie 模式要求前端 JS 能读取 cookie 值并设置到 x-csrf-token header，
     // 因此必须允许 JS 访问此 cookie。风险已通过 CSP script-src 限制缓解。
-    response.cookies.set('csrf-token', csrfToken, {
+    response.cookies.set(csrfCookieName, csrfToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

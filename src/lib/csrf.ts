@@ -22,7 +22,8 @@ export function validateCsrfToken(req: NextRequest): boolean {
     return true
   }
 
-  const cookieToken = req.cookies.get('csrf-token')?.value
+  const cookieName = getCookieName('csrf-token')
+  const cookieToken = req.cookies.get(cookieName)?.value
   const headerToken = req.headers.get('x-csrf-token')
 
   if (!cookieToken || !headerToken) {
@@ -46,7 +47,8 @@ export function setCsrfCookie(response: NextResponse): NextResponse {
   // ⚠️ 有意设计：httpOnly: false
   // Double Submit Cookie 模式要求前端 JS 能读取 cookie 并设置 x-csrf-token header。
   // 风险通过 CSP script-src 限制缓解。
-  response.cookies.set('csrf-token', token, {
+  const cookieName = getCookieName('csrf-token')
+  response.cookies.set(cookieName, token, {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -98,6 +100,7 @@ export function getCookieName(name: string): string {
  */
 export function getCsrfToken(): string {
   if (typeof document === 'undefined') return ''
-  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)
+  const cookieName = getCookieName('csrf-token')
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${cookieName}=([^;]*)`))
   return match?.[1] || ''
 }
