@@ -187,21 +187,21 @@ export default function Home() {
           />
         </div>
 
-        {/* La La Land gradient overlay */}
+        {/* La La Land gradient overlay — bottom fades to page bg color, no hard white edge */}
         <div className="absolute inset-0 z-[1]" style={{
           background: `
             linear-gradient(to bottom,
               rgba(255,255,255,0) 0%, rgba(255,255,255,0) 18%,
               rgba(155,114,207,0.06) 28%,
-              rgba(194,164,212,0.15) 40%,
-              rgba(216,200,232,0.35) 52%,
-              rgba(255,255,255,0.68) 65%,
-              rgba(255,255,255,0.92) 78%,
-              rgba(255,255,255,1) 88%
+              rgba(194,164,212,0.12) 40%,
+              rgba(216,200,232,0.28) 52%,
+              rgba(251,244,252,0.60) 65%,
+              rgba(251,244,252,0.85) 78%,
+              rgba(251,244,252,0.97) 88%
             ),
             linear-gradient(to top,
-              rgba(10,5,24,0.6) 0%, rgba(45,27,105,0.38) 14%,
-              rgba(155,114,207,0.12) 32%, transparent 54%
+              rgba(10,5,24,0.55) 0%, rgba(45,27,105,0.32) 14%,
+              rgba(155,114,207,0.10) 32%, transparent 54%
             )
           `,
           pointerEvents: 'none'
@@ -210,15 +210,15 @@ export default function Home() {
         {/* Subtle purple blob (top-right only) */}
         <div className="fixed top-40 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float pointer-events-none" style={{ animationDelay: '1s', zIndex: 1 }} />
 
-      <nav className="relative z-10 flex items-center justify-between px-4 py-3 max-w-6xl mx-auto gap-2">
+      <nav className="relative z-10 flex items-center justify-between px-6 md:px-8 py-3 w-full">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-xl shrink-0">🎁</span>
           <span className="font-bold text-lg gradient-text truncate">吉爱酒窝</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {isLoggedIn ? (
             <>
-              <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition px-4 py-1.5">
+              <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition px-4 py-1.5 shadow-md">
                 👤 个人信息
               </Link>
               <button onClick={async () => {
@@ -231,16 +231,16 @@ export default function Home() {
                 setUser(null)
                 setIsLoggedIn(false)
                 setLocalSurveyDone(null)
-              }} className="text-xs text-gray-500 hover:text-red-500 px-2.5 py-1.5 border border-gray-200 rounded-full hover:bg-red-50 hover:border-red-200 transition">
+              }} className="text-xs font-medium text-gray-700 hover:text-red-600 px-2.5 py-1.5 border border-gray-300/60 rounded-full hover:bg-red-50/80 hover:border-red-300/60 transition bg-white/70 backdrop-blur shadow-sm">
                 退出登录
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="px-3 py-1.5 text-sm font-medium text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">
+              <Link href="/login" className="px-3 py-1.5 text-sm font-medium text-pink-600 border border-pink-200/80 rounded-full hover:bg-pink-50 transition bg-white/80 backdrop-blur shadow-sm">
                 登录
               </Link>
-              <Link href="/login?mode=register" className="px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition">
+              <Link href="/login?mode=register" className="px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-full hover:opacity-90 transition shadow-md">
                 注册
               </Link>
             </>
@@ -255,7 +255,7 @@ export default function Home() {
         </div>
 
         <div className={heroVisible ? 'animate-fade-in' : 'opacity-0'} style={{ animationDelay: '80ms' }}>
-          <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
             <span className="gradient-text">不止于相遇</span>
             <br />
             <span className="text-gray-800">致力于相知</span>
@@ -263,15 +263,15 @@ export default function Home() {
         </div>
 
         <div className={heroVisible ? 'animate-fade-in' : 'opacity-0'} style={{ animationDelay: '160ms' }}>
-          <p className="text-lg text-gray-500 mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-amber-50/90 mb-10 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,.4)]">
             长春高校专属盲盒交友平台<br />
             基于心理学深度兼容性测试，每周为你匹配一位灵魂契合的TA
           </p>
         </div>
 
-        <div className={`glass-card rounded-2xl p-6 mb-10 max-w-md mx-auto interactive-card ${heroVisible ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '240ms' }}>
-          <p className="text-sm text-gray-400 mb-3">距下次匹配</p>
-          <div className="flex items-center justify-center gap-3">
+        <div className={`glass-card rounded-2xl p-4 sm:p-6 mb-10 max-w-md mx-auto interactive-card ${heroVisible ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '240ms' }}>
+          <p className="text-xs sm:text-sm text-gray-400 mb-3">距下次匹配</p>
+          <div className="flex items-center justify-center gap-2 sm:gap-3">
             {[
               { val: countdown.days, label: '天' },
               { val: countdown.hours, label: '时' },
@@ -279,10 +279,10 @@ export default function Home() {
               { val: countdown.secs, label: '秒' },
             ].map((item, i) => (
               <div key={i} className="flex flex-col items-center">
-                <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl text-white text-2xl font-bold shadow-lg">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl text-white text-lg sm:text-2xl font-bold shadow-lg">
                   {String(item.val).padStart(2, '0')}
                 </div>
-                <span className="text-xs text-gray-400 mt-1">{item.label}</span>
+                <span className="text-[10px] sm:text-xs text-gray-400 mt-1">{item.label}</span>
               </div>
             ))}
           </div>
@@ -293,7 +293,7 @@ export default function Home() {
             {localSurveyDone ? '💌 查看匹配' : '🎁 继续测试'}
           </Link>
         ) : (
-          <Link href="/login?mode=register" className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
+          <Link href="/login?mode=register" className="inline-block px-8 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-purple-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
             🎁 开始测试
           </Link>
         )}
@@ -304,10 +304,10 @@ export default function Home() {
 
       {/* How it works - Interactive */}
       <section ref={howRef} className={`relative z-10 max-w-5xl mx-auto px-6 py-20 ${howVisible ? 'animate-fade-in' : 'opacity-0'}`}>
-        <div className="grid md:grid-cols-[1fr_1.1fr] gap-0 rounded-3xl overflow-hidden shadow-xl">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-0 rounded-3xl overflow-hidden shadow-xl">
           {/* ── Left Panel: Steps ── */}
-          <div className="bg-white p-10 md:p-14 flex flex-col justify-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-12">如何运作</h2>
+          <div className="bg-white p-6 sm:p-10 md:p-14 flex flex-col justify-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8 sm:mb-12">如何运作</h2>
 
             {steps.map((step, i) => (
               <button
@@ -343,7 +343,7 @@ export default function Home() {
           </div>
 
           {/* ── Right Panel: Preview Card ── */}
-          <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 flex items-center justify-center min-h-[420px] overflow-hidden">
+          <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 flex items-center justify-center min-h-[300px] sm:min-h-[420px] overflow-hidden">
             <div
               key={activeStep}
               className="w-full max-w-[290px] px-6 animate-slideIn"
