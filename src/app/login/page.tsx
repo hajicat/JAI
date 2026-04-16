@@ -135,10 +135,20 @@ function LoginForm() {
       return
     }
 
-    const emailCheck = form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+    const emailCheck = form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/)
     if (!emailCheck) {
       setError('请输入正确的邮箱格式')
       return
+    }
+
+    // 校内邮箱前置校验：如果 GPS 检测到需要校内邮箱，非校内域名直接拦截
+    if (requiresSchoolEmail) {
+      const domain = form.email.split('@')[1]?.toLowerCase() || ''
+      const allowedDomains = ['jlu', 'mails.jlu', 'nenu', 'jisu']
+      if (!allowedDomains.includes(domain)) {
+        setError('该区域必须使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）')
+        return
+      }
     }
 
     setCodeSending(true)
@@ -282,6 +292,16 @@ function LoginForm() {
       if (!verificationCode || verificationCode.length !== 6) {
         setError('请输入6位邮箱验证码')
         return
+      }
+
+      // 校内邮箱二次校验（防止绕过前端发送验证码的检查）
+      if (requiresSchoolEmail) {
+        const domain = form.email.split('@')[1]?.toLowerCase() || ''
+        const allowedDomains = ['jlu', 'mails.jlu', 'nenu', 'jisu']
+        if (!allowedDomains.includes(domain)) {
+          setError('该区域必须使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）')
+          return
+        }
       }
     }
 
@@ -526,7 +546,12 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={handleSendCode}
-                    disabled={codeSending || codeCooldown > 0 || !form.email}
+                    disabled={codeSending || codeCooldown > 0 || !form.email || (
+                      requiresSchoolEmail ? (() => {
+                        const d = form.email.split('@')[1]?.toLowerCase() || ''
+                        return !['jlu','mails.jlu','nenu','jisu'].includes(d)
+                      })() : false
+                    )}
                     className={`text-sm font-medium px-3 py-1.5 rounded-lg transition ${
                       codeCooldown > 0
                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
