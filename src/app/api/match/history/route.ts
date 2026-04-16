@@ -91,8 +91,11 @@ export async function GET(req: NextRequest) {
       let dimScores = null
       try { dimScores = JSON.parse(String(row.dim_scores || 'null')) } catch { /* ignore */ }
 
-      // 当前周未到揭晓时间 → 非管理员隐藏详细信息
+      // 当前周未到揭晓时间 → 非管理员完全跳过该条记录（不返回任何信息）
+      // 原因：/api/match GET 在未揭晓时会返回 match:null，
+      //       如果 history 仍返回记录，前端会显示"历史候选人"区域造成信息泄露
       const hideDetails = isCurrentWeek && !isRevealWindow() && !isAdmin
+      if (hideDetails) continue
 
       const entry = {
         id: Number(row.id),
