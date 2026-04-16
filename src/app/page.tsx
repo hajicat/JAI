@@ -349,18 +349,18 @@ export default function Home() {
           </div>
 
           {/* ── Right Panel: Preview Card ── */}
-          <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 flex items-center justify-center min-h-[300px] sm:min-h-[420px] overflow-hidden">
+          <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 flex items-center justify-center min-h-[340px] sm:min-h-[420px] overflow-hidden px-4 sm:px-0 py-4">
             <div
               key={activeStep}
-              className="w-full max-w-[290px] px-6 animate-slideIn"
+              className="w-full max-w-[260px] sm:max-w-[290px] px-4 sm:px-6 animate-slideIn"
               style={{ animationDuration: '0.5s' }}
             >
               {(() => {
                 switch (steps[activeStep].cardType) {
                   case 'survey':
                     return (
-                      <div className="bg-white/95 backdrop-blur rounded-2xl p-6 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100">
+                      <div className="bg-white/95 backdrop-blur rounded-2xl p-4 sm:p-6 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4 sm:mb-5 pb-3 border-b border-gray-100">
                           <span className="text-base">📝</span>
                           <p className="font-bold text-gray-900 text-sm">深度问卷</p>
                         </div>
@@ -399,8 +399,8 @@ export default function Home() {
 
                   case 'match':
                     return (
-                      <div className="bg-white/95 backdrop-blur rounded-2xl p-6 shadow-2xl">
-                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                      <div className="bg-white/95 backdrop-blur rounded-2xl p-4 sm:p-6 shadow-2xl">
+                        <div className="flex items-center gap-2 mb-3 sm:mb-4 pb-3 border-b border-gray-100">
                           <span className="text-base">💫</span>
                           <p className="font-bold text-gray-900 text-sm">你的匹配：小明</p>
                         </div>
@@ -437,8 +437,8 @@ export default function Home() {
 
                   case 'chat':
                     return (
-                      <div className="bg-white/95 backdrop-blur rounded-2xl p-5 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                      <div className="bg-white/95 backdrop-blur rounded-2xl p-4 sm:p-5 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-3 sm:mb-4 pb-3 border-b border-gray-100">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-sm font-bold">明</div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm">小明</p>
@@ -447,7 +447,7 @@ export default function Home() {
                         </div>
 
                         {/* 消息气泡 */}
-                        <div className="space-y-3 mb-4">
+                        <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                           <div
                             className="max-w-[85%] bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed"
                             style={{ animation: 'fadeInUp 0.4s ease-out 200ms both' }}
