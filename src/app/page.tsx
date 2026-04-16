@@ -49,29 +49,23 @@ function getSurveyStatusFromCookie(): boolean | null {
   return null
 }
 
-// 从 cookie 获取 CSRF Token — 已提取到 @/lib/csrf（getCsrfToken）
-
 // ── 翻牌数字动画组件 ──
 
 function FlipBoardCount({ value, loading }: { value: number; loading: boolean }) {
   const [display, setDisplay] = useState('0')
-  // Each digit independently tracks its current shown value
   const [digits, setDigits] = useState<string[]>(['0'])
 
   useEffect(() => {
     if (!loading) {
-      // Settle: animate to final value
       const target = String(value)
       if (target === display) return
-      // Animate each digit position with staggered timing
       const maxLen = Math.max(digits.length, target.length)
       let frame = 0
-      const totalFrames = 12 + maxLen * 4 // more frames for longer numbers
+      const totalFrames = 12 + maxLen * 4
       const interval = setInterval(() => {
         frame++
         const newDigits = target.padStart(maxLen, ' ').split('').map((char, i) => {
           if (frame > totalFrames - i * 3) return char
-          // Random roll during animation
           return String(Math.floor(Math.random() * 10))
         })
         setDigits(newDigits)
@@ -83,14 +77,13 @@ function FlipBoardCount({ value, loading }: { value: number; loading: boolean })
       }, 60)
       return () => clearInterval(interval)
     } else {
-      // Rolling mode: keep flipping random numbers
       const interval = setInterval(() => {
-        const len = 1 + Math.floor(Math.random() * 2) // 1-2 digits while loading
+        const len = 1 + Math.floor(Math.random() * 2)
         setDigits(Array.from({ length: len }, () => String(Math.floor(Math.random() * 10))))
       }, 120)
       return () => clearInterval(interval)
     }
-  }, [value, loading, digits.length]) // 包含 digits.length 防止位数变化时边界渲染闪烁
+  }, [value, loading, digits.length])
 
   return (
     <span className="inline-flex font-mono">
@@ -120,35 +113,25 @@ export default function Home() {
   const { ref: pricingRef, visible: pricingVisible } = useScrollReveal({ threshold: 0.1 })
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
   const [stats, setStats] = useState({ totalUsers: 0, completedSurvey: 0 })
-  // ── 关键改进：用 cookie 同步判断初始登录状态，首帧即可渲染正确按钮 ──
   const [user, setUser] = useState<any>(null)
-  // isLoggedIn 用于 UI 渲染：true = 已登录（cookie 有 token），false = 未登录
-  // API 返回后 user 会包含完整信息，但按钮跳转不需要等
   const [isLoggedIn, setIsLoggedIn] = useState(hasLoggedInCookie())
-  // surveyCompleted 同步读取：首帧即知是否已完成问卷（不依赖 API）
   const [localSurveyDone, setLocalSurveyDone] = useState(getSurveyStatusFromCookie())
-  // statsLoaded 仅用于翻牌动画
   const [statsLoaded, setStatsLoaded] = useState(false)
 
   useEffect(() => {
     function updateCountdown() {
       const now = new Date()
-
-      // 目标：北京时间本周日或下周日 20:00（匹配结果揭晓时刻）
-      // 北京时间 20:00 = UTC 12:00
       const target = new Date(now)
       const utcDay = now.getUTCDay()
       const utcHours = now.getUTCHours()
 
       if (utcDay === 0 && utcHours >= 12) {
-        // 已过北京时间周日20:00，跳到下个周日
         target.setUTCDate(target.getUTCDate() + 7)
         target.setUTCHours(12, 0, 0, 0)
       } else {
-        // 统一使用 UTC 计算（与 match/page.tsx 和 login/page.tsx 保持一致）
         const daysToAdd = (7 - now.getUTCDay()) % 7
         target.setUTCDate(now.getUTCDate() + (daysToAdd || 0))
-        target.setUTCHours(12, 0, 0, 0) // 北京时间 20:00 = UTC 12:00
+        target.setUTCHours(12, 0, 0, 0)
       }
 
       const diff = target.getTime() - now.getTime()
@@ -164,8 +147,6 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [])
 
-  // Single combined API call for stats + user info
-  // 注意：按钮跳转不再依赖此请求，cookie 同步判断已够用
   useEffect(() => {
     fetch('/api/home-data').then(r => r.json()).then(data => {
       setStats({ totalUsers: data.totalUsers || 0, completedSurvey: data.completedSurvey || 0 })
@@ -356,18 +337,21 @@ export default function Home() {
                             ].map((opt, j) => (
                               <div
                                 key={j}
-                                className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
+                                className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-2 ${
                                   opt.selected
                                     ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md'
                                     : 'bg-gray-50 text-gray-500'
                                 }`}
-                                style={{
-                                  opacity: 0,
-                                  animation: `fadeInUp 0.4s ease-out ${j * 120 + 200}ms forwards`,
-                                  transform: 'translateY(10px)',
-                                }}
+                                style={{ animation: `fadeInUp 0.4s ease-out ${j * 120 + 200}ms both` }}
                               >
-                                {opt.selected && <span>✓ </span>}{opt.label}
+                                <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none">
+                                  {opt.selected ? (
+                                    <><circle cx="8" cy="8" r="7" fill="rgba(255,255,255,0.3)"/><path d="M5 8l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></>
+                                  ) : (
+                                    <><circle cx="8" cy="8" r="7" fill="#f3f4f6" stroke="#e5e7eb"/></>
+                                  )}
+                                </svg>
+                                {opt.label}
                               </div>
                             ))}
                           </div>
@@ -402,11 +386,7 @@ export default function Home() {
                               ].map((line, j) => (
                                 <li
                                   key={j}
-                                  style={{
-                                    opacity: 0,
-                                    animation: `fadeInUp 0.35s ease-out ${j * 130 + 250}ms forwards`,
-                                    transform: 'translateY(8px)',
-                                  }}
+                                  style={{ animation: `fadeInUp 0.35s ease-out ${j * 130 + 250}ms both` }}
                                 >
                                   <span className="text-gray-300 mr-1">·</span>{line}
                                 </li>
@@ -420,15 +400,51 @@ export default function Home() {
                   case 'chat':
                     return (
                       <div className="bg-white/95 backdrop-blur rounded-2xl p-5 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100">
+                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center text-white text-sm font-bold">明</div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm">小明</p>
                             <p className="text-[10px] text-gray-400">刚刚在线</p>
                           </div>
                         </div>
-                        {/* Empty content area like target site */}
-                        <div className="h-32" />
+
+                        {/* 消息气泡 */}
+                        <div className="space-y-3 mb-4">
+                          <div
+                            className="max-w-[85%] bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed"
+                            style={{ animation: 'fadeInUp 0.4s ease-out 200ms both' }}
+                          >
+                            周末有空一起喝杯咖啡吗？我知道一家很安静的书店 ☕
+                          </div>
+                          <div
+                            className="max-w-[80%] ml-auto bg-gray-50 text-gray-700 px-4 py-2.5 rounded-2xl rounded-tr-sm text-xs leading-relaxed"
+                            style={{ animation: 'fadeInUp 0.4s ease-out 450ms both' }}
+                          >
+                            好呀，周六下午怎么样？☺️
+                          </div>
+                          <div
+                            className="max-w-[85%] bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed"
+                            style={{ animation: 'fadeInUp 0.4s ease-out 700ms both' }}
+                          >
+                            没问题！那下午两点见 📚
+                          </div>
+                        </div>
+
+                        {/* 输入框 */}
+                        <div
+                          className="flex items-center gap-2 bg-gray-50 rounded-full px-4 py-2.5 border border-gray-100"
+                          style={{ animation: 'fadeInUp 0.4s ease-out 900ms both' }}
+                        >
+                          <input
+                            type="text"
+                            placeholder="输入消息..."
+                            readOnly
+                            className="flex-1 bg-transparent text-xs text-gray-400 outline-none placeholder:text-gray-300"
+                          />
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center text-white text-[10px] shrink-0">
+                            ➤
+                          </div>
+                        </div>
                       </div>
                     )
                 }

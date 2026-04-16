@@ -66,6 +66,12 @@ body {
 
 /* ═══════════════ Apple 风格关键帧动画 ═══════════════ */
 
+/* 弹性上滑：列表项交错用（预览卡片内选项/气泡等逐一入场）*/
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* 弹性入场：缩放+透明度（苹果卡片风格）*/
 @keyframes appleFadeIn {
   from {
