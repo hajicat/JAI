@@ -272,7 +272,10 @@ export default function Home() {
           </p>
         </div>
 
-        <div className={`glass-card rounded-2xl p-4 sm:p-6 mb-10 max-w-md mx-auto interactive-card ${heroVisible ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '240ms' }}>
+        <div
+          className={`rounded-2xl p-4 sm:p-6 mb-10 max-w-md mx-auto interactive-card backdrop-blur-md ${heroVisible ? 'animate-fade-in' : 'opacity-0'}`}
+          style={{ animationDelay: '240ms', background: 'rgba(255,255,255,0.30)', border: '1px solid rgba(255,255,255,0.35)' }}
+        >
           <p className="text-xs sm:text-sm text-gray-400 mb-3">距下次匹配</p>
           <div className="flex items-center justify-center gap-2 sm:gap-3">
             {[
