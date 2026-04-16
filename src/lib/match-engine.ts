@@ -700,10 +700,12 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
 
   const matches: any[] = []
   const matched = new Set<number>()
-  // Fisher-Yates 洗牌（均匀随机）
+  // Fisher-Yates 洗牌（密码学安全随机）
   const shuffled = [...safeUsers]
+  const randomBytes = new Uint32Array(shuffled.length)
+  crypto.getRandomValues(randomBytes)
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = randomBytes[i] % (i + 1)
     ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
 

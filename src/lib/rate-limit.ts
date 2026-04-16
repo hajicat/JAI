@@ -108,6 +108,9 @@ async function checkRateLimitKV(
 // Memory-based fallback (development / no KV binding)
 // ============================================================
 
+// 内存模式最大条目数（防止持续请求导致内存无限增长）
+const MAX_MEMORY_ENTRIES = 10000
+
 function getStore(): Map<string, RateLimitEntry> {
   if (!(globalThis as any).__rateLimitStore) {
     (globalThis as any).__rateLimitStore = new Map<string, RateLimitEntry>()
@@ -118,9 +121,24 @@ function getStore(): Map<string, RateLimitEntry> {
 function cleanup() {
   const store = getStore()
   const now = Date.now()
+
+  // 先淘汰过期条目
   for (const key of Array.from(store.keys())) {
     const entry = store.get(key)
     if (entry && now > entry.resetAt) store.delete(key)
+  }
+
+  // 超过上限时，按 resetAt 从旧到新清理（最旧的先删）
+  if (store.size > MAX_MEMORY_ENTRIES) {
+    const sortedKeys = Array.from(store.keys()).sort((a, b) => {
+      const aEntry = store.get(a)!
+      const bEntry = store.get(b)!
+      return (aEntry.resetAt || 0) - (bEntry.resetAt || 0)
+    })
+    const excess = store.size - MAX_MEMORY_ENTRIES
+    for (let i = 0; i < excess; i++) {
+      store.delete(sortedKeys[i])
+    }
   }
 }
 

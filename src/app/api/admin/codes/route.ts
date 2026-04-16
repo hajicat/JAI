@@ -57,7 +57,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const count = Math.min(Math.max(Number(body.count) || 5, 1), 20)
+    // 严格类型校验：count 必须是正整数
+    const rawCount = body.count
+    let count = 5 // 默认值
+    if (typeof rawCount === 'number' && Number.isInteger(rawCount) && rawCount >= 1) {
+      count = Math.min(rawCount, 20) // 上限20，防滥用
+    } else if (rawCount !== undefined && rawCount !== null) {
+      return NextResponse.json({ error: 'count 必须是正整数（1-20）' }, { status: 400 })
+    }
 
     // ── 批量生成邀请码（db.batch 一次提交）──
     const newCodes: string[] = []

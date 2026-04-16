@@ -108,26 +108,48 @@ const KEY_LENGTH = 64 // 512 bits
  */
 // 缓存 pepper（模块级，只算一次）
 let _cachedPepper: string | undefined
+let _pepperPromise: Promise<string> | undefined
 
-function getPepper(): string {
+/**
+ * 获取 pepper 密钥（服务端静态密钥，用于在密码哈希前混入额外熵）
+ * 从环境变量 PEPPER_SECRET 读取，不存在则用 JWT_SECRET 的 SHA-256 派生
+ * 目的：即使数据库被拖库 + 盐泄露，攻击者仍无法离线暴力破解（缺少 pepper）
+ *
+ * 安全说明：
+ * - 有 PEPPER_SECRET → 直接使用（最优）
+ * - 无 PEPPER_SECRET → 用 SHA-256(JWT_SECRET) 派生 256 位 pepper（次优但安全）
+ * - 生产环境应始终设置 PEPPER_SECRET 环境变量
+ */
+async function getPepper(): Promise<string> {
   const envPepper = typeof process !== 'undefined' ? process.env?.PEPPER_SECRET : undefined
   if (envPepper) return envPepper
-  // 回退：已缓存则直接返回
+
+  // 已缓存则直接返回
   if (_cachedPepper) return _cachedPepper
-  // 用 JWT_SECRET 的 SHA-256 哈希作为 pepper（比旧版 32-bit hash 碰撞率低得多）
-  try {
-    const jwtSecret = getJwtSecret()
-    // 用简单的 DJB2 变体做同步哈希（仅作 fallback，生产环境应设 PEPPER_SECRET）
-    let hash = 2166136261 >>> 0  // FNV offset basis
-    for (let i = 0; i < jwtSecret.length; i++) {
-      hash ^= jwtSecret.charCodeAt(i)
-      hash = (hash * 16777619) >>> 0  // FNV prime
+
+  // 已有计算中的 Promise，复用（防止并发重复计算）
+  if (_pepperPromise) return _pepperPromise
+
+  // 用 JWT_SECRET 的 SHA-256 哈希作为 pepper（256 位输出）
+  // 注意：这仅是 fallback，生产环境应始终设置 PEPPER_SECRET 环境变量
+  _pepperPromise = (async () => {
+    try {
+      const jwtSecret = getJwtSecret()
+      const data = new TextEncoder().encode(`jlai-pepper:${jwtSecret}`)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hex = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+      _cachedPepper = `pepper_${hex}`
+      return _cachedPepper!
+    } catch {
+      return '_default_pepper_fallback_'
+    } finally {
+      _pepperPromise = undefined
     }
-    _cachedPepper = `pepper_${hash.toString(16).padStart(8, '0')}`
-    return _cachedPepper
-  } catch {
-    return '_default_pepper_fallback_'
-  }
+  })()
+
+  return _pepperPromise
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -136,7 +158,8 @@ export async function hashPassword(password: string): Promise<string> {
   const saltHex = bytesToHex(saltBytes)
 
   // 将 pepper 混入密码再哈希，防止数据库泄露后离线暴力破解
-  const pepperedPassword = `${getPepper()}:${password}`
+  const pepper = await getPepper()
+  const pepperedPassword = `${pepper}:${password}`
 
   const keyMaterial = await crypto.subtle.importKey(
     'raw', strToBytes(pepperedPassword), { name: 'PBKDF2' }, false, ['deriveBits']
@@ -163,9 +186,9 @@ export async function verifyPassword(password: string, stored: string): Promise<
       const saltBytes = hexToBytes(saltHex)
 
       // --- 尝试带 pepper 验证（新哈希） ---
-      const pepperedPassword = `${getPepper()}:${password}`
+      const pepper = await getPepper()
       let keyMaterial = await crypto.subtle.importKey(
-        'raw', strToBytes(pepperedPassword), { name: 'PBKDF2' }, false, ['deriveBits']
+        'raw', strToBytes(`${pepper}:${password}`), { name: 'PBKDF2' }, false, ['deriveBits']
       )
       let derivedBits = await crypto.subtle.deriveBits(
         { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-512' },
@@ -388,7 +411,9 @@ export async function decrypt(data: string): Promise<string> {
     )
 
     return bytesToStr(new Uint8Array(decrypted))
-  } catch {
+  } catch (err) {
+    // 静默返回空串（保持向后兼容），但记录警告以便排查 ENCRYPT_SECRET 配置变更
+    console.warn('[security] decrypt failed:', err instanceof Error ? err.message : String(err))
     return ''
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyToken, verifyTokenSafe, verifyPassword, hashPassword } from '@/lib/auth'
+import { verifyTokenSafe, verifyPassword, hashPassword } from '@/lib/auth'
 import { validatePassword, sanitizeString } from '@/lib/validation'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'

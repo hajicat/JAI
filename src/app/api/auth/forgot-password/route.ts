@@ -44,14 +44,22 @@ function escapeHtml(str: string): string {
 
 /**
  * 校验重置 URL 是否属于预期域名（防止 NEXT_PUBLIC_APP_URL 被污染时的注入风险）
+ * 允许的域名列表：从环境变量 ALLOWED_RESET_DOMAINS 读取，逗号分隔
+ * 默认允许 jaihelp.icu 和 localhost（开发用）
  */
 function validateResetDomain(resetUrl: string): boolean {
   try {
     const url = new URL(resetUrl)
     // 只允许 http/https 协议
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
-    // 域名不能以 javascript:, data: 等危险协议开头（URL parser 已处理）
-    return true
+
+    // 域名白名单检查
+    const allowedDomains = (process.env.ALLOWED_RESET_DOMAINS || 'jaihelp.icu,localhost')
+      .split(',')
+      .map(d => d.trim().toLowerCase())
+      .filter(Boolean)
+    const host = url.hostname.toLowerCase()
+    return allowedDomains.includes(host)
   } catch {
     // 无效 URL（构造失败）
     return false
@@ -192,20 +200,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '邮件服务暂时不可用' }, { status: 500 })
     }
 
-    const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'api-key': apiKey,
-      },
-      body: JSON.stringify({
-        sender: { name: '吉爱酒窝', email: process.env.BREVO_FROM_EMAIL || 'noreply@jaihelp.icu' },
-        to: [{ email: userEmail }],
-        subject: '重置你的密码',
-        htmlContent: buildResetEmailHtml(resetUrl),
-      }),
-    })
+    const brevoController = new AbortController()
+    const brevoTimeoutId = setTimeout(() => brevoController.abort(), 10000)
+    let brevoRes: Response
+    try {
+      brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'api-key': apiKey,
+        },
+        body: JSON.stringify({
+          sender: { name: '吉爱酒窝', email: process.env.BREVO_FROM_EMAIL || 'noreply@jaihelp.icu' },
+          to: [{ email: userEmail }],
+          subject: '重置你的密码',
+          htmlContent: buildResetEmailHtml(resetUrl),
+        }),
+        signal: brevoController.signal,
+      })
+    } finally {
+      clearTimeout(brevoTimeoutId)
+    }
 
     if (!brevoRes.ok) {
       const body = await brevoRes.text()

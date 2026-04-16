@@ -95,7 +95,7 @@ function buildMatchEmailHtml(params: {
       <div style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border-radius: 14px; padding: 20px; text-align: center; margin: 20px 0;">
         <p style="color: #166534; font-size: 14px; font-weight: 600; margin: 0 0 8px;">🎉 快去查看你的匹配详情吧！</p>
         <p style="color: #15803d; font-size: 13px; margin: 0 0 14px;">双方确认后可交换联系方式</p>
-        <a href="https://jaihelp.icu/match"
+        <a href="${process.env.APP_URL || 'https://jaihelp.icu'}/match"
            style="display: inline-block; padding: 12px 32px; background: linear-gradient(135deg, #ec4899, #a855f7); color: #fff; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">
            🔍 前往查看匹配详情 →
         </a>
@@ -145,20 +145,28 @@ async function sendOneEmail(
     const htmlContent = buildMatchEmailHtml(params)
     const subject = `💌 你的本周匹配结果来了！${params.score}% 契合度`
 
-    const response = await fetch(BREVO_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'api-key': apiKey,
-      },
-      body: JSON.stringify({
-        sender: { name: '吉爱酒窝', email: getFromEmail() },
-        to: [{ email: toEmail }],
-        subject,
-        htmlContent,
-      }),
-    })
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 秒超时
+    let response: Response
+    try {
+      response = await fetch(BREVO_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'api-key': apiKey,
+        },
+        body: JSON.stringify({
+          sender: { name: '吉爱酒窝', email: getFromEmail() },
+          to: [{ email: toEmail }],
+          subject,
+          htmlContent,
+        }),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!response.ok) {
       return false

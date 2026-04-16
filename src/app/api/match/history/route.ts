@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
           }
         } catch {
           contact = { type: row.partner_contact_type, info: '[解密失败]', decryptError: true }
-          console.error(`[match/history] 解密用户 ${uid} 的历史匹配 #${row.id} 联系方式失败`)
+          console.warn('[match/history] 历史匹配联系方式解密失败（可能 ENCRYPT_SECRET 配置变更）')
         }
       } else if (bothRevealed && !row.partner_contact_info) {
         contact = { type: null, info: null, empty: true }

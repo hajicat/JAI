@@ -1,6 +1,7 @@
 // Input validation utilities
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// 要求 TLD 至少 2 个字符，排除 a@b.c 等无效格式
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const NICKNAME_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9_\-·]{1,20}$/
 const INVITE_CODE_REGEX = /^JLAI-[A-F0-9]{16}$/
 
