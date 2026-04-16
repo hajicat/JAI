@@ -180,7 +180,7 @@ export default function Home() {
         {/* Background photo */}
         <div className="absolute inset-0 z-0" style={{ margin: '-40px', width: 'calc(100% + 80px)', height: 'calc(100% + 80px)' }}>
           <img
-            src="https://cloudflareimg.cdn.sn/i/69e0bb57e5d70_1776335703.webp"
+            src="/hero-bg.webp"
             alt=""
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center 55%' }}
