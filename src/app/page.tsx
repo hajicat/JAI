@@ -291,37 +291,32 @@ export default function Home() {
 
       {/* How it works - Interactive */}
       <section ref={howRef} className={`relative z-10 max-w-5xl mx-auto px-6 py-20 ${howVisible ? 'animate-fade-in' : 'opacity-0'}`}>
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-16">如何运作</h2>
-
-        <div className="grid md:grid-cols-[1fr_1.1fr] gap-0 rounded-3xl overflow-hidden shadow-xl border border-white/20 bg-white/40 backdrop-blur-sm">
-          {/* ── Left Panel: Steps Timeline ── */}
-          <div className="p-10 md:p-14 flex flex-col justify-center relative">
-            {/* Vertical timeline line */}
-            <div className="absolute left-[22px] top-10 bottom-10 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent" />
+        <div className="grid md:grid-cols-[1fr_1.1fr] gap-0 rounded-3xl overflow-hidden shadow-xl">
+          {/* ── Left Panel: Steps ── */}
+          <div className="bg-white p-10 md:p-14 flex flex-col justify-center">
+            <h2 className="text-3xl font-bold text-gray-800 mb-12">如何运作</h2>
 
             {steps.map((step, i) => (
               <button
                 key={i}
                 onClick={() => setActiveStep(i)}
                 className={`relative flex items-start gap-5 mb-10 last:mb-0 text-left transition-all duration-300 cursor-pointer ${
-                  activeStep === i ? 'scale-[1.03]' : 'opacity-50 hover:opacity-75'
+                  activeStep === i ? 'scale-[1.02]' : 'opacity-45 hover:opacity-65'
                 }`}
               >
                 <div
-                  className={`relative z-10 shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 ${
+                  className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 ${
                     activeStep === i
-                      ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-md scale-110'
+                      ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-md'
                       : 'border-2 border-gray-300 text-gray-400'
                   }`}
                 >
                   {step.num}
                 </div>
                 <div className="pt-1.5">
-                  <h3
-                    className={`font-bold text-lg mb-1.5 transition-colors duration-300 ${
-                      activeStep === i ? 'text-gray-900' : 'text-gray-600'
-                    }`}
-                  >
+                  <h3 className={`font-bold text-lg mb-1.5 transition-colors duration-300 ${
+                    activeStep === i ? 'text-gray-900' : 'text-gray-600'
+                  }`}>
                     {step.title}
                   </h3>
                   <p className={`text-sm leading-relaxed transition-colors duration-300 ${
@@ -334,15 +329,11 @@ export default function Home() {
             ))}
           </div>
 
-          {/* ── Right Panel: Interactive Preview Card ── */}
-          <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 p-8 md:p-12 flex items-center justify-center min-h-[420px] overflow-hidden">
-            {/* Decorative circles */}
-            <div className="absolute -top-12 -right-12 w-48 h-48 bg-purple-400/10 rounded-full blur-2xl" />
-            <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-blue-400/10 rounded-full blur-2xl" />
-
+          {/* ── Right Panel: Preview Card ── */}
+          <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 flex items-center justify-center min-h-[420px] overflow-hidden">
             <div
               key={activeStep}
-              className="w-full max-w-xs animate-slideIn"
+              className="w-full max-w-[280px] px-8 animate-slideIn"
               style={{ animationDuration: '0.5s' }}
             >
               {(() => {
@@ -350,14 +341,10 @@ export default function Home() {
                   case 'survey':
                     return (
                       <div className="bg-white/95 backdrop-blur rounded-2xl p-6 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-base">📝</div>
-                          <div>
-                            <p className="font-bold text-gray-900 text-sm">深度问卷</p>
-                            <p className="text-xs text-gray-400">6大维度 · 35题</p>
-                          </div>
+                        <div className="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100">
+                          <span className="text-base">📝</span>
+                          <p className="font-bold text-gray-900 text-sm">深度问卷</p>
                         </div>
-
                         <div className="space-y-3">
                           <p className="text-xs text-gray-500 font-medium">你更认同哪种「安全感」？</p>
                           <div className="space-y-2">
@@ -369,7 +356,7 @@ export default function Home() {
                             ].map((opt, j) => (
                               <div
                                 key={j}
-                                className={`px-3 py-2.5 rounded-xl text-xs font-medium ${
+                                className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
                                   opt.selected
                                     ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md'
                                     : 'bg-gray-50 text-gray-500'
@@ -391,11 +378,10 @@ export default function Home() {
                   case 'match':
                     return (
                       <div className="bg-white/95 backdrop-blur rounded-2xl p-6 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                           <span className="text-base">💫</span>
                           <p className="font-bold text-gray-900 text-sm">你的匹配：小明</p>
                         </div>
-
                         <div className="space-y-2.5">
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <span>📧</span>
@@ -434,51 +420,22 @@ export default function Home() {
                   case 'chat':
                     return (
                       <div className="bg-white/95 backdrop-blur rounded-2xl p-5 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center text-white text-xs font-bold">明</div>
+                        <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center text-white text-sm font-bold">明</div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm">小明</p>
                             <p className="text-[10px] text-gray-400">刚刚在线</p>
                           </div>
                         </div>
-
-                        <div className="space-y-3 mb-3">
-                          <div
-                            className="self-start max-w-[85%] bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed shadow"
-                            style={{ opacity: 0, animation: 'fadeInUp 0.4s ease-out 200ms forwards', transform: 'translateY(8px)' }}
-                          >
-                            周末有空一起喝杯咖啡吗？我知道一家很安静的书店 ☕
-                          </div>
-
-                          <div
-                            className="max-w-[80%] ml-auto bg-gray-50 text-gray-700 px-4 py-2.5 rounded-2xl rounded-tr-sm text-xs leading-relaxed"
-                            style={{ opacity: 0, animation: 'fadeInUp 0.4s ease-out 450ms forwards', transform: 'translateY(8px)' }}
-                          >
-                            好呀，周六下午怎么样？☺️
-                          </div>
-                        </div>
-
-                        <div
-                          className="flex items-center gap-2 bg-gray-50 rounded-full px-4 py-2.5 border border-gray-100"
-                          style={{ opacity: 0, animation: 'fadeInUp 0.4s ease-out 650ms forwards', transform: 'translateY(8px)' }}
-                        >
-                          <input
-                            type="text"
-                            placeholder="输入消息..."
-                            readOnly
-                            className="flex-1 bg-transparent text-xs text-gray-400 outline-none placeholder:text-gray-300"
-                          />
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center text-white text-[10px]">
-                            ➤
-                          </div>
-                        </div>
+                        {/* Empty content area like target site */}
+                        <div className="h-32" />
                       </div>
                     )
                 }
               })()}
             </div>
 
-            {/* Page indicator dots at bottom */}
+            {/* Page indicator dots */}
             <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
               {steps.map((_, i) => (
                 <button
