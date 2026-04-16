@@ -314,7 +314,7 @@ export default function Home() {
           <div className="relative bg-gradient-to-br from-slate-700 via-indigo-800 to-purple-900 flex items-center justify-center min-h-[420px] overflow-hidden">
             <div
               key={activeStep}
-              className="w-full max-w-[280px] px-8 animate-slideIn"
+              className="w-full max-w-[290px] px-6 animate-slideIn"
               style={{ animationDuration: '0.5s' }}
             >
               {(() => {
@@ -401,7 +401,7 @@ export default function Home() {
                     return (
                       <div className="bg-white/95 backdrop-blur rounded-2xl p-5 shadow-2xl">
                         <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center text-white text-sm font-bold">明</div>
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-sm font-bold">明</div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm">小明</p>
                             <p className="text-[10px] text-gray-400">刚刚在线</p>
@@ -439,7 +439,7 @@ export default function Home() {
                             type="text"
                             placeholder="输入消息..."
                             readOnly
-                            className="flex-1 bg-transparent text-xs text-gray-400 outline-none placeholder:text-gray-300"
+                            className="flex-1 min-w-0 bg-transparent text-xs text-gray-400 outline-none placeholder:text-gray-300"
                           />
                           <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center text-white text-[10px] shrink-0">
                             ➤
