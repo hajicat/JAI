@@ -104,7 +104,7 @@ function LoginForm() {
             setGpsMsg(`✅ 定位成功！检测到您在「${data.location}」，距最近校区 ${data.nearestDistance ?? 0}km`)
             setRequiresSchoolEmail(data.requiresSchoolEmail)
             if (data.requiresSchoolEmail) {
-              setEmailHint('💡 该区域需使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）')
+              setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn）')
             }
           } else {
             setGpsStatus('fail')
@@ -546,12 +546,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={handleSendCode}
-                    disabled={codeSending || codeCooldown > 0 || !form.email || (
-                      requiresSchoolEmail ? (() => {
-                        const d = form.email.split('@')[1]?.toLowerCase() || ''
-                        return !['jlu.edu.cn','mails.jlu.edu.cn','nenu.edu.cn','jisu.edu.cn'].includes(d)
-                      })() : false
-                    )}
+                    disabled={codeSending || codeCooldown > 0 || !form.email}
                     className={`text-sm font-medium px-3 py-1.5 rounded-lg transition ${
                       codeCooldown > 0
                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
