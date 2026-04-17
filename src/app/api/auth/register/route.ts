@@ -121,8 +121,8 @@ export async function POST(req: NextRequest) {
       // ── 学校邮箱验证（非吉林动画学院/长春大学区域需要校内邮箱）──
       if (requiresSchoolEmail && !isSchoolEmail(email)) {
           return NextResponse.json({
-            error: '你所在的高校需要使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）',
-          }, { status: 403 })
+            error: '你所在的高校需要使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn）',
+          }, { status: 400 })
         }
     }
 

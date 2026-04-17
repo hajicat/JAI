@@ -144,9 +144,9 @@ function LoginForm() {
     // 校内邮箱前置校验：如果 GPS 检测到需要校内邮箱，非校内域名直接拦截
     if (requiresSchoolEmail) {
       const domain = form.email.split('@')[1]?.toLowerCase() || ''
-      const allowedDomains = ['jlu', 'mails.jlu', 'nenu', 'jisu']
+      const allowedDomains = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn']
       if (!allowedDomains.includes(domain)) {
-        setError('该区域必须使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）')
+        setError('该区域必须使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn）')
         return
       }
     }
@@ -297,9 +297,9 @@ function LoginForm() {
       // 校内邮箱二次校验（防止绕过前端发送验证码的检查）
       if (requiresSchoolEmail) {
         const domain = form.email.split('@')[1]?.toLowerCase() || ''
-        const allowedDomains = ['jlu', 'mails.jlu', 'nenu', 'jisu']
+        const allowedDomains = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn']
         if (!allowedDomains.includes(domain)) {
-          setError('该区域必须使用校内邮箱注册（@jlu / @mails.jlu / @nenu / @jisu）')
+          setError('该区域必须使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn）')
           return
         }
       }
@@ -549,7 +549,7 @@ function LoginForm() {
                     disabled={codeSending || codeCooldown > 0 || !form.email || (
                       requiresSchoolEmail ? (() => {
                         const d = form.email.split('@')[1]?.toLowerCase() || ''
-                        return !['jlu','mails.jlu','nenu','jisu'].includes(d)
+                        return !['jlu.edu.cn','mails.jlu.edu.cn','nenu.edu.cn','jisu.edu.cn'].includes(d)
                       })() : false
                     )}
                     className={`text-sm font-medium px-3 py-1.5 rounded-lg transition ${
