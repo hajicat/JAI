@@ -64,6 +64,6 @@ export async function GET() {
       '吉林外国语大学',
       '长春大学',
     ],
-    campusCount: 14,
+    campusCount: 13,
   })
 }

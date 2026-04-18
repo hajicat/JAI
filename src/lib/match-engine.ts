@@ -754,7 +754,8 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
       const prefsB = userSchoolPrefs.get(idB)
       const schoolA = (shuffled[i].user.school as string) || ''
       const schoolB = (shuffled[j].user.school) as string || ''
-      if (prefsA && prefsB && schoolA && schoolB) {
+      // 学校偏好过滤：双方都有学校信息时才过滤；任一方无信息则跳过（放行给其他条件决定）
+      if (schoolA && schoolB && prefsA && prefsB) {
         if (!prefsA.has(schoolB) || !prefsB.has(schoolA)) continue
       }
 

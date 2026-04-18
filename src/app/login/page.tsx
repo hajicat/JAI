@@ -37,7 +37,7 @@ function LoginForm() {
   const [requiresSchoolEmail, setRequiresSchoolEmail] = useState(false)
   const [emailHint, setEmailHint] = useState('')
   // 多校区重叠时供用户选择的校区列表
-  interface NearbyCampus { name: string; schoolName: string; distanceKm: number; requiresSchoolEmail: boolean }
+  interface NearbyCampus { name: string; schoolName: string; schoolShort: string; distanceKm: number; requiresSchoolEmail: boolean }
   const [nearbyCampuses, setNearbyCampuses] = useState<NearbyCampus[]>([])
   const [selectedCampus, setSelectedCampus] = useState<string>('')
 

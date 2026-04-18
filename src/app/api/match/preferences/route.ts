@@ -80,10 +80,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
 
-    // CSRF 校验
-    const csrfError = await validateCsrfToken(request)
-    if (csrfError) {
-      return NextResponse.json({ error: csrfError }, { status: 403 })
+    // CSRF 校验（validateCsrfToken 返回 boolean：true=安全, false=无效）
+    if (!validateCsrfToken(request)) {
+      return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
     }
 
     const body = await request.json()

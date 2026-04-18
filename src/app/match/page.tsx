@@ -471,7 +471,7 @@ export default function MatchPage() {
 
             {match.dimScores && match.dimScores.length > 0 && (
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 mb-3">📊 五维度契合度</h4>
+                <h4 className="text-sm font-medium text-gray-500 mb-3">📊 契合度</h4>
                 <div className="space-y-3">
                   {match.dimScores.map((dim, i) => (
                     <div key={i} className="flex items-center gap-3">
@@ -904,7 +904,7 @@ function CandidateCard({ match, weekKey }: { match: HistoryMatch; weekKey: strin
           {/* 五维度契合度 */}
           {match.dimScores && match.dimScores.length > 0 && (
             <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-500 mb-3">📊 五维度契合度</h4>
+              <h4 className="text-sm font-medium text-gray-500 mb-3">📊 契合度</h4>
               <div className="space-y-3">
                 {match.dimScores.map((dim, i) => (
                   <div key={i} className="flex items-center gap-3">
