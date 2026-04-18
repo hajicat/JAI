@@ -1,0 +1,109 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyTokenSafe } from '@/lib/auth'
+import { validateCsrfToken } from '@/lib/csrf'
+import { getDb } from '@/lib/db'
+
+export const runtime = 'edge'
+
+// 所有学校列表（与 geo.ts 保持一致）
+export const ALL_SCHOOLS = [
+  '吉林大学',
+  '东北师范大学',
+  '吉林外国语大学',
+  '吉林动画学院',
+  '长春大学',
+]
+
+/** GET: 读取当前用户的匹配学校偏好 */
+export async function GET(request: NextRequest) {
+  try {
+    const user = await verifyTokenSafe(request)
+    if (!user) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 })
+    }
+
+    const db = getDb()
+    const result = await db.execute({
+      sql: "SELECT school, match_school_prefs FROM users WHERE id = ?",
+      args: [user.id],
+    })
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: '用户不存在' }, { status: 404 })
+    }
+
+    const row = result.rows[0] as any
+    const prefsRaw = row.match_school_prefs || 'all'
+    let prefs: string[]
+
+    if (prefsRaw === 'all') {
+      prefs = [...ALL_SCHOOLS] // 全选
+    } else {
+      try {
+        prefs = JSON.parse(prefsRaw)
+      } catch {
+        // 兼容旧数据：如果解析失败，视为全选
+        prefs = [...ALL_SCHOOLS]
+      }
+    }
+
+    return NextResponse.json({
+      school: row.school || null,
+      preferences: prefs,           // 用户勾选的学校数组
+      allSchools: ALL_SCHOOLS,      // 所有可选学校（供前端渲染）
+      isAllSelected: prefs.length === ALL_SCHOOLS,
+    })
+  } catch (error) {
+    console.error('[match/preferences]', error instanceof Error ? error.message : String(error))
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 })
+  }
+}
+
+/** POST: 保存匹配学校偏好 */
+export async function POST(request: NextRequest) {
+  try {
+    const user = await verifyTokenSafe(request)
+    if (!user) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 })
+    }
+
+    // CSRF 校验
+    const csrfError = await validateCsrfToken(request)
+    if (csrfError) {
+      return NextResponse.json({ error: csrfError }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { schools } = body
+
+    // 参数校验
+    if (!Array.isArray(schools)) {
+      return NextResponse.json({ error: '参数格式错误：schools 必须是数组' }, { status: 400 })
+    }
+
+    // 过滤掉无效值，只保留合法学校名
+    const validSchools = schools.filter(
+      (s: any) => typeof s === 'string' && ALL_SCHOOLS.includes(s)
+    )
+
+    // 如果全选了，存 'all' 以节省空间；否则存 JSON 数组
+    const prefsValue = validSchools.length >= ALL_SCHOOLS.length
+      ? 'all'
+      : JSON.stringify(validSchools)
+
+    const db = getDb()
+    await db.execute({
+      sql: "UPDATE users SET match_school_prefs = ? WHERE id = ?",
+      args: [prefsValue, user.id],
+    })
+
+    return NextResponse.json({
+      success: true,
+      preferences: validSchools.length >= ALL_SCHOOLS.length ? ALL_SCHOOLS : validSchools,
+      isAllSelected: validSchools.length >= ALL_SCHOOLS.length,
+    })
+  } catch (error) {
+    console.error('[match/preferences]', error instanceof Error ? error.message : String(error))
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 })
+  }
+}

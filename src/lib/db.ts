@@ -51,6 +51,8 @@ async function doInit(): Promise<void> {
       is_admin INTEGER DEFAULT 0,
       gender TEXT,
       preferred_gender TEXT,
+      school TEXT,
+      match_school_prefs TEXT DEFAULT 'all',
       survey_completed INTEGER DEFAULT 0,
       contact_info TEXT,
       contact_type TEXT DEFAULT 'wechat',
@@ -135,6 +137,12 @@ async function doInit(): Promise<void> {
       sampled_at TEXT DEFAULT (datetime('now')),
       session_id TEXT
     );
+
+    -- 兼容旧数据库：添加新字段（IF NOT EXISTS 语义用 TRY/CATCH 模拟）
+    -- school: 用户选择的学校名称
+    -- match_school_prefs: 匹配学校偏好（JSON数组，如 ["吉林大学","东北师范大学"]，'all' 表示全部）
+    db.execute({ sql: "ALTER TABLE users ADD COLUMN school TEXT", args: [] }).catch(() => {});
+    db.execute({ sql: "ALTER TABLE users ADD COLUMN match_school_prefs TEXT DEFAULT 'all'", args: [] }).catch(() => {});
 
     -- 所有索引（IF NOT EXISTS 幂等）
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

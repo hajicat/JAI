@@ -173,6 +173,15 @@ const COMP_QUESTIONS = [
 /** 自动匹配最低分数门槛 */
 const MATCH_THRESHOLD = 76
 
+/** 所有学校名称（与 geo.ts + /api/match/preferences 保持一致） */
+const ALL_SCHOOL_NAMES = [
+  '吉林大学',
+  '东北师范大学',
+  '吉林外国语大学',
+  '吉林动画学院',
+  '长春大学',
+]
+
 // ─────────────────────────────────────────────
 //  工具函数 — 答案索引查找
 // ─────────────────────────────────────────────
@@ -655,7 +664,7 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
   const wk = weekKey || getWeekKey()
 
   const usersResult = await db.execute({
-    sql: `SELECT u.id, u.gender, u.preferred_gender,
+    sql: `SELECT u.id, u.gender, u.preferred_gender, u.school, u.match_school_prefs,
                  s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
                  s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
                  s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
@@ -673,6 +682,21 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
   })
 
   const users = usersResult.rows as any[]
+
+  // 解析每个用户的匹配学校偏好（'all' → 全部学校）
+  function parsePrefs(prefsRaw: string | null): Set<string> {
+    if (!prefsRaw || prefsRaw === 'all') return new Set(ALL_SCHOOL_NAMES)
+    try {
+      return new Set(JSON.parse(prefsRaw))
+    } catch {
+      return new Set(ALL_SCHOOL_NAMES)
+    }
+  }
+
+  const userSchoolPrefs = new Map<number, Set<string>>()
+  for (const u of users) {
+    userSchoolPrefs.set(Number(u.id), parsePrefs(u.match_school_prefs))
+  }
 
   if (users.length < 2) {
     return {
@@ -722,6 +746,17 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
     for (let j = i + 1; j < shuffled.length; j++) {
       if (matched.has(Number(shuffled[j].user.id))) continue
       if (!genderCompatible(shuffled[i].user, shuffled[j].user)) continue
+
+      // ── 学校偏好过滤：双向匹配（A的偏好包含B的学校，B的偏好包含A的学校）──
+      const idA = Number(shuffled[i].user.id)
+      const idB = Number(shuffled[j].user.id)
+      const prefsA = userSchoolPrefs.get(idA)
+      const prefsB = userSchoolPrefs.get(idB)
+      const schoolA = (shuffled[i].user.school as string) || ''
+      const schoolB = (shuffled[j].user.school) as string || ''
+      if (prefsA && prefsB && schoolA && schoolB) {
+        if (!prefsA.has(schoolB) || !prefsB.has(schoolA)) continue
+      }
 
       const result = calculateMatch(shuffled[i].user, shuffled[j].user)
       if (result.score > bestScore) {

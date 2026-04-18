@@ -140,6 +140,14 @@ export default function MatchPage() {
   const [matchedDone, setMatchedDone] = useState<boolean | null>(null)
   const [inviteRequired, setInviteRequired] = useState(true)
 
+  // ── 学校匹配偏好状态 ──
+  const [schoolPrefs, setSchoolPrefs] = useState<string[]>([])
+  const [mySchool, setMySchool] = useState<string | null>(null)
+  const [allSchools, setAllSchools] = useState<string[]>([])
+  const [prefsLoading, setPrefsLoading] = useState(false)
+  const [prefsSaved, setPrefsSaved] = useState(false)
+  const [prefsError, setPrefsError] = useState('')
+
   // ── 历史数据状态 ──
   const [historyWeeks, setHistoryWeeks] = useState<WeekData[]>([])
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0)
@@ -154,6 +162,7 @@ export default function MatchPage() {
         fetch('/api/invite'),
         fetch('/api/match/history'),
         fetch('/api/public-settings'),
+        fetch('/api/match/preferences'),
       ])
       const [meData, matchData, inviteData, histData, settingsData] = await Promise.all([
         meRes.json(),
@@ -161,6 +170,7 @@ export default function MatchPage() {
         inviteRes.json(),
         histRes.json(),
         settingsRes.json(),
+        prefsRes.json(),
       ])
       if (!meData.user) { router.push('/login'); return }
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
@@ -169,6 +179,12 @@ export default function MatchPage() {
       if (matchData.match) setMatch(matchData.match)
       if ('matchedDone' in matchData) setMatchedDone(matchData.matchedDone)
       setInviteCodes(inviteData.available || [])
+      // 学校匹配偏好
+      if (prefsData.preferences) {
+        setSchoolPrefs(prefsData.preferences)
+        setMySchool(prefsData.school || null)
+        setAllSchools(prefsData.allSchools || [])
+      }
       // 历史数据
       if (histData.weeks) {
         setHistoryWeeks(histData.weeks)
@@ -312,6 +328,26 @@ export default function MatchPage() {
         body: JSON.stringify({ matchEnabled: enabled }),
       })
     } catch (e) { /* ignore */ }
+  }
+
+  const saveSchoolPrefs = async (selected: string[]) => {
+    setPrefsLoading(true)
+    setPrefsError('')
+    setPrefsSaved(false)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/match/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ schools: selected }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setPrefsError(data.error || '保存失败'); return }
+      setSchoolPrefs(selected)
+      setPrefsSaved(true)
+      setTimeout(() => setPrefsSaved(false), 2000)
+    } catch { setPrefsError('网络错误') }
+    finally { setPrefsLoading(false) }
   }
 
   const handleChangePassword = async () => {
@@ -582,6 +618,67 @@ export default function MatchPage() {
             </button>
           </div>
         </div>
+
+        {/* School Match Preferences */}
+        {allSchools.length > 0 && (
+        <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-2xl">🏫</span>
+            <div>
+              <h3 className="font-semibold text-gray-800">匹配学校偏好</h3>
+              <p className="text-xs text-gray-400">
+                {mySchool ? `你来自「${mySchool}」` : '选择你想匹配的学校'}
+                · 只会与选中学校的同学配对
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2.5">
+            {allSchools.map((school) => {
+              const isMySchool = school === mySchool
+              const isSpecial = school === '吉林动画学院' || school === '长春大学'
+              const checked = schoolPrefs.includes(school)
+              return (
+                <label
+                  key={school}
+                  className={`flex items-center gap-3 cursor-pointer rounded-xl px-4 py-3 transition-all ${
+                    checked
+                      ? 'bg-pink-50 border border-pink-200'
+                      : 'bg-white/50 border border-transparent hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => {
+                      const newPrefs = e.target.checked
+                        ? [...schoolPrefs, school]
+                        : schoolPrefs.filter(s => s !== school)
+                      saveSchoolPrefs(newPrefs)
+                    }}
+                    disabled={isMySchool || prefsLoading}
+                    className="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400"
+                  />
+                  <span className={`flex-1 text-sm ${isMySchool ? 'font-medium text-pink-700' : 'text-gray-700'}`}>
+                    {school}
+                    {isMySchool && <span className="ml-1.5 text-xs bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-full">我的学校</span>}
+                    {isSpecial && (
+                      <span className="ml-1.5 text-xs text-amber-500 font-normal">
+                        （可能有校外人员参加）
+                      </span>
+                    )}
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+          {prefsError && <p className="mt-3 text-xs text-red-500">{prefsError}</p>}
+          {prefsSaved && (
+            <p className="mt-3 text-xs text-green-500 flex items-center gap-1">
+              ✅ 已保存
+            </p>
+          )}
+        </div>
+        )}
 
         {/* Invite Codes — 仅在开启时显示 */}
         {inviteRequired && (

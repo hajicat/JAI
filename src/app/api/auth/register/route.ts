@@ -245,15 +245,26 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '邀请码无效或已用完（并发耗尽）' }, { status: 400 })
       }
 
+      // 确定用户选择的学校名称
+      let userSchool: string | null = null
+      if (gpsEnabled && geoResult.valid) {
+        if (selectedCampus) {
+          const chosen = geoResult.nearbyCampuses?.find(c => c.name === selectedCampus)
+          userSchool = chosen?.schoolName || null
+        } else {
+          userSchool = geoResult.schoolName || null
+        }
+      }
+
       // Create user (with invited_by from invite code)
       const passwordHash = await hashPassword(defaultPassword)
       const userInviteCode = generateInviteCode()
 
       const insertResult = await db.execute({
-        sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by, gender, preferred_gender, email_verified, verification_status)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        sql: `INSERT INTO users (nickname, email, password_hash, invite_code, invited_by, gender, preferred_gender, school, email_verified, verification_status)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
         args: [nickname, email, passwordHash, userInviteCode, Number(codeRow.created_by), gender, preferredGender,
-          requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
+          userSchool, requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
       })
 
       const newUserId = Number(insertResult.lastInsertRowid)
@@ -315,15 +326,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // 确定用户选择的学校名称
+    let userSchool: string | null = null
+    if (gpsEnabled && geoResult.valid) {
+      if (selectedCampus) {
+        const chosen = geoResult.nearbyCampuses?.find(c => c.name === selectedCampus)
+        userSchool = chosen?.schoolName || null
+      } else {
+        userSchool = geoResult.schoolName || null
+      }
+    }
+
     // Create user (no invited_by — open registration)
     const passwordHash = await hashPassword(defaultPassword)
     const userInviteCode = generateInviteCode()
 
     const insertResult = await db.execute({
-      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, gender, preferred_gender, email_verified, verification_status)
-            VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+      sql: `INSERT INTO users (nickname, email, password_hash, invite_code, gender, preferred_gender, school, email_verified, verification_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
       args: [nickname, email, passwordHash, userInviteCode, gender, preferredGender,
-        requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
+        userSchool, requiresSchoolEmail ? 'verified_student' : 'pending_verification'],
     })
 
     const newUserId = Number(insertResult.lastInsertRowid)
