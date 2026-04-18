@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
     const preferredGender = sanitizeString(body.preferredGender || '', 20)
     const latitude = body.latitude
     const longitude = body.longitude
+    const selectedCampus = typeof body.selectedCampus === 'string' ? body.selectedCampus.trim() : ''
 
     // --- GPS Verification (可由管理员在后台开关) ---
     const db = getDb()
@@ -116,7 +117,20 @@ export async function POST(req: NextRequest) {
       if (!geoResult.valid) {
         return NextResponse.json({ error: geoResult.message }, { status: 403 })
       }
-      requiresSchoolEmail = geoResult.requiresSchoolEmail
+
+      // 如果用户在前端选择了校区（多校区重叠时），以选择为准
+      // 否则使用默认的最近校区
+      let chosenRequiresSchoolEmail: boolean
+      if (selectedCampus && geoResult.nearbyCampuses && geoResult.nearbyCampuses.length > 1) {
+        const chosen = geoResult.nearbyCampuses.find(c => c.name === selectedCampus)
+        if (!chosen) {
+          return NextResponse.json({ error: '选择的校区无效，请重新验证位置' }, { status: 400 })
+        }
+        chosenRequiresSchoolEmail = chosen.requiresSchoolEmail
+      } else {
+        chosenRequiresSchoolEmail = geoResult.requiresSchoolEmail
+      }
+      requiresSchoolEmail = chosenRequiresSchoolEmail
 
       // ── 学校邮箱验证（非吉林动画学院/长春大学区域需要校内邮箱）──
       if (requiresSchoolEmail && !isSchoolEmail(email)) {

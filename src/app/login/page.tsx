@@ -36,6 +36,10 @@ function LoginForm() {
   const [inviteRequired, setInviteRequired] = useState(true)
   const [requiresSchoolEmail, setRequiresSchoolEmail] = useState(false)
   const [emailHint, setEmailHint] = useState('')
+  // 多校区重叠时供用户选择的校区列表
+  interface NearbyCampus { name: string; schoolName: string; distanceKm: number; requiresSchoolEmail: boolean }
+  const [nearbyCampuses, setNearbyCampuses] = useState<NearbyCampus[]>([])
+  const [selectedCampus, setSelectedCampus] = useState<string>('')
 
   // 邮箱验证码状态（仅注册模式使用）
   const [verificationCode, setVerificationCode] = useState('')
@@ -101,11 +105,21 @@ function LoginForm() {
 
           if (data.withinRange) {
             setGpsStatus('ok')
-            setGpsMsg(`✅ 定位成功！检测到您在「${data.location}」，距最近校区 ${data.nearestDistance ?? 0}km`)
-            setRequiresSchoolEmail(data.requiresSchoolEmail)
+            const campuses = (data.nearbyCampuses || []) as NearbyCampus[]
+            setNearbyCampuses(campuses)
+            // 默认选最近的（已按距离排序）
+            if (campuses.length > 0) {
+              setSelectedCampus(campuses[0].name)
+              // 以用户选择的校区为准（默认最近）
+              setRequiresSchoolEmail(campuses[0].requiresSchoolEmail)
+            } else {
+              setSelectedCampus('')
+              setRequiresSchoolEmail(data.requiresSchoolEmail)
+            }
             if (data.requiresSchoolEmail) {
               setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn）')
             }
+            setGpsMsg(`✅ 定位成功！检测到您在「${data.location}」，距最近校区 ${data.nearestDistance ?? 0}km`)
           } else {
             setGpsStatus('fail')
             setGpsMsg(`❌ ${data.message || '不在高校范围内'}`)
@@ -315,6 +329,7 @@ function LoginForm() {
             inviteCode: form.inviteCode,
             gender: form.gender, preferredGender: form.preferredGender,
             latitude: coords?.lat, longitude: coords?.lng,
+            selectedCampus: selectedCampus || undefined,
             verificationCode,
           }
         : { email: form.email, password: form.password }
@@ -458,6 +473,38 @@ function LoginForm() {
                   >
                     {gpsStatus === 'checking' ? '定位中...' : gpsStatus === 'ok' ? '重新验证' : '点击验证高校圈位置'}
                   </button>
+
+                  {/* 多校区重叠选择框 */}
+                  {gpsStatus === 'ok' && nearbyCampuses.length > 1 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                        🏫 检测到多个校区，请确认你所在的学校：
+                      </label>
+                      <select
+                        value={selectedCampus}
+                        onChange={e => {
+                          const chosen = e.target.value
+                          setSelectedCampus(chosen)
+                          const campus = nearbyCampuses.find(c => c.name === chosen)
+                          if (campus) {
+                            setRequiresSchoolEmail(campus.requiresSchoolEmail)
+                            if (campus.requiresSchoolEmail) {
+                              setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn）')
+                            } else {
+                              setEmailHint('')
+                            }
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                      >
+                        {nearbyCampuses.map((c, i) => (
+                          <option key={c.name} value={c.name}>
+                            {c.schoolName}（{i === 0 ? `最近 ${c.distanceKm}km` : `${c.distanceKm}km`}）
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 )}
 

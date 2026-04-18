@@ -97,15 +97,28 @@ function isJLAI(lat: number, lng: number): boolean {
   return haversineDistance(jlai.lat, jlai.lng, lat, lng) <= jlai.radiusKm
 }
 
+/** 单个匹配校区（用于前端下拉选择） */
+export interface NearbyCampus {
+  name: string           // 校区名称，如 "吉林大学(前卫南区)"
+  schoolName: string     // 学校全称，如 "吉林大学"
+  schoolShort: string    // 简称，如 "吉大"
+  distanceKm: number     // 用户到该校区的距离（km）
+  requiresSchoolEmail: boolean // 该学校是否需要校内邮箱
+}
+
 /**
  * 查找用户所在的匹配校区
- * 返回最近的校区信息 + 是否需要校内邮箱
+ * 返回所有在范围内的校区列表 + 是否需要校内邮箱（以最近校区为准）
+ *
+ * 当多个校区重叠时返回 nearbyCampuses 数组供用户选择，
+ * 默认选中离用户最近的那个。
  */
 export function verifyLocation(lat: number, lng: number):
   | { valid: false; message: string; nearestCampus?: string; nearestDistance?: number }
-  | { valid: true; location: string; requiresSchoolEmail: boolean; nearestCampus: string; nearestDistance: number } {
+  | { valid: true; location: string; requiresSchoolEmail: boolean; nearestCampus: string; nearestDistance: number; nearbyCampuses: NearbyCampus[] } {
 
-  // 检查是否在任一校区范围内（每个校区有独立半径）
+  // 收集所有在范围内的校区 + 记录最近的
+  const matchingCampuses: NearbyCampus[] = []
   let nearestCampus: Campus | null = null
   let nearestDist = Infinity
 
@@ -116,13 +129,28 @@ export function verifyLocation(lat: number, lng: number):
       nearestCampus = c
     }
     if (dist <= c.radiusKm) {
-      return {
-        valid: true,
-        location: `${c.schoolName}(${c.name})`,
+      matchingCampuses.push({
+        name: c.name,
+        schoolName: c.schoolName,
+        schoolShort: c.schoolShort,
+        distanceKm: Math.round(dist * 100) / 100,
         requiresSchoolEmail: c.schoolShort !== '吉动' && c.schoolShort !== '长大',
-        nearestCampus: c.name,
-        nearestDistance: Math.round(dist * 100) / 100,
-      }
+      })
+    }
+  }
+
+  // 按距离排序（最近的在前）
+  matchingCampuses.sort((a, b) => a.distanceKm - b.distanceKm)
+
+  if (matchingCampuses.length > 0) {
+    const selected = matchingCampuses[0] // 默认选最近的
+    return {
+      valid: true,
+      location: `${selected.schoolName}(${selected.name})`,
+      requiresSchoolEmail: selected.requiresSchoolEmail,
+      nearestCampus: selected.name,
+      nearestDistance: selected.distanceKm,
+      nearbyCampuses: matchingCampuses,
     }
   }
 

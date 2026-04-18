@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       requiresSchoolEmail: result.requiresSchoolEmail,
       nearestCampus: result.nearestCampus || undefined,
       nearestDistance: result.nearestDistance || undefined,
+      nearbyCampuses: result.nearbyCampuses || [],
     })
   } catch {
     return NextResponse.json({ error: '定位验证失败' }, { status: 500 })
