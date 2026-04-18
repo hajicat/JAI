@@ -156,7 +156,7 @@ export default function MatchPage() {
   // 加载当前周数据 + 历史数据（同时请求）
   const loadAllData = async () => {
     try {
-      const [meRes, matchRes, inviteRes, histRes, settingsRes] = await Promise.all([
+      const [meRes, matchRes, inviteRes, histRes, settingsRes, prefsRes] = await Promise.all([
         fetch('/api/auth/me'),
         fetch('/api/match'),
         fetch('/api/invite'),
@@ -164,7 +164,7 @@ export default function MatchPage() {
         fetch('/api/public-settings'),
         fetch('/api/match/preferences'),
       ])
-      const [meData, matchData, inviteData, histData, settingsData] = await Promise.all([
+      const [meData, matchData, inviteData, histData, settingsData, prefsData] = await Promise.all([
         meRes.json(),
         matchRes.json(),
         inviteRes.json(),
