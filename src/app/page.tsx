@@ -519,11 +519,87 @@ export default function Home() {
           <h3 className="text-xl font-bold text-gray-800 mb-2">仅限长春高校同学</h3>
           <p className="text-gray-500 text-sm">
             注册时需通过GPS定位验证你在长春高校圈内（吉林大学/东北师范大学/<br />
-            吉林动画学院/吉林外国语大学/长春大学，15km范围）<br />
+            吉林动画学院/吉林外国语大学/长春大学/吉林艺术学院，15km范围）<br />
             确保每一位参与者都是真实的高校同学
           </p>
         </div>
       </section>
+
+      {/* ══ 我们的特别 ══ */}
+      {(() => {
+        const features = [
+          {
+            icon: '❤️',
+            title: '真实学生认证',
+            desc: '注册时需通过GPS定位验证你在长春高校圈内，部分学校还需校内邮箱验证，确保每位用户都是真实在校大学生。',
+          },
+          {
+            icon: '🎯',
+            title: '平台属性',
+            desc: '这是面向长春高校的非盈利校园匹配平台，不推广不商业化，仅创造一个能提供缘分的平台，提供给有需要的同学自行使用。',
+          },
+          {
+            icon: '🔐',
+            title: '数据安全',
+            desc: '所有用户的账号密码和联系方式都是加密存储的，后台无法关联到任何个人。问卷答案采用匿名化处理，只有你和你的匹配对象能看到彼此的详细内容，管理员看不到私人数据。匹配到的对方只能看到脱敏后的维度分数，看不到原始问卷作答。',
+          },
+          {
+            icon: '⏱️',
+            title: '匹配算法',
+            desc: '先要完成深度问卷（涵盖性格底色、自我观察、人生方向等六大维度35题），然后双方是否方向一致、是否相处舒服、是否能彼此带动三个模块打分。其中若方向一致和是否舒服两个模块按相似计分；是否彼此带动模块按相似还是互补计分（由用户自行决定）。每周日20:00所有同学两两评分，获得60分以上的配对之后，用算法得到匹配结果，所有同学都会收到匹配邮件，轮空的同学会有邮件提醒放宽筛选条件～',
+          },
+        ]
+        return (
+          <section className={`relative z-10 max-w-4xl mx-auto px-6 py-16 ${campusVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+            <h2 className="text-3xl font-bold text-center text-gray-800 mb-10">我们的特别</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {features.map((f, i) => (
+                <div key={i} className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl p-6 sm:p-7 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 interactive-card">
+                  <div className="text-2xl mb-3">{f.icon}</div>
+                  <h3 className="font-bold text-gray-800 mb-2">{f.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+      })()}
+
+      {/* ══ 常见问题 FAQ ══ */}
+      {(() => {
+        const [openIndex, setOpenIndex] = useState<number | null>(null)
+        const faqs = [
+          { q: '使用流程是什么？', a: '首先注册账号并通过学生身份验证（GPS定位+邮箱），然后完成35道深度心理问卷（约15分钟）。之后每周末等待系统自动匹配，周日20:00揭晓本周的匹配对象。如果双方都愿意交换联系方式，就能拿到对方的联系信息啦~' },
+          { q: '什么是盲盒交友？', a: '「盲盒」的意思是：你不知道会匹配到谁，对方也不知道会匹配到你。系统根据你们的问卷回答计算契合度，在你们互相看到对方信息之前，一切都是未知的。这种设计避免了「看脸社交」的偏见，让大家更关注内在契合度。' },
+          { q: '验证码发送成功，但邮箱为什么收不到验证码？', a: '只要填入了正确的邮箱就能触发验证码发送，但不一定能送到邮箱。所有邮件发送失败原因都是同学们输入的邮箱地址不在对应学校邮箱系统里，需要同学们检查输入的邮箱前缀，如果前缀正确依然收不到邮件需要联系学校邮箱管理员咨询邮箱功能是否正常。目前系统的邮件发送成功率（指用户邮箱能收到验证码）为91%。' },
+          { q: '用学生账号密码登陆，会不会拿走另作他用？', a: '绝对不会。我们只在你首次注册时用学校邮箱发一次验证码来确认你是该校学生，之后不会再访问你的学校邮箱。密码使用PBKDF2强哈希+服务端pepper加盐存储，即使数据库泄露也无法还原明文。我们看不到也存不了你的学校账号密码原文。' },
+        ]
+        return (
+          <section className={`relative z-10 max-w-3xl mx-auto px-6 py-16 ${pricingVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+            <h2 className="text-3xl font-bold text-center text-gray-800 mb-10">常见问题</h2>
+            <div className="space-y-3">
+              {faqs.map((faq, i) => (
+                <div key={i} className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden interactive-card">
+                  <button
+                    onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                    className="w-full flex items-center justify-between p-5 sm:p-6 text-left cursor-pointer hover:bg-white/80 transition-colors"
+                  >
+                    <span className="font-medium text-gray-800 pr-4">{faq.q}</span>
+                    <svg className={`shrink-0 w-5 h-5 text-gray-400 transition-transform duration-300 ${openIndex === i ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {openIndex === i && (
+                    <div className="px-5 sm:px-6 pb-5 sm:pb-6 animate-fade-in">
+                      <p className="text-sm text-gray-500 leading-relaxed">{faq.a}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+      })()}
 
       {/* Pricing */}
       <section ref={pricingRef} className={`relative z-10 max-w-3xl mx-auto px-6 py-16 text-center ${pricingVisible ? 'animate-fade-in' : 'opacity-0'}`}>
