@@ -199,13 +199,14 @@ async function doInit(): Promise<void> {
     const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
     if (isDev) {
       const maskedPassword = adminPassword.slice(0, 4) + '****'
+      const maskedCode = adminCode.slice(0, 4) + '****'
       console.log(`\n[INIT] 🔐 管理员账号已创建:`)
       console.log(`  邮箱: ${adminEmail}`)
       console.log(`  密码: ${maskedPassword}`)
-      console.log(`  邀请码: ${adminCode}`)
-      console.log(`  ⚠️  请立即登录并修改密码！如需查看完整密码，请使用 /api/auth/change-password 重置。\n`)
+      console.log(`  邀请码: ${maskedCode}`)
+      console.log(`  ⚠️  请立即登录并修改密码！如需查看完整密码/邀请码，请通过数据库直接查询。\n`)
     } else {
-      console.warn(`[INIT] 管理员已创建 (${adminEmail})，生产环境密码不输出到日志。如需重置请通过数据库直接操作。`)
+      console.warn(`[INIT] 管理员已创建 (${adminEmail})，生产环境凭据不输出到日志。\n`)
     }
   }
 
