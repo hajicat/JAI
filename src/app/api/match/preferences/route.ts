@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyTokenSafe } from '@/lib/auth'
 import { validateCsrfToken } from '@/lib/csrf'
-import { getDb } from '@/lib/db'
+import { getDb, initDb } from '@/lib/db'
+import { getCookieName } from '@/lib/auth'
 
 export const runtime = 'edge'
 
@@ -17,15 +18,21 @@ const ALL_SCHOOLS = [
 /** GET: 读取当前用户的匹配学校偏好 */
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyTokenSafe(request)
-    if (!user) {
+    const cookieName = getCookieName('token')
+    const token = request.cookies.get(cookieName)?.value
+    if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
+
+    const db = getDb()
+    await initDb()
+
+    const decoded = await verifyTokenSafe(token, db)
+    if (!decoded) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
 
-    const db = getDb()
     const result = await db.execute({
       sql: "SELECT school, match_school_prefs FROM users WHERE id = ?",
-      args: [user.id],
+      args: [decoded.id],
     })
 
     if (result.rows.length === 0) {
@@ -62,8 +69,15 @@ export async function GET(request: NextRequest) {
 /** POST: 保存匹配学校偏好 */
 export async function POST(request: NextRequest) {
   try {
-    const user = await verifyTokenSafe(request)
-    if (!user) {
+    const cookieName = getCookieName('token')
+    const token = request.cookies.get(cookieName)?.value
+    if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
+
+    const db = getDb()
+    await initDb()
+
+    const decoded = await verifyTokenSafe(token, db)
+    if (!decoded) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
 
@@ -91,10 +105,9 @@ export async function POST(request: NextRequest) {
       ? 'all'
       : JSON.stringify(validSchools)
 
-    const db = getDb()
     await db.execute({
       sql: "UPDATE users SET match_school_prefs = ? WHERE id = ?",
-      args: [prefsValue, user.id],
+      args: [prefsValue, decoded.id],
     })
 
     return NextResponse.json({
