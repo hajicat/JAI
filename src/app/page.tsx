@@ -186,7 +186,7 @@ export default function Home() {
         {/* Background photo — extends well below fold for smooth transition */}
         <div className="absolute inset-0 z-0" style={{ margin: '-40px', width: 'calc(100% + 80px)', height: 'calc(100% + 120px)' }}>
           <img
-            src="/hero-bg.webp"
+            src="/hero-bg.webp?v=2"
             alt=""
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center 80%' }}
