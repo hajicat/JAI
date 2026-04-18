@@ -3,6 +3,7 @@
  *
  * 覆盖学校：
  *   - 吉林动画学院（任意邮箱，2km）
+ *   - 吉林艺术学院（任意邮箱，2km）
  *   - 吉林大学（7 个校区，@jlu / @mails.jlu 校内邮箱，2km）
  *   - 东北师范大学（2 个校区，@nenu 校内邮箱，2km）
  *   - 吉林外国语大学（1 个校区，@jisu 校内邮箱）
@@ -49,6 +50,13 @@ const CAMPUSES: Campus[] = [
   // GCJ-02: 吉林动画学院(高新校区)
   { name: '吉林动画学院',        lat: 43.820362, lng: 125.261993,
     schoolName: '吉林动画学院', schoolShort: '吉动', radiusKm: 1.0 },
+
+  // ── 吉林艺术学院（任意邮箱） ──────────────────────
+  // GCJ-02: 主校区 + 红旗校区
+  { name: '吉林艺术学院',        lat: 43.862015, lng: 125.31046,
+    schoolName: '吉林艺术学院', schoolShort: '吉艺', radiusKm: 1.5 },
+  { name: '吉艺红旗校区',       lat: 43.86179, lng: 125.310278,
+    schoolName: '吉林艺术学院', schoolShort: '吉艺', radiusKm: 1.0 },
 
   // ── 长春大学（任意邮箱 — 无官方学生邮箱后缀） ─
   // GCJ-02: 卫星路南 + 东校区(图书馆)
@@ -134,7 +142,7 @@ export function verifyLocation(lat: number, lng: number):
         schoolName: c.schoolName,
         schoolShort: c.schoolShort,
         distanceKm: Math.round(dist * 100) / 100,
-        requiresSchoolEmail: c.schoolShort !== '吉动' && c.schoolShort !== '长大',
+        requiresSchoolEmail: c.schoolShort !== '吉动' && c.schoolShort !== '长大' && c.schoolShort !== '吉艺',
       })
     }
   }
@@ -190,6 +198,7 @@ export function scoreGpsSamples(
   const CAMPUS_MAP: Record<string, { lat: number; lng: number; radiusKm: number }> = {
     '吉动': { lat: 43.820362, lng: 125.261993, radiusKm: 1.0 },
     '长大': { lat: 43.830861, lng: 125.299475, radiusKm: 1.0 },
+    '吉艺': { lat: 43.862015, lng: 125.31046, radiusKm: 1.5 },
   }
 
   const campus = CAMPUS_MAP[schoolShort]
@@ -268,5 +277,5 @@ export function scoreGpsSamples(
  * 这类用户在问卷提交时需要 GPS 采样验证
  */
 export function isNoEmailSchool(schoolShort: string): boolean {
-  return schoolShort === '吉动' || schoolShort === '长大'
+  return schoolShort === '吉动' || schoolShort === '长大' || schoolShort === '吉艺'
 }

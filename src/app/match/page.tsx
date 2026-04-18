@@ -645,7 +645,7 @@ export default function MatchPage() {
           <div className="space-y-2.5">
             {allSchools.map((school) => {
               const isMySchool = school === mySchool
-              const isSpecial = school === '吉林动画学院' || school === '长春大学'
+              const isSpecial = school === '吉林动画学院' || school === '长春大学' || school === '吉林艺术学院'
               const checked = schoolPrefs.includes(school)
               return (
                 <label
