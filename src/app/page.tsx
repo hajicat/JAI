@@ -189,7 +189,7 @@ export default function Home() {
             src="/hero-bg.webp"
             alt=""
             className="w-full h-full object-cover"
-            style={{ objectPosition: 'center 68%' }}
+            style={{ objectPosition: 'center 75%' }}
           />
         </div>
 
