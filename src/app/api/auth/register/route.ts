@@ -253,7 +253,7 @@ export async function POST(req: NextRequest) {
           const chosen = geoResult.nearbyCampuses?.find(c => c.name === selectedCampus)
           userSchool = chosen?.schoolName || null
         } else {
-          userSchool = geoResult.schoolName || null
+          userSchool = geoResult.nearestCampus || null
         }
       }
 
@@ -334,7 +334,7 @@ export async function POST(req: NextRequest) {
         const chosen = geoResult.nearbyCampuses?.find(c => c.name === selectedCampus)
         userSchool = chosen?.schoolName || null
       } else {
-        userSchool = geoResult.schoolName || null
+        userSchool = geoResult.nearestCampus || null
       }
     }
 
