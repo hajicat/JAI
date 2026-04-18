@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       school: row.school || null,
       preferences: prefs,           // 用户勾选的学校数组
       allSchools: ALL_SCHOOLS,      // 所有可选学校（供前端渲染）
-      isAllSelected: prefs.length === ALL_SCHOOLS,
+      isAllSelected: prefs.length === ALL_SCHOOLS.length,
     })
   } catch (error) {
     console.error('[match/preferences]', error instanceof Error ? error.message : String(error))
