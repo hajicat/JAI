@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
     }
 
     let requiresSchoolEmail = false
+    let geoResult: Awaited<ReturnType<typeof verifyLocation>> | null = null
     if (gpsEnabled) {
       if (typeof latitude !== 'number' || typeof longitude !== 'number') {
         return NextResponse.json({ error: '请先在页面上完成GPS校内验证（点击"点击验证位置"按钮）' }, { status: 400 })
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
       if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
         return NextResponse.json({ error: '坐标范围无效' }, { status: 400 })
       }
-      const geoResult = verifyLocation(latitude, longitude)
+      geoResult = verifyLocation(latitude, longitude)
       if (!geoResult.valid) {
         return NextResponse.json({ error: geoResult.message }, { status: 403 })
       }
@@ -247,7 +248,7 @@ export async function POST(req: NextRequest) {
 
       // 确定用户选择的学校名称
       let userSchool: string | null = null
-      if (gpsEnabled && geoResult.valid) {
+      if (gpsEnabled && geoResult?.valid) {
         if (selectedCampus) {
           const chosen = geoResult.nearbyCampuses?.find(c => c.name === selectedCampus)
           userSchool = chosen?.schoolName || null
@@ -328,7 +329,7 @@ export async function POST(req: NextRequest) {
 
     // 确定用户选择的学校名称
     let userSchool: string | null = null
-    if (gpsEnabled && geoResult.valid) {
+    if (gpsEnabled && geoResult?.valid) {
       if (selectedCampus) {
         const chosen = geoResult.nearbyCampuses?.find(c => c.name === selectedCampus)
         userSchool = chosen?.schoolName || null
