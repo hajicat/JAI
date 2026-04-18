@@ -169,7 +169,7 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const displayCount = <FlipBoardCount value={stats.completedSurvey} loading={!statsLoaded} />
+  const displayCount = <FlipBoardCount value={200 + (stats.completedSurvey || 0)} loading={!statsLoaded} />
 
   // ── Interactive "How it works" state ──
   const [activeStep, setActiveStep] = useState(0)
