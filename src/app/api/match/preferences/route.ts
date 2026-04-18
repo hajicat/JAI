@@ -6,7 +6,7 @@ import { getDb } from '@/lib/db'
 export const runtime = 'edge'
 
 // 所有学校列表（与 geo.ts 保持一致）
-export const ALL_SCHOOLS = [
+const ALL_SCHOOLS = [
   '吉林大学',
   '东北师范大学',
   '吉林外国语大学',
