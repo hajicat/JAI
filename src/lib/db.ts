@@ -138,25 +138,13 @@ async function doInit(): Promise<void> {
       session_id TEXT
     );
 
-    -- 兼容旧数据库：添加新字段（IF NOT EXISTS 语义用 TRY/CATCH 模拟）
-    -- school: 用户选择的学校名称
-    -- match_school_prefs: 匹配学校偏好（JSON数组，如 ["吉林大学","东北师范大学"]，'all' 表示全部）
-    db.execute({ sql: "ALTER TABLE users ADD COLUMN school TEXT", args: [] }).catch(() => {});
-    db.execute({ sql: "ALTER TABLE users ADD COLUMN match_school_prefs TEXT DEFAULT 'all'", args: [] }).catch(() => {});
-
-    -- 所有索引（IF NOT EXISTS 幂等）
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-    CREATE INDEX IF NOT EXISTS idx_users_invite ON users(invite_code);
-    CREATE INDEX IF NOT EXISTS idx_matches_week ON matches(week_key);
-    CREATE INDEX IF NOT EXISTS idx_matches_users ON matches(user_a, user_b);
-    CREATE INDEX IF NOT EXISTS idx_survey_user ON survey_responses(user_id);
-    CREATE INDEX IF NOT EXISTS idx_invite_codes_creator ON invite_codes(created_by);
-    CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email);
-    CREATE INDEX IF NOT EXISTS idx_verification_codes_expires ON verification_codes(expires_at);
-    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
-    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
     CREATE INDEX IF NOT EXISTS idx_verification_samples_user ON verification_samples(user_id);
   `)
+
+  // ── 兼容旧数据库：添加新字段（IF NOT EXISTS 语义用 catch 模拟）──
+  // 注意：这些必须在 executeMultiple 外面单独执行，不能混入 SQL 模板字符串
+  try { await db.execute({ sql: "ALTER TABLE users ADD COLUMN school TEXT", args: [] }) } catch {}
+  try { await db.execute({ sql: "ALTER TABLE users ADD COLUMN match_school_prefs TEXT DEFAULT 'all'", args: [] }) } catch {}
 
   // ── 种子管理员：直接查事实（is_admin），不依赖间接缓存 ──
   const adminRow = await db.execute('SELECT id FROM users WHERE is_admin = 1')
