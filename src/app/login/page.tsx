@@ -155,6 +155,12 @@ function LoginForm() {
       return
     }
 
+    // 必须先完成GPS验证才能发送验证码
+    if (gpsStatus !== 'ok') {
+      setError('请先完成GPS高校验证')
+      return
+    }
+
     // 校内邮箱前置校验：如果 GPS 检测到需要校内邮箱，非校内域名直接拦截
     if (requiresSchoolEmail) {
       const domain = form.email.split('@')[1]?.toLowerCase() || ''
@@ -572,15 +578,21 @@ function LoginForm() {
               <input type="email" placeholder="你的邮箱（用于登录和接收验证码）"
                 value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required autoComplete="email" />
-              {isRegister && emailHint && (
+              {isRegister && gpsStatus !== 'ok' && (
+                <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
+                  <span>💡</span>
+                  <span>请先完成上方GPS高校验证，验证通过后方可发送邮箱验证码</span>
+                </p>
+              )}
+              {isRegister && gpsStatus === 'ok' && emailHint && (
                 <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
                   <span>{emailHint}</span>
                 </p>
               )}
-              {isRegister && !emailHint && gpsStatus === 'idle' && (
+              {isRegister && gpsStatus === 'ok' && !emailHint && (
                 <p className="text-xs text-gray-400 mt-1.5 flex items-start gap-1">
-                  <span>💡</span>
-                  <span>请先完成GPS定位，系统将自动判断是否需要校内邮箱</span>
+                  <span>✅</span>
+                  <span>GPS已验证，可正常获取验证码</span>
                 </p>
               )}
             </div>
@@ -593,7 +605,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={handleSendCode}
-                    disabled={codeSending || codeCooldown > 0 || !form.email}
+                    disabled={codeSending || codeCooldown > 0 || !form.email || gpsStatus !== 'ok'}
                     className={`text-sm font-medium px-3 py-1.5 rounded-lg transition ${
                       codeCooldown > 0
                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
