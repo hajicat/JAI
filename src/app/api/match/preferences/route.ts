@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyTokenSafe } from '@/lib/auth'
-import { validateCsrfToken } from '@/lib/csrf'
+import { validateCsrfToken, getCookieName } from '@/lib/csrf'
 import { getDb, initDb } from '@/lib/db'
-import { getCookieName } from '@/lib/auth'
 
 export const runtime = 'edge'
 
