@@ -7,7 +7,7 @@ import { getCsrfToken } from '@/lib/csrf'
 
 interface DimScore { name: string; score: number; compatible: boolean }
 interface MatchData {
-  id: number; partnerId: number; partnerNickname: string
+  id: number; partnerId: number; partnerNickname: string; partnerSchool: string
   score: number; dimScores: DimScore[] | null; reasons: string[]
   weekKey: string; iRevealed: boolean; partnerRevealed: boolean
   contact: { type: string | null; info: string | null; decryptError?: boolean; empty?: boolean } | null
@@ -20,6 +20,7 @@ interface HistoryMatch {
   id: number
   partnerNickname: string
   partnerGender: string | null
+  partnerSchool: string
   score: number
   dimScores: DimScore[] | null
   reasons: string[]
@@ -330,8 +331,7 @@ export default function MatchPage() {
     } catch (e) { /* ignore */ }
   }
 
-  const saveSchoolPrefs = async (selected: string[]) => {
-    setPrefsLoading(true)
+  const saveSchoolPrefs = async (selected: string[], previous: string[]) => {
     setPrefsError('')
     setPrefsSaved(false)
     try {
@@ -342,12 +342,19 @@ export default function MatchPage() {
         body: JSON.stringify({ schools: selected }),
       })
       const data = await res.json()
-      if (!res.ok) { setPrefsError(data.error || '保存失败'); return }
-      setSchoolPrefs(selected)
+      if (!res.ok) {
+        // 失败时回滚到之前的状态
+        setSchoolPrefs(previous)
+        setPrefsError(data.error || '保存失败')
+        return
+      }
       setPrefsSaved(true)
       setTimeout(() => setPrefsSaved(false), 2000)
-    } catch { setPrefsError('网络错误') }
-    finally { setPrefsLoading(false) }
+    } catch {
+      // 网络失败也回滚
+      setSchoolPrefs(previous)
+      setPrefsError('网络错误')
+    }
   }
 
   const handleChangePassword = async () => {
@@ -463,7 +470,10 @@ export default function MatchPage() {
                 {match.partnerNickname[0]}
               </div>
               <h3 className="text-xl font-bold text-gray-800">{match.partnerNickname}</h3>
-              <div className="flex items-center justify-center gap-2 mt-2">
+              {match.partnerSchool && (
+                <p className="text-sm text-pink-500 mt-0.5">🏫 {match.partnerSchool}</p>
+              )}
+              <div className="flex items-center justify-center gap-2 mt-1">
                 <div className="text-3xl font-bold gradient-text">{match.score}%</div>
                 <span className="text-gray-400 text-sm">契合度</span>
               </div>
@@ -653,7 +663,10 @@ export default function MatchPage() {
                       const newPrefs = e.target.checked
                         ? [...schoolPrefs, school]
                         : schoolPrefs.filter(s => s !== school)
-                      saveSchoolPrefs(newPrefs)
+                      // 乐观更新：立即选中，后台异步保存，失败回滚
+                      const prev = [...schoolPrefs]
+                      setSchoolPrefs(newPrefs)
+                      saveSchoolPrefs(newPrefs, prev)
                     }}
                     disabled={isMySchool || prefsLoading}
                     className="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400"
@@ -865,6 +878,9 @@ function CandidateCard({ match, weekKey }: { match: HistoryMatch; weekKey: strin
               {(match.partnerGender === 'female' ? '女' : match.partnerGender === 'male' ? '男' : '')}
               {' · '}{match.partnerNickname}
             </span>
+            {match.partnerSchool && (
+              <span className="text-xs text-pink-400 shrink-0">🏫 {match.partnerSchool}</span>
+            )}
             {/* 状态标签 */}
             {match.bothRevealed ? (
               <span className="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-600 rounded-full border border-green-200">已揭示</span>

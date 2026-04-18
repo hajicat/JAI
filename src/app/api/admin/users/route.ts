@@ -114,6 +114,7 @@ export async function GET(req: NextRequest) {
       sql: `SELECT id, nickname, email, gender, preferred_gender, conflict_type,
                 is_admin, survey_completed, match_enabled, contact_type, contact_info,
                 verification_status, verification_score, verified_at,
+                school, match_school_prefs,
                 created_at FROM users WHERE id = ?`,
       args: [uid],
     })
@@ -147,6 +148,16 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 解析 match_school_prefs：'all' → 全选数组，JSON字符串 → 解析
+    const prefsRaw = userRow.match_school_prefs || 'all'
+    let parsedPrefs: string[]
+    if (prefsRaw === 'all') {
+      parsedPrefs = ['吉林大学', '东北师范大学', '吉林外国语大学', '吉林动画学院', '长春大学']
+    } else {
+      try { parsedPrefs = JSON.parse(prefsRaw) }
+      catch { parsedPrefs = [] }
+    }
+
     return NextResponse.json({
       user: {
         id: Number(userRow.id),
@@ -163,6 +174,8 @@ export async function GET(req: NextRequest) {
         verificationStatus: userRow.verification_status || null,
         verificationScore: userRow.verification_score,
         verifiedAt: userRow.verified_at,
+        school: userRow.school || null,
+        matchSchoolPrefs: parsedPrefs,
         createdAt: userRow.created_at,
       },
       survey: surveyAnswers,

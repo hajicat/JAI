@@ -36,6 +36,8 @@ export async function GET(req: NextRequest) {
       'CASE WHEN m.user_a = ? THEN m.a_revealed ELSE m.b_revealed END as i_revealed, ' +
       'CASE WHEN m.user_a = ? THEN m.b_revealed ELSE m.a_revealed END as partner_revealed, ' +
       'CASE WHEN m.user_a = ? THEN u2.conflict_type ELSE u1.conflict_type END as partner_conflict_type, ' +
+      // 对方学校
+      'CASE WHEN m.user_a = ? THEN u2.school ELSE u1.school END as partner_school, ' +
       // 对方联系方式（加密存储）
       'CASE WHEN m.user_a = ? THEN u2.contact_info ELSE u1.contact_info END as partner_contact_info, ' +
       'CASE WHEN m.user_a = ? THEN u2.contact_type ELSE u1.contact_type END as partner_contact_type, ' +
@@ -48,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     let matchResult = await db.execute({
       sql: sql,
-      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, weekKey],
+      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, weekKey],
     })
 
     // ── 可见窗口内回退查询：当前周无匹配时，取最近一周的匹配结果展示 ──
@@ -60,6 +62,7 @@ export async function GET(req: NextRequest) {
         'CASE WHEN m.user_a = ? THEN m.a_revealed ELSE m.b_revealed END as i_revealed, ' +
         'CASE WHEN m.user_a = ? THEN m.b_revealed ELSE m.a_revealed END as partner_revealed, ' +
         'CASE WHEN m.user_a = ? THEN u2.conflict_type ELSE u1.conflict_type END as partner_conflict_type, ' +
+        'CASE WHEN m.user_a = ? THEN u2.school ELSE u1.school END as partner_school, ' +
         'CASE WHEN m.user_a = ? THEN u2.contact_info ELSE u1.contact_info END as partner_contact_info, ' +
         'CASE WHEN m.user_a = ? THEN u2.contact_type ELSE u1.contact_type END as partner_contact_type, ' +
         'CASE WHEN m.user_a = ? THEN u1.contact_info ELSE u2.contact_info END as self_contact_info ' +
@@ -71,7 +74,7 @@ export async function GET(req: NextRequest) {
 
       matchResult = await db.execute({
         sql: fallbackSql,
-        args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
+        args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
       })
     }
 
@@ -186,6 +189,7 @@ export async function GET(req: NextRequest) {
         id: Number(match.id),
         partnerId: Number(match.partner_id),
         partnerNickname: String(match.partner_nickname),
+        partnerSchool: String(match.partner_school || ''),
         score: Number(match.score),
         dimScores: dimScores,
         reasons: JSON.parse(String(match.reasons || '[]')),

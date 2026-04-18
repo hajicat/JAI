@@ -839,6 +839,12 @@ export default function AdminPage() {
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                       <div><span className="text-gray-400">邮箱：</span>{userDetail.user.email || '-'}</div>
                                       <div><span className="text-gray-400">想匹配：</span>{GENDER_LABELS[userDetail.user.preferredGender] || '-'}</div>
+                                      <div><span className="text-gray-400">所属学校：</span>{userDetail.user.school || '-'}</div>
+                                      <div><span className="text-gray-400">匹配学校偏好：</span>{
+                                        Array.isArray(userDetail.user.matchSchoolPrefs) && userDetail.user.matchSchoolPrefs.length > 0
+                                          ? userDetail.user.matchSchoolPrefs.join('、')
+                                          : '—'
+                                      }</div>
                                       <div><span className="text-gray-400">注册时间：</span>{formatBeijingTime(userDetail.user.createdAt)}</div>
                                       {/* 学生验证状态 */}
                                       <div>

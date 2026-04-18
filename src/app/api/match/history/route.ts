@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
                m.a_revealed, m.b_revealed,
                CASE WHEN m.user_a = ? THEN u2.nickname ELSE u1.nickname END as partner_nickname,
                CASE WHEN m.user_a = ? THEN u2.gender ELSE u1.gender END as partner_gender,
+               CASE WHEN m.user_a = ? THEN u2.school ELSE u1.school END as partner_school,
                CASE WHEN m.user_a = ? THEN u2.conflict_type ELSE u1.conflict_type END as partner_conflict_type,
                CASE WHEN m.user_a = ? THEN u2.contact_info ELSE u1.contact_info END as partner_contact_info,
                CASE WHEN m.user_a = ? THEN u2.contact_type ELSE u1.contact_type END as partner_contact_type,
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
         WHERE (m.user_a = ? OR m.user_b = ?)
         ORDER BY m.week_key DESC, m.created_at DESC
       `,
-      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid],
+      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
     })
 
     const rows = result.rows as any[]
@@ -101,6 +102,7 @@ export async function GET(req: NextRequest) {
         id: Number(row.id),
         partnerNickname: String(row.partner_nickname || '未知'),
         partnerGender: row.partner_gender || null,
+        partnerSchool: String(row.partner_school || ''),
         score: Number(row.score),
         dimScores: hideDetails ? null : dimScores,
         reasons: hideDetails ? [] : (JSON.parse(String(row.reasons || '[]'))),
