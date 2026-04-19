@@ -117,6 +117,9 @@ export default function AdminPage() {
   const [matchPage, setMatchPage] = useState(1)
   const MATCH_PAGE_SIZE = 10
   const [loadingMatchDetails, setLoadingMatchDetails] = useState(false)
+
+  // 自动匹配触发状态（用户端触发的记录）
+  const [autoTriggerInfo, setAutoTriggerInfo] = useState<any>(null)
   // 历史周选择（用于查看非当前周的配对记录）
   const [adminSelectedWeek, setAdminSelectedWeek] = useState<string>('')
   const [availableWeeks, setAvailableWeeks] = useState<string[]>([])
@@ -555,6 +558,9 @@ export default function AdminPage() {
           // 未匹配 → 清空旧结果
           setMatchResult(null)
         }
+        // 记录用户端自动触发信息（管理员可查看是否真的被触发了）
+        if (data.autoTrigger) setAutoTriggerInfo(data.autoTrigger)
+        else setAutoTriggerInfo(null)
       })
       .catch(() => {})
   }, [tab, loading])
@@ -1068,6 +1074,40 @@ export default function AdminPage() {
 
         {tab === 'match' && (
           <div className="space-y-6">
+            {/* ═══ 自动匹配触发状态（用户端触发的记录）═══ */}
+            <div className={`rounded-2xl p-5 border ${
+              autoTriggerInfo
+                ? 'bg-green-50/60 border-green-200'
+                : 'bg-stone-50 border-stone-200'
+            }`}>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-lg">{autoTriggerInfo ? '✅' : '⏳'}</span>
+                <h3 className="font-semibold text-gray-800 text-sm">自动匹配触发状态</h3>
+              </div>
+              {autoTriggerInfo ? (
+                <div className="text-sm space-y-1">
+                  <p className="text-gray-600">
+                    <span className="font-medium text-green-700">已触发</span>
+                    {' · 触发时间：'}
+                    <span className="font-mono">{autoTriggerInfo.triggeredAtFormatted}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-gray-500">
+                    <span>👥 参与 {autoTriggerInfo.totalEligible} 人</span>
+                    <span>💌 配对 {autoTriggerInfo.matchedPairs} 对</span>
+                    <span>😢 未匹配 {autoTriggerInfo.unmatchedUsers} 人</span>
+                    {autoTriggerInfo.status === 'already_done' && (
+                      <span className="text-yellow-600">⚠️ 重复触发（已有结果）</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  尚未有用户端自动触发记录。自动匹配将在北京时间周日 12:00 后，由首个访问 /match 页面的已完成问卷用户触发。
+                  你也可以直接点击下方「开始匹配」按钮手动执行。
+                </p>
+              )}
+            </div>
+
             {/* ── 手动指定匹配 ── */}
             <div className="glass-card rounded-3xl p-8">
               <div className="flex items-center justify-between mb-1">

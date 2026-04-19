@@ -48,6 +48,25 @@ export async function POST(req: NextRequest) {
     // ── 执行带锁的自动匹配（使用 match-engine 导出的统一版本）──
     const result = await executeAutoMatchSafe(db)
 
+    // ── 记录自动匹配触发信息（管理员可查看）──
+    if (result.status === 'done' || result.status === 'already_done') {
+      const weekKey = getWeekKey()
+      const triggerKey = `auto_match_trigger_${weekKey}`
+      try {
+        await db.execute({
+          sql: `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))`,
+          args: [triggerKey, JSON.stringify({
+            triggeredBy: decoded.id,
+            triggeredAt: new Date().toISOString(),
+            status: result.status,
+            matchedPairs: result.matchedPairs ?? 0,
+            totalEligible: result.totalEligible ?? 0,
+            unmatchedUsers: result.unmatchedUsers ?? 0,
+          })],
+        })
+      } catch { /* 非关键操作，失败不影响返回 */ }
+    }
+
     return NextResponse.json(result)
 
   } catch (error) {
