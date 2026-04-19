@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -400,10 +400,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50 flex items-center justify-center px-4">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute bottom-20 right-10 w-72 h-72 bg-stone-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
       </div>
 
       {/* 注册成功提示 */}
@@ -579,13 +579,13 @@ function LoginForm() {
                 value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 transition" required autoComplete="email" />
               {isRegister && gpsStatus !== 'ok' && (
-                <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
+                <p className="text-xs text-stone-700 mt-1.5 flex items-start gap-1">
                   <span>💡</span>
                   <span>请先完成上方GPS高校验证，验证通过后方可发送邮箱验证码</span>
                 </p>
               )}
               {isRegister && gpsStatus === 'ok' && emailHint && (
-                <p className="text-xs text-amber-600 mt-1.5 flex items-start gap-1">
+                <p className="text-xs text-stone-700 mt-1.5 flex items-start gap-1">
                   <span>{emailHint}</span>
                 </p>
               )}
@@ -682,7 +682,7 @@ function LoginForm() {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-xl hover:opacity-90 transition disabled:opacity-50">
               {loading ? '请稍候...' : (isRegister ? '🎁 注册' : '登录')}
             </button>
           </form>
@@ -731,7 +731,7 @@ function LoginForm() {
                     <button
                       onClick={handleForgotPassword}
                       disabled={forgotSending || !forgotEmail}
-                      className="flex-1 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-pink-500 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                      className="flex-1 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-stone-500 to-pink-500 rounded-xl hover:opacity-90 transition disabled:opacity-50"
                     >
                       {forgotSending ? '发送中...' : '发送重置链接'}
                     </button>

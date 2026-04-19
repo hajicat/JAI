@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -41,7 +41,7 @@ interface WeekData {
 }
 
 const DIM_COLORS: Record<string, string> = {
-  '价值观': 'from-amber-300 to-orange-200',
+  '价值观': 'from-stone-400 to-stone-500',
   '互动模式': 'from-green-400 to-emerald-400',
   '日常节奏': 'from-blue-400 to-cyan-400',
 }
@@ -402,7 +402,7 @@ export default function MatchPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50 flex items-center justify-center">
         <div className="text-center"><div className="text-5xl mb-4 animate-bounce">🎁</div><p className="text-gray-400">加载中...</p></div>
       </div>
     )
@@ -413,7 +413,7 @@ export default function MatchPage() {
   const currentMatches = currentWeek?.matches || []
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50">
       <nav className="flex items-center justify-between px-3 py-2.5 max-w-4xl mx-auto">
         <div className="flex items-center gap-1 min-w-0">
           <span className="text-lg shrink-0">🎁</span>
@@ -437,7 +437,7 @@ export default function MatchPage() {
             {refreshing ? '...' : '🔄'}
           </button>
           <Link href="/survey"
-            className="text-xs px-2 py-1 text-amber-500 border border-amber-200 rounded-full hover:text-amber-600 hover:bg-amber-50 transition"
+            className="text-xs px-2 py-1 text-stone-500 border border-stone-200 rounded-full hover:text-stone-700 hover:bg-stone-50 transition"
             title="重新测试问卷">
             📝
           </Link>
@@ -465,8 +465,8 @@ export default function MatchPage() {
               <p className="text-sm text-gray-400 mt-1">{match.weekKey}</p>
             </div>
 
-            <div className="bg-gradient-to-r from-pink-50 to-amber-50 rounded-2xl p-6 mb-6 text-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-pink-300 to-amber-300 rounded-full flex items-center justify-center text-3xl text-white shadow-lg">
+            <div className="bg-gradient-to-r from-pink-50 to-stone-50 rounded-2xl p-6 mb-6 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-pink-300 to-stone-400 rounded-full flex items-center justify-center text-3xl text-white shadow-lg">
                 {match.partnerNickname[0]}
               </div>
               <h3 className="text-xl font-bold text-gray-800">{match.partnerNickname}</h3>
@@ -487,7 +487,7 @@ export default function MatchPage() {
                     <div key={i} className="flex items-center gap-3">
                       <span className="text-xs text-gray-500 w-20 text-right">{dim.name}</span>
                       <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim.name] || 'from-pink-400 to-amber-300'} transition-all duration-1000`}
+                        <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim.name] || 'from-pink-400 to-stone-400'} transition-all duration-1000`}
                           style={{ width: `${dim.score}%` }} />
                       </div>
                       <span className={`text-sm font-bold ${dim.score >= 70 ? 'text-green-500' : dim.score >= 50 ? 'text-yellow-500' : 'text-red-400'}`}>
@@ -514,12 +514,12 @@ export default function MatchPage() {
             {!match.iRevealed ? (
               <div>
                 {!match.selfHasContact && (
-                  <div className="mb-3 text-center py-2 px-4 bg-orange-50 rounded-xl border border-orange-200">
-                    <p className="text-sm text-orange-600">⚠️ 请先填写你自己的联系方式，才能查看对方的</p>
+                  <div className="mb-3 text-center py-2 px-4 bg-stone-100 rounded-xl border border-stone-300">
+                    <p className="text-sm text-stone-600">⚠️ 请先填写你自己的联系方式，才能查看对方的</p>
                   </div>
                 )}
                 <button onClick={handleReveal} disabled={revealing || !match.selfHasContact}
-                  className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-2xl transition text-lg ${
+                  className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-2xl transition text-lg ${
                     !match.selfHasContact ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                   }`}>
                   {revealing ? '确认中...' : '🤝 我愿意交换联系方式'}
@@ -583,7 +583,7 @@ export default function MatchPage() {
             </p>
             <MatchCountdown />
             <div className="mt-8 flex items-center justify-center gap-4">
-              <Link href="/survey" className="text-sm text-amber-600 hover:underline">📝 调整问卷答案</Link>
+              <Link href="/survey" className="text-sm text-stone-700 hover:underline">📝 调整问卷答案</Link>
             </div>
           </div>
         ) : (
@@ -596,7 +596,7 @@ export default function MatchPage() {
             </p>
             <MatchCountdown />
             <div className="mt-8 flex items-center justify-center gap-4">
-              <Link href="/survey" className="text-sm text-amber-600 hover:underline">📝 重新填写问卷</Link>
+              <Link href="/survey" className="text-sm text-stone-700 hover:underline">📝 重新填写问卷</Link>
             </div>
           </div>
         )}
@@ -675,7 +675,7 @@ export default function MatchPage() {
                     {school}
                     {isMySchool && <span className="ml-1.5 text-xs bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-full">我的学校</span>}
                     {isSpecial && (
-                      <span className="ml-1.5 text-xs text-amber-500 font-normal">
+                      <span className="ml-1.5 text-xs text-stone-500 font-normal">
                         （可能有校外人员参加）
                       </span>
                     )}
@@ -851,7 +851,7 @@ function CandidateCard({ match, weekKey }: { match: HistoryMatch; weekKey: strin
 
   // 头像颜色：已揭示用粉色系，未揭示用灰色系
   const avatarBg = match.bothRevealed
-    ? 'bg-gradient-to-br from-pink-300 to-amber-300'
+    ? 'bg-gradient-to-br from-pink-300 to-stone-400'
     : 'bg-gradient-to-br from-gray-200 to-gray-300'
 
   // 头像图标：已揭示显示爱心，未揭示显示问号
@@ -926,7 +926,7 @@ function CandidateCard({ match, weekKey }: { match: HistoryMatch; weekKey: strin
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-xs text-gray-500 w-20 text-right">{dim.name}</span>
                     <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim.name] || 'from-pink-400 to-amber-300'} transition-all duration-700`}
+                      <div className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim.name] || 'from-pink-400 to-stone-400'} transition-all duration-700`}
                         style={{ width: `${dim.score}%` }} />
                       </div>
                     <span className={`text-sm font-bold ${dim.score >= 70 ? 'text-green-500' : dim.score >= 50 ? 'text-yellow-500' : 'text-red-400'}`}>
@@ -1061,7 +1061,7 @@ function PartnerAnswers({ survey, nickname }: { survey: any; nickname: string })
               const items = parseMulti(survey[q.key])
               if (items.length === 0) return null
               return (
-                <div key={q.key} className="bg-gradient-to-r from-amber-50 to-pink-50 rounded-xl p-4 shadow-sm">
+                <div key={q.key} className="bg-gradient-to-r from-stone-50 to-pink-50 rounded-xl p-4 shadow-sm">
                   <div className="flex items-start gap-2 mb-3">
                     <span className="text-xs font-bold text-pink-500 bg-white px-2 py-0.5 rounded-full mt-0.5">{idx + 1}</span>
                     <p className="text-sm font-medium text-gray-800 leading-relaxed">{q.q}</p>
@@ -1149,7 +1149,7 @@ function ContactSettings({ user }: { user: any }) {
           onChange={e => setContactInfo(e.target.value)} maxLength={19}
           className="flex-1 min-w-0 px-4 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300" />
         <button onClick={handleSave} disabled={saving}
-          className="w-full sm:w-auto px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-amber-400 rounded-xl hover:opacity-90 transition whitespace-nowrap">
+          className="w-full sm:w-auto px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-stone-500 rounded-xl hover:opacity-90 transition whitespace-nowrap">
           {saved ? '已保存 ✓' : saving ? '...' : '保存'}
         </button>
       </div>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -102,8 +102,8 @@ const DIM_ICONS: Record<string, string> = {
 
 const DIM_COLORS: Record<string, string> = {
   '性格底色': 'from-rose-300 to-pink-400',
-  '自我观察': 'from-amber-300 to-orange-400',
-  '人生方向': 'from-amber-300 to-orange-400',
+  '自我观察': 'from-stone-400 to-stone-500',
+  '人生方向': 'from-stone-400 to-stone-500',
   '相处之道': 'from-emerald-300 to-teal-400',
   '生活节奏': 'from-sky-300 to-blue-400',
   '个人画像': 'from-fuchsia-300 to-pink-500',
@@ -357,10 +357,10 @@ export default function SurveyPage() {
   }).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 right-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
-        <div className="absolute bottom-20 left-10 w-72 h-72 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-20 left-10 w-72 h-72 bg-stone-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '1s' }} />
       </div>
 
       {/* Loading state */}
@@ -387,7 +387,7 @@ export default function SurveyPage() {
             </ul>
           </div>
           <button onClick={handleRetake}
-            className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-full hover:opacity-90 transition mb-4 w-full">
+            className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-full hover:opacity-90 transition mb-4 w-full">
             🔄 重新填写问卷
           </button>
           <div className="flex items-center justify-center gap-4">
@@ -448,7 +448,7 @@ export default function SurveyPage() {
         {/* Progress bar */}
         <div className="relative h-1.5 bg-gray-100 rounded-full mb-3 overflow-hidden">
           <div
-            className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-pink-500 to-amber-400'} transition-all duration-300 ease-out`}
+            className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-pink-500 to-stone-500'} transition-all duration-300 ease-out`}
             style={{ width: `${progress}%` }}
           />
           {/* 进度条前端光晕效果 */}
@@ -482,7 +482,7 @@ export default function SurveyPage() {
 
         {/* Dimension label */}
         <div className="mb-4">
-          <span className={`inline-block px-3 py-1 bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-pink-100 to-amber-100'} text-white rounded-full text-xs font-medium`}>
+          <span className={`inline-block px-3 py-1 bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-pink-100 to-stone-100'} text-white rounded-full text-xs font-medium`}>
             {DIM_ICONS[currentQ.dim]} {currentQ.dim}
           </span>
         </div>
@@ -505,7 +505,7 @@ export default function SurveyPage() {
                     }}
                     className={`w-full text-left px-6 py-4 rounded-2xl border-2 ${
                       selected
-                        ? 'border-amber-300 bg-gradient-to-r from-pink-50 to-amber-50 text-amber-800 shadow-md'
+                        ? 'border-stone-400 bg-gradient-to-r from-pink-50 to-stone-50 text-stone-900 shadow-md'
                         : 'border-gray-100 bg-white/60 hover:border-pink-200 hover:bg-pink-50/50 text-gray-600'
                     }`}>
                     <span className="font-medium"><span className="text-pink-300 mr-2">{String.fromCharCode(65 + i)}.</span>{opt}</span>
@@ -524,7 +524,7 @@ export default function SurveyPage() {
             <div className="space-y-2 mb-10">
               <p className="text-xs text-gray-400 mb-2">
                 已选 {selected.length}/{currentQ.maxSelect} 项
-                {selected.length >= (currentQ.maxSelect || 99) && <span className="text-amber-500 ml-1">（已达上限）</span>}
+                {selected.length >= (currentQ.maxSelect || 99) && <span className="text-stone-500 ml-1">（已达上限）</span>}
               </p>
               <div className="flex flex-wrap gap-2">
                 {currentQ.options!.map((opt, i) => {
@@ -573,13 +573,13 @@ export default function SurveyPage() {
           {step === QUESTIONS.length - 1 ? (
             <button onClick={handleSubmit}
               disabled={saving || answeredCount < QUESTIONS.length}
-              className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-full hover:opacity-90 disabled:opacity-50 transition">
+              className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-full hover:opacity-90 disabled:opacity-50 transition">
               {saving ? '提交中...' : `🎁 提交问卷（${answeredCount}/${QUESTIONS.length}）`}
             </button>
           ) : currentQ.type !== 'choice' ? (
             <button onClick={goNext}
               disabled={!isCurrentAnswered()}
-              className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-full hover:opacity-90 disabled:opacity-50 transition">
+              className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-full hover:opacity-90 disabled:opacity-50 transition">
               下一题 →
             </button>
           ) : null}

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
@@ -217,7 +217,7 @@ export default function Home() {
         }} />
 
         {/* Subtle amber blob (top-right only) */}
-        <div className="fixed top-40 right-10 w-72 h-72 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float pointer-events-none" style={{ animationDelay: '1s', zIndex: 1 }} />
+        <div className="fixed top-40 right-10 w-72 h-72 bg-stone-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float pointer-events-none" style={{ animationDelay: '1s', zIndex: 1 }} />
 
       <nav className="relative z-10 flex items-center justify-between px-6 md:px-8 py-3 w-full">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -227,7 +227,7 @@ export default function Home() {
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {isLoggedIn ? (
             <>
-              <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-amber-400 rounded-full hover:opacity-90 transition px-4 py-1.5 shadow-md">
+              <Link href="/match" className="text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-stone-500 rounded-full hover:opacity-90 transition px-4 py-1.5 shadow-md">
                 👤 个人信息
               </Link>
               <button onClick={async () => {
@@ -249,7 +249,7 @@ export default function Home() {
               <Link href="/login" className="px-3 py-1.5 text-sm font-medium text-pink-600 border border-pink-200/80 rounded-full hover:bg-pink-50 transition bg-white/80 backdrop-blur shadow-sm">
                 登录
               </Link>
-              <Link href="/login?mode=register" className="px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-amber-400 rounded-full hover:opacity-90 transition shadow-md">
+              <Link href="/login?mode=register" className="px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-stone-500 rounded-full hover:opacity-90 transition shadow-md">
                 注册
               </Link>
             </>
@@ -272,7 +272,7 @@ export default function Home() {
         </div>
 
         <div className={heroVisible ? 'animate-fade-in' : 'opacity-0'} style={{ animationDelay: '160ms' }}>
-          <p className="text-base sm:text-lg text-amber-50/90 mb-10 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,.4)]">
+          <p className="text-base sm:text-lg text-stone-50/90 mb-10 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,.4)]">
             长春高校公益匹配平台<br />
             基于心理学深度兼容性测试，每周为你匹配一位灵魂契合的TA
           </p>
@@ -291,7 +291,7 @@ export default function Home() {
               { val: countdown.secs, label: '秒' },
             ].map((item, i) => (
               <div key={i} className="flex flex-col items-center">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-pink-500 to-amber-400 rounded-xl text-white text-lg sm:text-2xl font-bold shadow-lg">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-pink-500 to-stone-500 rounded-xl text-white text-lg sm:text-2xl font-bold shadow-lg">
                   {String(item.val).padStart(2, '0')}
                 </div>
                 <span className="text-[10px] sm:text-xs text-gray-400 mt-1">{item.label}</span>
@@ -301,11 +301,11 @@ export default function Home() {
         </div>
 
         {isLoggedIn ? (
-          <Link href={localSurveyDone ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-amber-400 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
+          <Link href={localSurveyDone ? '/match' : '/survey'} className="inline-block px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-stone-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
             {localSurveyDone ? '💌 查看匹配' : '🎁 继续测试'}
           </Link>
         ) : (
-          <Link href="/login?mode=register" className="inline-block px-8 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-amber-400 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
+          <Link href="/login?mode=register" className="inline-block px-8 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white bg-gradient-to-r from-pink-500 via-red-400 to-stone-500 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-press animate-fade-in" style={{ animationDelay: '320ms' }}>
             🎁 开始测试
           </Link>
         )}
@@ -332,7 +332,7 @@ export default function Home() {
                 <div
                   className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 ${
                     activeStep === i
-                      ? 'bg-gradient-to-br from-pink-500 to-amber-500 text-white shadow-md'
+                      ? 'bg-gradient-to-br from-pink-500 to-stone-500 text-white shadow-md'
                       : 'border-2 border-gray-300 text-gray-400'
                   }`}
                 >
@@ -383,7 +383,7 @@ export default function Home() {
                                 key={j}
                                 className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-2 ${
                                   opt.selected
-                                    ? 'bg-gradient-to-r from-pink-500 to-amber-400 text-white shadow-md'
+                                    ? 'bg-gradient-to-r from-pink-500 to-stone-500 text-white shadow-md'
                                     : 'bg-gray-50 text-gray-500'
                                 }`}
                                 style={{ animation: `fadeInUp 0.4s ease-out ${j * 120 + 200}ms both` }}
@@ -417,7 +417,7 @@ export default function Home() {
                           </div>
                           <div className="flex items-center gap-2 text-xs">
                             <span>💜</span>
-                            <span className="font-bold text-orange-500">94.7%</span>
+                            <span className="font-bold text-stone-600">94.7%</span>
                             <span className="text-gray-400">契合度</span>
                           </div>
                           <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
@@ -445,7 +445,7 @@ export default function Home() {
                     return (
                       <div className="bg-white/95 backdrop-blur rounded-2xl p-4 sm:p-5 shadow-2xl">
                         <div className="flex items-center gap-3 mb-3 sm:mb-4 pb-3 border-b border-gray-100">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-amber-300 flex items-center justify-center text-white text-sm font-bold">明</div>
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-stone-400 flex items-center justify-center text-white text-sm font-bold">明</div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm">小明</p>
                             <p className="text-[10px] text-gray-400">刚刚在线</p>
@@ -455,7 +455,7 @@ export default function Home() {
                         {/* 消息气泡 */}
                         <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                           <div
-                            className="max-w-[85%] bg-gradient-to-r from-pink-500 to-amber-500 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed"
+                            className="max-w-[85%] bg-gradient-to-r from-pink-500 to-stone-500 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed"
                             style={{ animation: 'fadeInUp 0.4s ease-out 200ms both' }}
                           >
                             周末有空一起喝杯咖啡吗？我知道一家很安静的书店 ☕
@@ -467,7 +467,7 @@ export default function Home() {
                             好呀，周六下午怎么样？☺️
                           </div>
                           <div
-                            className="max-w-[85%] bg-gradient-to-r from-pink-500 to-amber-500 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed"
+                            className="max-w-[85%] bg-gradient-to-r from-pink-500 to-stone-500 text-white px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs leading-relaxed"
                             style={{ animation: 'fadeInUp 0.4s ease-out 700ms both' }}
                           >
                             没问题！那下午两点见 📚
@@ -485,7 +485,7 @@ export default function Home() {
                             readOnly
                             className="flex-1 min-w-0 bg-transparent text-xs text-gray-400 outline-none placeholder:text-gray-300"
                           />
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink-500 to-amber-500 flex items-center justify-center text-white text-[10px] shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink-500 to-stone-500 flex items-center justify-center text-white text-[10px] shrink-0">
                             ➤
                           </div>
                         </div>
@@ -606,7 +606,7 @@ export default function Home() {
         <div className="glass-card rounded-3xl p-10 interactive-card">
           <h2 className="text-3xl font-bold text-gray-800 mb-3">完全免费，纯靠缘分</h2>
           <p className="text-gray-500 mb-8">校内平台，不收任何费用。每周日20:00自动匹配。</p>
-          <Link href={isLoggedIn ? (localSurveyDone ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-amber-400 rounded-full font-medium hover:opacity-90 transition">
+          <Link href={isLoggedIn ? (localSurveyDone ? '/match' : '/survey') : '/login?mode=register'} className="inline-block px-8 py-3 text-white bg-gradient-to-r from-pink-500 to-stone-500 rounded-full font-medium hover:opacity-90 transition">
             {isLoggedIn ? (localSurveyDone ? '查看匹配 →' : '继续测试 →') : '立即加入 →'}
           </Link>
         </div>

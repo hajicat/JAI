@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -28,7 +28,7 @@ function ResetForm() {
   // 无 token → 提示去登录页
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50 flex items-center justify-center px-4">
         <div className="glass-card rounded-3xl p-8 shadow-xl text-center max-w-md w-full">
           <div className="text-5xl mb-4">🔑</div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">无效的重置链接</h2>
@@ -36,7 +36,7 @@ function ResetForm() {
             这个重置链接不完整或已过期
           </p>
           <Link href="/login"
-            className="inline-block w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-xl hover:opacity-90 transition text-center">
+            className="inline-block w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-xl hover:opacity-90 transition text-center">
             返回登录页
           </Link>
         </div>
@@ -83,7 +83,7 @@ function ResetForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50 flex items-center justify-center px-4">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" />
           <div className="absolute bottom-20 right-10 w-72 h-72 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
@@ -99,10 +99,10 @@ function ResetForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50 flex items-center justify-center px-4">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute bottom-20 right-10 w-72 h-72 bg-stone-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -181,7 +181,7 @@ function ResetForm() {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-xl hover:opacity-90 transition disabled:opacity-50">
               {loading ? '请稍候...' : '确认重置'}
             </button>
           </form>
