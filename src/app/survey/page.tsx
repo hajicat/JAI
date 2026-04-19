@@ -426,7 +426,7 @@ export default function SurveyPage() {
 
         <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-xl shrink-0">🎁</span>
+          <img src="/logo.png" alt="吉我爱" className="w-7 h-7 shrink-0" />
           <span className="font-bold text-lg gradient-text truncate">吉我爱</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">

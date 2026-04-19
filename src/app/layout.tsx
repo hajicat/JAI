@@ -4,6 +4,9 @@ import './globals.css'
 export const metadata: Metadata = {
   title: '吉我爱 | 长春高校公益匹配',
   description: '长春高校公益匹配平台（吉林大学/东北师范/吉林动画/吉林外国语/吉林艺术学院/长春大学），每周为你匹配一位灵魂契合的TA',
+  icons: {
+    icon: '/logo.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
