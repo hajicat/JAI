@@ -1201,7 +1201,7 @@ export default function AdminPage() {
                   )}
                   {notifyResult && (
                     <span className={`text-xs ${notifyResult.error ? 'text-red-500' : 'text-green-600'}`}>
-                      {notifyResult.error || `已发送 ${notifyResult.sent ?? 0} 封${notifyResult.failed > 0 ? `，失败 ${notifyResult.failed} 封` : ''}`}
+                      {notifyResult.error || `已发送 ${notifyResult.sent ?? 0} 封${(notifyResult.failed ?? 0) > 0 ? `，失败 ${notifyResult.failed} 封` : ''}`}
                     </span>
                   )}
                 </div>
