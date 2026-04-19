@@ -422,7 +422,7 @@ export default function MatchPage() {
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {user?.isAdmin && (
-            <Link href="/admin" className="hidden sm:inline-flex px-2.5 py-1 text-xs text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition">管理</Link>
+            <Link href="/admin" className="inline-flex px-2.5 py-1 text-xs text-pink-600 border border-pink-200 rounded-full hover:bg-pink-50 transition whitespace-nowrap">管理</Link>
           )}
           <Link href="/"
             className="text-xs px-2 py-1 text-gray-500 border border-gray-200 rounded-full hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50 transition"
