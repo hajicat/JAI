@@ -298,8 +298,8 @@ export default function AdminPage() {
         setNotifyResult({ error: data.error || data.message || '发送失败' })
       } else {
         setNotifyResult({ sent: data.sent, failed: data.failed })
-        // 刷新状态
-        loadMatchStatus?.()
+        // 刷新状态（静默调用，不阻塞）
+        fetch('/api/admin/match-status').then(r => r.json()).catch(() => {})
       }
     } catch (e) {
       setNotifyResult({ error: '网络错误，请重试' })
