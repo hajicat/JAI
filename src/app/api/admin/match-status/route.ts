@@ -62,7 +62,15 @@ export async function GET(req: NextRequest) {
     // 解析自动匹配触发信息
     let autoTriggerInfo: any = null
     const triggerRow = triggerResult.rows[0] as any
-    if (triggerRow?.value) {
+    // 检查现有记录是否为空数据（already_done 时写入的无效记录）
+    const isEmptyRecord = triggerRow?.value && (() => {
+      try {
+        const d = JSON.parse(triggerRow.value)
+        return (d.matchedPairs ?? 0) === 0 && (d.totalEligible ?? 0) === 0
+      } catch { return false }
+    })()
+    
+    if (triggerRow?.value && !isEmptyRecord) {
       try {
         autoTriggerInfo = JSON.parse(triggerRow.value)
         autoTriggerInfo.triggeredAtFormatted = formatBeijingTime(triggerRow.updated_at)
