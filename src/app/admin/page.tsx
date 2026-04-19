@@ -1176,7 +1176,7 @@ export default function AdminPage() {
                 {/* 手动发送/重发按钮 */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   <button
-                    onClick={handleSendNotify}
+                    onClick={() => handleSendNotify()}
                     disabled={notifySending}
                     className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${
                       notifySending
