@@ -68,7 +68,6 @@ async function sendViaBrevo(
     return { success: false, error: '未配置 BREVO_API_KEY' }
   }
 
-吉我爱
   const fromEmail = getFromEmail()
 
   try {
