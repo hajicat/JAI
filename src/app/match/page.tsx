@@ -416,7 +416,7 @@ export default function MatchPage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-stone-50">
       <nav className="flex items-center justify-between px-3 py-2.5 max-w-4xl mx-auto">
         <div className="flex items-center gap-1 min-w-0">
-          <span className="text-lg shrink-0">🎁</span>
+          <img src="/logo.png" alt="吉我爱" className="w-7 h-7 shrink-0" />
           <span className="font-bold text-base gradient-text hidden sm:inline">吉我爱</span>
         </div>
 
