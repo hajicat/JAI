@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '吉爱酒窝 | 长春高校盲盒交友',
-  description: '长春高校专属盲盒交友平台（吉林大学/东北师范/吉林动画/吉林外国语/长春大学），每周为你匹配一位灵魂契合的TA',
+  title: '吉我爱 | 长春高校公益匹配',
+  description: '长春高校公益匹配平台（吉林大学/东北师范/吉林动画/吉林外国语/吉林艺术学院/长春大学），每周为你匹配一位灵魂契合的TA',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

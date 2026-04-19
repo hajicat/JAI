@@ -222,7 +222,7 @@ export default function Home() {
       <nav className="relative z-10 flex items-center justify-between px-6 md:px-8 py-3 w-full">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-xl shrink-0">🎁</span>
-          <span className="font-bold text-lg gradient-text truncate">吉爱酒窝</span>
+          <span className="font-bold text-lg gradient-text truncate">吉我爱</span>
         </div>
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {isLoggedIn ? (
@@ -273,7 +273,7 @@ export default function Home() {
 
         <div className={heroVisible ? 'animate-fade-in' : 'opacity-0'} style={{ animationDelay: '160ms' }}>
           <p className="text-base sm:text-lg text-amber-50/90 mb-10 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,.4)]">
-            长春高校专属盲盒交友平台<br />
+            长春高校公益匹配平台<br />
             基于心理学深度兼容性测试，每周为你匹配一位灵魂契合的TA
           </p>
         </div>
@@ -570,7 +570,7 @@ export default function Home() {
         const [openIndex, setOpenIndex] = useState<number | null>(null)
         const faqs = [
           { q: '使用流程是什么？', a: '首先注册账号并通过学生身份验证（GPS定位+邮箱），然后完成35道深度心理问卷（约15分钟）。之后每周末等待系统自动匹配，周日20:00揭晓本周的匹配对象。如果双方都愿意交换联系方式，就能拿到对方的联系信息啦~' },
-          { q: '什么是盲盒交友？', a: '「盲盒」的意思是：你不知道会匹配到谁，对方也不知道会匹配到你。系统根据你们的问卷回答计算契合度，在你们互相看到对方信息之前，一切都是未知的。这种设计避免了「看脸社交」的偏见，让大家更关注内在契合度。' },
+          { q: '什么是公益匹配？', a: '「公益」的意思是：你不知道会匹配到谁，对方也不知道会匹配到你。系统根据你们的问卷回答计算契合度，在你们互相看到对方信息之前，一切都是未知的。这种设计避免了「看脸社交」的偏见，让大家更关注内在契合度。' },
           { q: '验证码发送成功，但邮箱为什么收不到验证码？', a: '可能填错了邮箱地址，或者填的不是校园邮箱。请检查邮箱地址是否正确，确保使用的是学校分配的校内邮箱。如果确认邮箱无误但仍收不到，请查看垃圾邮件。' },
           { q: '是否会匹配到非学校人员（社会及非本科及以上人士）？', a: '目前吉大、东北师范等需要邮箱注册的学校不会匹配到校外人员，由于吉动、长大、吉林艺术学院没有为学生单独配置邮箱，所以采用了GPS验证，理论上是有校外人员的风险，好在我们为您设置了自定义匹配指定学校的功能。（后续对没有学生邮箱的学校怎么认证，还会再更新，现在为了让用户不暴露更多隐私，只能做到这了。）' },
         ]

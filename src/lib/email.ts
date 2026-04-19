@@ -68,7 +68,7 @@ async function sendViaBrevo(
     return { success: false, error: '未配置 BREVO_API_KEY' }
   }
 
-  const fromName = '吉爱酒窝'
+吉我爱
   const fromEmail = getFromEmail()
 
   try {
@@ -132,7 +132,7 @@ function buildEmailHtml(code: string, nickname?: string): string {
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 24px;">
         <span style="font-size: 32px;">🎁</span>
-        <h1 style="color: #333; margin: 12px 0 4px; font-size: 20px;">吉爱酒窝</h1>
+        <h1 style="color: #333; margin: 12px 0 4px; font-size: 20px;">吉我爱</h1>
         <p style="color: #888; font-size: 14px; margin: 0;">邮箱验证码</p>
       </div>
 
@@ -156,7 +156,7 @@ function buildEmailHtml(code: string, nickname?: string): string {
 
       <p style="text-align: center; color: #aaa; font-size: 12px; margin: 0;">
         此邮件由系统自动发送，请勿回复<br />
-        吉爱酒窝 &mdash; 发现校园缘分 ✨
+        吉我爱 &mdash; 发现校园缘分 ✨
       </p>
     </div>
   `
