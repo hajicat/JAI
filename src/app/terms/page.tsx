@@ -1,6 +1,6 @@
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50 p-8">
       <div className="max-w-2xl mx-auto glass-card rounded-3xl p-8">
         <h1 className="text-2xl font-bold mb-6 text-gray-800">用户协议</h1>
         <div className="text-sm text-gray-600 space-y-4 leading-relaxed">

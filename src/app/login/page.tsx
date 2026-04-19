@@ -400,10 +400,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-amber-50 flex items-center justify-center px-4">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute bottom-20 right-10 w-72 h-72 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '1.5s' }} />
       </div>
 
       {/* 注册成功提示 */}
@@ -682,7 +682,7 @@ function LoginForm() {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-400 rounded-xl hover:opacity-90 transition disabled:opacity-50">
               {loading ? '请稍候...' : (isRegister ? '🎁 注册' : '登录')}
             </button>
           </form>
@@ -731,7 +731,7 @@ function LoginForm() {
                     <button
                       onClick={handleForgotPassword}
                       disabled={forgotSending || !forgotEmail}
-                      className="flex-1 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                      className="flex-1 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-pink-500 rounded-xl hover:opacity-90 transition disabled:opacity-50"
                     >
                       {forgotSending ? '发送中...' : '发送重置链接'}
                     </button>
