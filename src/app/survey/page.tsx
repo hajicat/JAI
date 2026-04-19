@@ -134,8 +134,16 @@ export default function SurveyPage() {
         setAlreadyCompleted(true)
         return
       }
-      // 判断是否需要 GPS 验证（吉动/长大用户需要）
-      setNeedsGpsVerification(!!data.user.needsGpsVerification)
+      // 判断是否需要 GPS 验证（吉动/长大/吉艺用户需要）
+      const needsGps = !!data.user.needsGpsVerification
+      setNeedsGpsVerification(needsGps)
+
+      // 仅对需要 GPS 验证的用户启动静默采样
+      // 必须在 fetch 回调内判断，因为 needsGpsVerification 是异步获取的值
+      if (needsGps) {
+        initGpsSampling()
+      }
+
       // 记录历史最高分，用于重做时保留
       if (data.user.verificationScore != null) setPrevScore(data.user.verificationScore)
       // 恢复本地草稿
@@ -149,12 +157,6 @@ export default function SurveyPage() {
       } catch {}
     }).catch(() => router.push('/login'))
     .finally(() => setLoading(false))
-
-    // 仅对需要 GPS 验证的用户（吉动/长大）启动静默采样
-    // 吉大/东师/吉外用户靠邮箱验证身份，不需要 GPS
-    if (needsGpsVerification) {
-      initGpsSampling()
-    }
   }, [router])
 
   /** 初始化静默 GPS 采样 */
