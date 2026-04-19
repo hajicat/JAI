@@ -67,6 +67,38 @@ export async function GET(req: NextRequest) {
         autoTriggerInfo = JSON.parse(triggerRow.value)
         autoTriggerInfo.triggeredAtFormatted = formatBeijingTime(triggerRow.updated_at)
       } catch { /* ignore */ }
+    } else if (lockValue === 'done' && matchedPairs > 0) {
+      // 锁已完成且有匹配数据，但缺少触发记录（可能是功能上线前触发的匹配）
+      // 从 matches 表 + 锁的时间 补算真实数据，让管理员看到有意义的信息
+      const lockRow = lockResult.rows[0] as any
+      // 尝试查最早一条匹配记录的时间作为触发时间参考
+      const earliestMatch = await db.execute({
+        sql: `SELECT MIN(created_at) as earliest FROM matches WHERE week_key = ?`,
+        args: [weekKey],
+      })
+      const refTime = ((earliestMatch.rows[0] as any)?.earliest) ||
+                       (lockRow?.updated_at) || null
+
+      // 查参与匹配的用户数（去重：user_a + user_b 的并集）
+      const participantsResult = await db.execute({
+        sql: `SELECT COUNT(DISTINCT u) AS cnt FROM (
+                SELECT user_a AS u FROM matches WHERE week_key = ?
+                UNION SELECT user_b AS u FROM matches WHERE week_key = ?
+              )`,
+        args: [weekKey, weekKey],
+      })
+      const participantsCount = Number((participantsResult.rows[0] as any)?.cnt || 0)
+
+      autoTriggerInfo = {
+        triggeredBy: null,  // 未知（功能上线前无记录）
+        triggeredAt: refTime,
+        triggeredAtFormatted: formatBeijingTime(refTime),
+        status: 'done',
+        matchedPairs,
+        totalEligible: participantsCount,
+        unmatchedUsers: Math.max(0, totalEligible - (matchedPairs * 2)),
+        inferred: true,  // 标记为补算数据，前端可据此显示提示
+      }
     }
 
     // 查询总参与人数（已完成问卷+开启匹配）

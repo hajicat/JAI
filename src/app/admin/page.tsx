@@ -1098,6 +1098,11 @@ export default function AdminPage() {
                     {autoTriggerInfo.status === 'already_done' && (
                       <span className="text-yellow-600">⚠️ 重复触发（已有结果）</span>
                     )}
+                    {autoTriggerInfo.inferred && (
+                      <span className="text-blue-600" title="匹配在触发记录功能上线前执行，数据从匹配结果表补算">
+                        📋 数据补算（上线前已执行）
+                      </span>
+                    )}
                   </div>
                 </div>
               ) : (
