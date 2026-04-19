@@ -79,18 +79,23 @@ export async function GET(req: NextRequest) {
       // 锁已完成且有匹配数据，但缺少触发记录（可能是功能上线前触发的匹配）
       // 从 matches 表 + 锁的时间 补算真实数据，让管理员看到有意义的信息
       const lockRow = lockResult.rows[0] as any
-      // 补算数据时，优先使用锁的更新时间（更接近实际触发时间）
-      const refTime = (lockRow?.updated_at) || null
+      // 补算数据时，优先使用锁的更新时间
+      // 锁无时间时 fallback 到最新一条匹配记录时间（比最早更接近实际触发时间）
+      let refTime = (lockRow?.updated_at) || null
+      if (!refTime) {
+        const latestMatch = await db.execute({
+          sql: `SELECT MAX(created_at) as latest FROM matches WHERE week_key = ?`,
+          args: [weekKey],
+        })
+        refTime = ((latestMatch.rows[0] as any)?.latest) || null
+      }
 
-      // 查参与匹配的用户数（去重：user_a + user_b 的并集）
-      const participantsResult = await db.execute({
-        sql: `SELECT COUNT(DISTINCT u) AS cnt FROM (
-                SELECT user_a AS u FROM matches WHERE week_key = ?
-                UNION SELECT user_b AS u FROM matches WHERE week_key = ?
-              )`,
-        args: [weekKey, weekKey],
+      // 查所有参与匹配的候选人数（已完成问卷+开启匹配），而非仅已配对的人
+      const eligibleResult = await db.execute({
+        sql: `SELECT COUNT(*) as cnt FROM users WHERE survey_completed = 1 AND match_enabled = 1`,
+        args: [],
       })
-      const participantsCount = Number((participantsResult.rows[0] as any)?.cnt || 0)
+      const totalEligible = Number((eligibleResult.rows[0] as any)?.cnt || 0)
 
       autoTriggerInfo = {
         triggeredBy: null,  // 未知（功能上线前无记录）
@@ -98,8 +103,8 @@ export async function GET(req: NextRequest) {
         triggeredAtFormatted: formatBeijingTime(refTime),
         status: 'done',
         matchedPairs,
-        totalEligible: participantsCount,
-        unmatchedUsers: Math.max(0, participantsCount - (matchedPairs * 2)),
+        totalEligible,
+        unmatchedUsers: Math.max(0, totalEligible - (matchedPairs * 2)),
         inferred: true,  // 标记为补算数据，前端可据此显示提示
       }
     }
