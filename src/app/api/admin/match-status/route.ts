@@ -79,13 +79,8 @@ export async function GET(req: NextRequest) {
       // 锁已完成且有匹配数据，但缺少触发记录（可能是功能上线前触发的匹配）
       // 从 matches 表 + 锁的时间 补算真实数据，让管理员看到有意义的信息
       const lockRow = lockResult.rows[0] as any
-      // 尝试查最早一条匹配记录的时间作为触发时间参考
-      const earliestMatch = await db.execute({
-        sql: `SELECT MIN(created_at) as earliest FROM matches WHERE week_key = ?`,
-        args: [weekKey],
-      })
-      const refTime = ((earliestMatch.rows[0] as any)?.earliest) ||
-                       (lockRow?.updated_at) || null
+      // 补算数据时，优先使用锁的更新时间（更接近实际触发时间）
+      const refTime = (lockRow?.updated_at) || null
 
       // 查参与匹配的用户数（去重：user_a + user_b 的并集）
       const participantsResult = await db.execute({
