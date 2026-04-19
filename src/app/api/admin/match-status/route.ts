@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
         status: 'done',
         matchedPairs,
         totalEligible: participantsCount,
-        unmatchedUsers: Math.max(0, totalEligible - (matchedPairs * 2)),
+        unmatchedUsers: Math.max(0, participantsCount - (matchedPairs * 2)),
         inferred: true,  // 标记为补算数据，前端可据此显示提示
       }
     }
