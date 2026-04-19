@@ -5,9 +5,12 @@
 @tailwind utilities;
 
 :root {
-  --campus-primary: #e85d75;
-  --campus-secondary: #f8a4b5;
-  --campus-bg: #fef7f8;
+  /* ═══ 米白+柔粉配色 ═══ */
+  --campus-primary: #e87585;       /* 主粉色（文字、图标） */
+  --campus-secondary: #ffb6b6;     /* 柔粉（渐变终点） */
+  --campus-cream: #fff2f2;         /* 米白（渐变起点） */
+  --campus-bg: #fffbfb;            /* 页面底色 */
+  --campus-dark: #d46373;          /* 深粉（按钮深色文字） */
 
   /* ═══ Apple-style 缓动曲线 ═══ */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);       /* 弹性/回弹 */
@@ -39,12 +42,12 @@ body {
 }
 .glass-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -8px rgba(232, 93, 117, 0.15);
+  box-shadow: 0 12px 30px -8px rgba(232, 117, 133, 0.15);
 }
 
-/* Gradient text */
+/* Gradient text — 米白到柔粉 */
 .gradient-text {
-  background: linear-gradient(135deg, var(--campus-primary), #f5c6aa);
+  background: linear-gradient(135deg, var(--campus-primary), var(--campus-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -110,8 +113,8 @@ body {
 
 /* 匹配卡脉冲光晕 */
 @keyframes matchPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 117, 0.3); }
-  50% { box-shadow: 0 0 0 15px rgba(232, 93, 117, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 117, 133, 0.3); }
+  50% { box-shadow: 0 0 0 15px rgba(232, 117, 133, 0); }
 }
 
 /* 弹性滑入（右→左） */
@@ -136,8 +139,8 @@ body {
 
 /* 呼吸光晕 */
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 117, 0); }
-  50% { box-shadow: 0 0 20px 4px rgba(232, 93, 117, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 117, 133, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(232, 117, 133, 0.15); }
 }
 
 /* 弹窗弹簧弹出 */
@@ -193,8 +196,8 @@ body {
 }
 
 .survey-option input[type="radio"]:checked + label {
-  background: linear-gradient(135deg, var(--campus-primary), #f5c6aa);
-  color: white;
+  background: linear-gradient(135deg, var(--campus-cream), var(--campus-secondary));
+  color: #8b4a54;
   border-color: transparent;
   animation: pressDown 0.2s var(--ease-spring);
 }
@@ -262,7 +265,7 @@ textarea:focus {
 }
 .interactive-card:hover {
   transform: translateY(-3px) scale(1.005);
-  box-shadow: 0 14px 28px -10px rgba(232, 93, 117, 0.18);
+  box-shadow: 0 14px 28px -10px rgba(232, 117, 133, 0.18);
 }
 .interactive-card:active {
   transform: translateY(-1px) scale(0.998);

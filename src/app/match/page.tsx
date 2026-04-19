@@ -519,7 +519,7 @@ export default function MatchPage() {
                   </div>
                 )}
                 <button onClick={handleReveal} disabled={revealing || !match.selfHasContact}
-                  className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-2xl transition text-lg ${
+                  className={`w-full py-4 font-semibold bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-2xl transition text-lg text-[#8b4a54] ${
                     !match.selfHasContact ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                   }`}>
                   {revealing ? '确认中...' : '🤝 我愿意交换联系方式'}
@@ -623,7 +623,7 @@ export default function MatchPage() {
               </div>
             </div>
             <button onClick={() => toggleMatch(!matchEnabled)}
-              className={`w-12 h-7 rounded-full transition-colors ${matchEnabled ? 'bg-pink-500' : 'bg-gray-300'}`}>
+              className={`w-12 h-7 rounded-full transition-colors ${matchEnabled ? 'bg-[#FFB6B6]' : 'bg-gray-300'}`}>
               <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${matchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
           </div>
@@ -1149,7 +1149,7 @@ function ContactSettings({ user }: { user: any }) {
           onChange={e => setContactInfo(e.target.value)} maxLength={19}
           className="flex-1 min-w-0 px-4 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300" />
         <button onClick={handleSave} disabled={saving}
-          className="w-full sm:w-auto px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition whitespace-nowrap">
+          className="w-full sm:w-auto px-5 py-2 text-sm font-medium bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-xl hover:opacity-90 transition whitespace-nowrap text-[#8b4a54]">
           {saved ? '已保存 ✓' : saving ? '...' : '保存'}
         </button>
       </div>

@@ -749,7 +749,7 @@ export default function AdminPage() {
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium transition ${
-                tab === t.key ? 'bg-gradient-to-r from-pink-500 to-amber-200 text-white shadow-lg' : 'bg-white/60 text-gray-500 hover:bg-white'
+                tab === t.key ? 'bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] text-[#8b4a54] shadow-lg' : 'bg-white/60 text-gray-500 hover:bg-white'
               }`}>
               {t.label} {t.count !== null && `(${t.count})`}
             </button>
@@ -1004,7 +1004,7 @@ export default function AdminPage() {
                           onClick={() => p !== currentPage && loadUsers(p)}
                           className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
                             p === currentPage
-                              ? 'bg-gradient-to-r from-pink-500 to-amber-200 text-white shadow'
+                              ? 'bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] text-[#8b4a54] shadow'
                               : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
                           }`}>
                           {p}
@@ -1029,7 +1029,7 @@ export default function AdminPage() {
               <input type="number" value={newCodeCount} onChange={e => setNewCodeCount(Number(e.target.value))} min={1} max={20}
                 className="w-20 px-3 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm text-center" />
               <button onClick={generateCodes} disabled={generating}
-                className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition">
+                className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-xl hover:opacity-90 transition text-[#8b4a54]">
                 {generating ? '生成中...' : '+ 生成邀请码'}
               </button>
             </div>
@@ -1153,7 +1153,7 @@ export default function AdminPage() {
               <p className="text-gray-500 mb-6">将为所有完成问卷且开启匹配的用户进行匹配<br />支持性别偏好过滤 + 五维度加权评分 + 冲突类型分析</p>
               <div className="flex items-center justify-center gap-3">
                 <button onClick={runMatching} disabled={generating}
-                  className="px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-pink-500 to-amber-200 rounded-full hover:opacity-90 disabled:opacity-50 transition shadow-lg">
+                  className="px-10 py-4 text-lg font-semibold bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-full hover:opacity-90 disabled:opacity-50 transition shadow-lg text-[#8b4a54]">
                   {generating ? '匹配中...' : '🎁 开始匹配'}
                 </button>
                 {/* 始终可见的历史记录入口 */}
@@ -1331,7 +1331,7 @@ export default function AdminPage() {
                                     onClick={() => { setMatchPage(p); loadMatchDetails(p, adminSelectedWeek) }}
                                     className={`w-8 h-7 text-xs font-medium rounded-lg transition ${
                                       p === matchPage
-                                        ? 'bg-gradient-to-r from-pink-500 to-amber-200 text-white shadow'
+                                        ? 'bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] text-[#8b4a54] shadow'
                                         : 'bg-white border border-gray-200 text-gray-600 hover:bg-pink-50 hover:border-pink-200'
                                     }`}>
                                     {p}
@@ -1422,7 +1422,7 @@ export default function AdminPage() {
                   disabled={changingPw} />
                 <button onClick={handleChangePassword}
                   disabled={changingPw || !currentPw || !newPw}
-                  className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 disabled:opacity-50 transition">
+                  className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-xl hover:opacity-90 disabled:opacity-50 transition text-[#8b4a54]">
                   {changingPw ? '修改中...' : '确认修改密码'}
                 </button>
               </div>
@@ -1505,7 +1505,7 @@ export default function AdminPage() {
                 取消
               </button>
               <button onClick={handleVerifyPassword} disabled={verifyingPw || !verifyPassword.trim()}
-                className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition ${
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-xl hover:opacity-90 transition text-[#8b4a54] ${
                   verifyingPw || !verifyPassword.trim() ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                 {verifyingPw ? '验证中...' : '确认'}
@@ -1591,7 +1591,7 @@ export default function AdminPage() {
                 取消
               </button>
               <button onClick={handleSaveVerif} disabled={editVerifLoading}
-                className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition ${
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-xl hover:opacity-90 transition text-[#8b4a54] ${
                   editVerifLoading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                 {editVerifLoading ? '保存中...' : '保存'}

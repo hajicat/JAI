@@ -387,7 +387,7 @@ export default function SurveyPage() {
             </ul>
           </div>
           <button onClick={handleRetake}
-            className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-full hover:opacity-90 transition mb-4 w-full">
+            className="px-8 py-3 bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] font-semibold hover:opacity-90 transition mb-4 w-full text-[#8b4a54]">
             🔄 重新填写问卷
           </button>
           <div className="flex items-center justify-center gap-4">
@@ -448,7 +448,7 @@ export default function SurveyPage() {
         {/* Progress bar */}
         <div className="relative h-1.5 bg-gray-100 rounded-full mb-3 overflow-hidden">
           <div
-            className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-pink-500 to-amber-200'} transition-all duration-300 ease-out`}
+            className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[currentQ.dim] || 'from-[#FFF2F2] to-[#FFB6B6]'} transition-all duration-300 ease-out`}
             style={{ width: `${progress}%` }}
           />
           {/* 进度条前端光晕效果 */}
@@ -573,13 +573,13 @@ export default function SurveyPage() {
           {step === QUESTIONS.length - 1 ? (
             <button onClick={handleSubmit}
               disabled={saving || answeredCount < QUESTIONS.length}
-              className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-full hover:opacity-90 disabled:opacity-50 transition">
+              className="px-8 py-3 bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] font-semibold rounded-full hover:opacity-90 disabled:opacity-50 transition text-[#8b4a54]">
               {saving ? '提交中...' : `🎁 提交问卷（${answeredCount}/${QUESTIONS.length}）`}
             </button>
           ) : currentQ.type !== 'choice' ? (
             <button onClick={goNext}
               disabled={!isCurrentAnswered()}
-              className="px-8 py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-full hover:opacity-90 disabled:opacity-50 transition">
+              className="px-8 py-3 bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] font-semibold rounded-full hover:opacity-90 disabled:opacity-50 transition text-[#8b4a54]">
               下一题 →
             </button>
           ) : null}

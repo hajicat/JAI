@@ -682,7 +682,7 @@ function LoginForm() {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+              className="w-full py-3 bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] font-semibold rounded-xl hover:opacity-90 transition disabled:opacity-50 text-[#8b4a54]">
               {loading ? '请稍候...' : (isRegister ? '🎁 注册' : '登录')}
             </button>
           </form>
