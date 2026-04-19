@@ -117,7 +117,6 @@ export async function GET(req: NextRequest) {
     const totalEligible = Number((eligibleResult.rows[0] as any)?.cnt || 0)
 
     // 查询通知状态
-    const weekKey = getWeekKey()
     const notifyLockKey = `notify_lock_${weekKey}`
     const notifyLockResult = await db.execute({
       sql: "SELECT value, updated_at FROM settings WHERE key = ?",
