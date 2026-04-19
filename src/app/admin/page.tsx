@@ -120,6 +120,9 @@ export default function AdminPage() {
 
   // 自动匹配触发状态（用户端触发的记录）
   const [autoTriggerInfo, setAutoTriggerInfo] = useState<any>(null)
+  // 匹配通知邮件状态
+  const [notifySending, setNotifySending] = useState(false)
+  const [notifyResult, setNotifyResult] = useState<{ error?: string; sent?: number; failed?: number } | null>(null)
   // 历史周选择（用于查看非当前周的配对记录）
   const [adminSelectedWeek, setAdminSelectedWeek] = useState<string>('')
   const [availableWeeks, setAvailableWeeks] = useState<string[]>([])
@@ -277,6 +280,31 @@ export default function AdminPage() {
     setResetPwConfirm('')
     setResetPwError('')
     setResetPwModal(true)
+  }
+
+  /** 发送/重发匹配通知邮件 */
+  const handleSendNotify = async (force: boolean = false) => {
+    setNotifySending(true)
+    setNotifyResult(null)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify({ force }),
+      })
+      const data = await res.json()
+      if (!res.ok || (data.status && data.status !== 'done' && !data.sent)) {
+        setNotifyResult({ error: data.error || data.message || '发送失败' })
+      } else {
+        setNotifyResult({ sent: data.sent, failed: data.failed })
+        // 刷新状态
+        loadMatchStatus?.()
+      }
+    } catch (e) {
+      setNotifyResult({ error: '网络错误，请重试' })
+    }
+    setNotifySending(false)
   }
 
   /** 提交重置密码 */
@@ -1112,6 +1140,68 @@ export default function AdminPage() {
                 </p>
               )}
             </div>
+
+            {/* ═══ 匹配通知邮件状态 ═══ */}
+            {data.notifyLockStatus && (
+              <div className={`rounded-2xl p-5 border ${
+                data.notifyLockStatus === 'done'
+                  ? 'bg-blue-50/60 border-blue-200'
+                  : data.notifyLockStatus === 'running'
+                    ? 'bg-yellow-50/60 border-yellow-200'
+                    : 'bg-stone-50 border-stone-200'
+              }`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-lg">📧</span>
+                  <h3 className="font-semibold text-gray-800 text-sm">匹配通知邮件</h3>
+                </div>
+                <div className="text-sm space-y-1">
+                  <p className="text-gray-600">
+                    状态：
+                    <span className={`font-medium ${
+                      data.notifyLockStatus === 'done' ? 'text-blue-700' :
+                      data.notifyLockStatus === 'running' ? 'text-yellow-700' : 'text-gray-500'
+                    }`}>
+                      {data.notifyLockStatus === 'done' ? '✅ 已发送' :
+                       data.notifyLockStatus === 'running' ? '⏳ 发送中...' : '❌ 未触发'}
+                    </span>
+                    {data.notifySentCount > 0 && `（已发 ${data.notifySentCount} 封）`}
+                  </p>
+                </div>
+
+                {/* 手动发送/重发按钮 */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <button
+                    onClick={handleSendNotify}
+                    disabled={notifySending}
+                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${
+                      notifySending
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 active:scale-95'
+                    }`}>
+                    {notifySending ? '发送中...' : data.notifyLockStatus === 'done' ? '🔄 重新发送' : '📤 发送通知'}
+                  </button>
+                  {data.notifyLockStatus === 'done' && (
+                    <button
+                      onClick={() => {
+                        if (confirm('强制重发会清除所有已发送记录，给所有匹配用户重新发一封邮件。确定吗？')) handleSendNotify(true)
+                      }}
+                      disabled={notifySending}
+                      className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${
+                        notifySending
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100 active:scale-95'
+                      }`}>
+                      ⚡ 强制重发全部
+                    </button>
+                  )}
+                  {notifyResult && (
+                    <span className={`text-xs ${notifyResult.error ? 'text-red-500' : 'text-green-600'}`}>
+                      {notifyResult.error || `已发送 ${notifyResult.sent ?? 0} 封${notifyResult.failed > 0 ? `，失败 ${notifyResult.failed} 封` : ''}`}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* ── 手动指定匹配 ── */}
             <div className="glass-card rounded-3xl p-8">

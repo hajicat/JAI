@@ -116,6 +116,20 @@ export async function GET(req: NextRequest) {
     })
     const totalEligible = Number((eligibleResult.rows[0] as any)?.cnt || 0)
 
+    // 查询通知状态
+    const weekKey = getWeekKey()
+    const notifyLockKey = `notify_lock_${weekKey}`
+    const notifyLockResult = await db.execute({
+      sql: "SELECT value, updated_at FROM settings WHERE key = ?",
+      args: [notifyLockKey],
+    })
+    const notifyLockRow = notifyLockResult.rows[0] as any
+    const notifySentResult = await db.execute({
+      sql: "SELECT COUNT(*) as cnt FROM settings WHERE key LIKE ?",
+      args: [`notify_sent_${weekKey}_%`],
+    })
+    const notifySentCount = Number((notifySentResult.rows[0] as any)?.cnt || 0)
+
     return NextResponse.json({
       matched: lockValue === 'done' || matchedPairs > 0,
       lockStatus: lockValue || null,
@@ -124,6 +138,8 @@ export async function GET(req: NextRequest) {
       totalEligible,
       unmatchedUsers: Math.max(0, totalEligible - (matchedPairs * 2)),
       autoTrigger: autoTriggerInfo,
+      notifyLockStatus: notifyLockRow?.value || null,   // null / running / done
+      notifySentCount,
     })
   } catch (error) {
     console.error('[admin/match-status]', error instanceof Error ? error.message : String(error))
