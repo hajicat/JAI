@@ -36,7 +36,7 @@ function ResetForm() {
             这个重置链接不完整或已过期
           </p>
           <Link href="/login"
-            className="inline-block w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-xl hover:opacity-90 transition text-center">
+            className="inline-block w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition text-center">
             返回登录页
           </Link>
         </div>
@@ -181,7 +181,7 @@ function ResetForm() {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+              className="w-full py-3 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition disabled:opacity-50">
               {loading ? '请稍候...' : '确认重置'}
             </button>
           </form>

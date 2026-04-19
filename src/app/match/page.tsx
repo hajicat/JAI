@@ -41,7 +41,7 @@ interface WeekData {
 }
 
 const DIM_COLORS: Record<string, string> = {
-  '价值观': 'from-stone-400 to-stone-500',
+  '价值观': 'from-stone-400 to-amber-200',
   '互动模式': 'from-green-400 to-emerald-400',
   '日常节奏': 'from-blue-400 to-cyan-400',
 }
@@ -519,7 +519,7 @@ export default function MatchPage() {
                   </div>
                 )}
                 <button onClick={handleReveal} disabled={revealing || !match.selfHasContact}
-                  className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-stone-500 rounded-2xl transition text-lg ${
+                  className={`w-full py-4 text-white font-semibold bg-gradient-to-r from-pink-500 to-amber-200 rounded-2xl transition text-lg ${
                     !match.selfHasContact ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                   }`}>
                   {revealing ? '确认中...' : '🤝 我愿意交换联系方式'}
@@ -1149,7 +1149,7 @@ function ContactSettings({ user }: { user: any }) {
           onChange={e => setContactInfo(e.target.value)} maxLength={19}
           className="flex-1 min-w-0 px-4 py-2 bg-white/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300" />
         <button onClick={handleSave} disabled={saving}
-          className="w-full sm:w-auto px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-stone-500 rounded-xl hover:opacity-90 transition whitespace-nowrap">
+          className="w-full sm:w-auto px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-amber-200 rounded-xl hover:opacity-90 transition whitespace-nowrap">
           {saved ? '已保存 ✓' : saving ? '...' : '保存'}
         </button>
       </div>

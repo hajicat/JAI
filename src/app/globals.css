@@ -44,7 +44,7 @@ body {
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, var(--campus-primary), #a89890);
+  background: linear-gradient(135deg, var(--campus-primary), #f5c6aa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -193,7 +193,7 @@ body {
 }
 
 .survey-option input[type="radio"]:checked + label {
-  background: linear-gradient(135deg, var(--campus-primary), #a89890);
+  background: linear-gradient(135deg, var(--campus-primary), #f5c6aa);
   color: white;
   border-color: transparent;
   animation: pressDown 0.2s var(--ease-spring);
