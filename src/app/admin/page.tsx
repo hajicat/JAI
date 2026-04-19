@@ -122,6 +122,8 @@ export default function AdminPage() {
   const [autoTriggerInfo, setAutoTriggerInfo] = useState<any>(null)
   // 匹配通知邮件状态
   const [notifySending, setNotifySending] = useState(false)
+  const [notifyLockStatus, setNotifyLockStatus] = useState<string | null>(null)
+  const [notifySentCount, setNotifySentCount] = useState<number>(0)
   const [notifyResult, setNotifyResult] = useState<{ error?: string; sent?: number; failed?: number } | null>(null)
   // 历史周选择（用于查看非当前周的配对记录）
   const [adminSelectedWeek, setAdminSelectedWeek] = useState<string>('')
@@ -589,6 +591,9 @@ export default function AdminPage() {
         // 记录用户端自动触发信息（管理员可查看是否真的被触发了）
         if (data.autoTrigger) setAutoTriggerInfo(data.autoTrigger)
         else setAutoTriggerInfo(null)
+        // 记录通知邮件状态
+        setNotifyLockStatus(data.notifyLockStatus || null)
+        setNotifySentCount(data.notifySentCount || 0)
       })
       .catch(() => {})
   }, [tab, loading])
@@ -1142,11 +1147,11 @@ export default function AdminPage() {
             </div>
 
             {/* ═══ 匹配通知邮件状态 ═══ */}
-            {data.notifyLockStatus && (
+            {notifyLockStatus && (
               <div className={`rounded-2xl p-5 border ${
-                data.notifyLockStatus === 'done'
+                notifyLockStatus === 'done'
                   ? 'bg-blue-50/60 border-blue-200'
-                  : data.notifyLockStatus === 'running'
+                  : notifyLockStatus === 'running'
                     ? 'bg-yellow-50/60 border-yellow-200'
                     : 'bg-stone-50 border-stone-200'
               }`}>
@@ -1158,13 +1163,13 @@ export default function AdminPage() {
                   <p className="text-gray-600">
                     状态：
                     <span className={`font-medium ${
-                      data.notifyLockStatus === 'done' ? 'text-blue-700' :
-                      data.notifyLockStatus === 'running' ? 'text-yellow-700' : 'text-gray-500'
+                      notifyLockStatus === 'done' ? 'text-blue-700' :
+                      notifyLockStatus === 'running' ? 'text-yellow-700' : 'text-gray-500'
                     }`}>
-                      {data.notifyLockStatus === 'done' ? '✅ 已发送' :
-                       data.notifyLockStatus === 'running' ? '⏳ 发送中...' : '❌ 未触发'}
+                      {notifyLockStatus === 'done' ? '✅ 已发送' :
+                       notifyLockStatus === 'running' ? '⏳ 发送中...' : '❌ 未触发'}
                     </span>
-                    {data.notifySentCount > 0 && `（已发 ${data.notifySentCount} 封）`}
+                    {notifySentCount > 0 && `（已发 ${notifySentCount} 封）`}
                   </p>
                 </div>
 
@@ -1178,9 +1183,9 @@ export default function AdminPage() {
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 active:scale-95'
                     }`}>
-                    {notifySending ? '发送中...' : data.notifyLockStatus === 'done' ? '🔄 重新发送' : '📤 发送通知'}
+                    {notifySending ? '发送中...' : notifyLockStatus === 'done' ? '🔄 重新发送' : '📤 发送通知'}
                   </button>
-                  {data.notifyLockStatus === 'done' && (
+                  {notifyLockStatus === 'done' && (
                     <button
                       onClick={() => {
                         if (confirm('强制重发会清除所有已发送记录，给所有匹配用户重新发一封邮件。确定吗？')) handleSendNotify(true)
