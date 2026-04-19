@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     const result = await executeAutoMatchSafe(db)
 
     // ── 记录自动匹配触发信息（管理员可查看）──
-    if (result.status === 'done' || result.status === 'already_done') {
+    // 仅在真正执行了匹配时写入（跳过/已完成的空结果不写入）
+    if (result.status === 'done') {
       const weekKey = getWeekKey()
       const triggerKey = `auto_match_trigger_${weekKey}`
       try {
