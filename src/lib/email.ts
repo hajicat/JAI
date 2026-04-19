@@ -69,6 +69,7 @@ async function sendViaBrevo(
   }
 
   const fromEmail = getFromEmail()
+  const fromName = '吉我爱'
 
   try {
     const controller = new AbortController()
