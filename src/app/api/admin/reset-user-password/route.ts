@@ -38,9 +38,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
     }
 
-    // ── 二级密码验证（防止 cookie 被盗后批量重置密码）──
-    const { confirmPassword } = await req.json() as { confirmPassword?: string }
-    if (!confirmPassword || typeof confirmPassword !== 'string') {
+    // ── 解析参数（二级密码 + 新密码）──
+    const body = await req.json()
+    const adminPassword = body.adminPassword as string | undefined
+    if (!adminPassword || typeof adminPassword !== 'string') {
       return NextResponse.json({ error: '请输入管理员密码以确认操作' }, { status: 400 })
     }
     try {
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
         args: [],
       })
       const pwRow = pwResult.rows[0] as any
-      if (pwRow?.value && !(await verifyAdminPassword(confirmPassword, String(pwRow.value)))) {
+      if (pwRow?.value && !(await verifyAdminPassword(adminPassword, String(pwRow.value)))) {
         return NextResponse.json({ error: '管理员密码错误' }, { status: 403 })
       }
       // 如果还没设置过二级密码则放行（兼容旧部署）
@@ -62,8 +63,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '操作太频繁，请稍后再试' }, { status: 429 })
     }
 
-    // ── 解析参数 ──
-    const body = await req.json()
     const userId = Number(body.userId)
     const newPassword = (body.newPassword || '').trim()
     const confirmPassword = (body.confirmPassword || '').trim()
