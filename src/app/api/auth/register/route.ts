@@ -52,12 +52,11 @@ function setAuthCookies(response: NextResponse, token: string): void {
 }
 
 /** 构建注册成功的标准响应（JSON + CSRF cookie） */
-async function buildSuccessResponse(userId: number, nickname: string, email: string, userInviteCode: string, defaultPassword: string): Promise<NextResponse> {
+async function buildSuccessResponse(userId: number, nickname: string, email: string, userInviteCode: string): Promise<NextResponse> {
   const token = await createToken({ id: userId, email, isAdmin: false })
   const response = NextResponse.json({
     success: true,
     user: { id: userId, nickname, email, inviteCode: userInviteCode },
-    defaultPassword,
   })
   setAuthCookies(response, token)
   return setCsrfCookie(response)
@@ -147,9 +146,6 @@ export async function POST(req: NextRequest) {
 
     const emailCheck = validateEmail(email)
     if (!emailCheck.valid) return NextResponse.json({ error: emailCheck.error }, { status: 400 })
-
-    // 自动生成默认密码（昵称的拼音）
-    const defaultPassword = nicknameToPinyin(nickname)
 
     // Validate gender（无论是否需要邀请码都必填）
     if (!['male', 'female', 'other'].includes(gender)) {
@@ -292,7 +288,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      return await buildSuccessResponse(newUserId, nickname, email, userInviteCode, defaultPassword)
+      return await buildSuccessResponse(newUserId, nickname, email, userInviteCode)
     }
 
     // ════════════════════════════════════════════
@@ -351,7 +347,7 @@ export async function POST(req: NextRequest) {
 
     const newUserId = Number(insertResult.lastInsertRowid)
 
-    return await buildSuccessResponse(newUserId, nickname, email, userInviteCode, defaultPassword)
+    return await buildSuccessResponse(newUserId, nickname, email, userInviteCode)
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error)
     console.error('[register]', errMsg)

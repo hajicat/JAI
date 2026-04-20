@@ -21,7 +21,7 @@ export async function GET() {
     }
     
     const response = NextResponse.json({ gpsRequired, inviteRequired }, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
+      headers: { 'Cache-Control': 'no-store' },
     })
     // 确保首次访问者也有 CSRF token
     setCsrfCookie(response)

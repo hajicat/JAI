@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
-import { verifyTokenSafe, hashPassword } from '@/lib/auth'
+import { verifyTokenSafe, hashPassword, verifyPassword as verifyAdminPassword } from '@/lib/auth'
 import { validatePassword as validatePw } from '@/lib/validation'
 import { getCookieName, validateCsrfToken, getClientIp } from '@/lib/csrf'
 import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
@@ -37,6 +37,23 @@ export async function POST(req: NextRequest) {
     if (!validateCsrfToken(req)) {
       return NextResponse.json({ error: '安全验证失败，请刷新页面重试' }, { status: 403 })
     }
+
+    // ── 二级密码验证（防止 cookie 被盗后批量重置密码）──
+    const { confirmPassword } = await req.json() as { confirmPassword?: string }
+    if (!confirmPassword || typeof confirmPassword !== 'string') {
+      return NextResponse.json({ error: '请输入管理员密码以确认操作' }, { status: 400 })
+    }
+    try {
+      const pwResult = await db.execute({
+        sql: "SELECT value FROM settings WHERE key = 'admin_view_password_hash'",
+        args: [],
+      })
+      const pwRow = pwResult.rows[0] as any
+      if (pwRow?.value && !(await verifyAdminPassword(confirmPassword, String(pwRow.value)))) {
+        return NextResponse.json({ error: '管理员密码错误' }, { status: 403 })
+      }
+      // 如果还没设置过二级密码则放行（兼容旧部署）
+    } catch (_) { /* 查询失败时继续 */ }
 
     // ── 限流 ──
     const ip = getClientIp(req)
