@@ -254,6 +254,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Create user (with invited_by from invite code)
+      const defaultPassword = nicknameToPinyin(nickname)
       const passwordHash = await hashPassword(defaultPassword)
       const userInviteCode = generateInviteCode()
 
@@ -335,6 +336,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create user (no invited_by — open registration)
+    const defaultPassword = nicknameToPinyin(nickname)
     const passwordHash = await hashPassword(defaultPassword)
     const userInviteCode = generateInviteCode()
 
