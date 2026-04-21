@@ -171,19 +171,17 @@ export default function MatchPage() {
       if (!meData.user) { router.push('/login'); return }
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
       // 其他响应即使失败也继续处理（部分数据可能正常返回）
-      const [matchData, inviteData, histData, settingsData, prefsData] = await Promise.all([
-        matchRes.ok ? matchRes.json() : {},
-        inviteRes.ok ? inviteRes.json() : {},
-        histRes.ok ? histRes.json() : {},
-        settingsRes.ok ? settingsRes.json() : {},
-        prefsRes.ok ? prefsRes.json() : {},
-      ])
+      // 用 as any 绕过 TS 严格模式对空对象 {} 的类型推导问题
+      const matchData: any = matchRes.ok ? await matchRes.json() : {}
+      const inviteData: any = inviteRes.ok ? await inviteRes.json() : {}
+      const histData: any = histRes.ok ? await histRes.json() : {}
+      const settingsData: any = settingsRes.ok ? await settingsRes.json() : {}
+      const prefsData: any = prefsRes.ok ? await prefsRes.json() : {}
       setUser(meData.user)
       setMatchEnabled(meData.user.matchEnabled)
       if (matchRes.ok) {
-        const md = matchData as any
-        if (md.match) setMatch(md.match)
-        if ('matchedDone' in md) setMatchedDone(md.matchedDone)
+        if (matchData.match) setMatch(matchData.match)
+        if ('matchedDone' in matchData) setMatchedDone(matchData.matchedDone)
       }
       setInviteCodes(inviteData.available || [])
       // 学校匹配偏好
