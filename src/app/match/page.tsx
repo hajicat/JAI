@@ -180,7 +180,7 @@ export default function MatchPage() {
       ])
       setUser(meData.user)
       setMatchEnabled(meData.user.matchEnabled)
-      if (matchData.match) setMatch(matchData.match)
+      if ('match' in matchData && matchData.match) setMatch(matchData.match)
       if ('matchedDone' in matchData) setMatchedDone(matchData.matchedDone)
       setInviteCodes(inviteData.available || [])
       // 学校匹配偏好
