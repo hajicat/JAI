@@ -242,6 +242,8 @@ async function doInit(): Promise<void> {
     { sql: `ALTER TABLE users ADD COLUMN verification_status TEXT DEFAULT 'pending_verification'`, table: 'users', column: 'verification_status' },
     { sql: `ALTER TABLE users ADD COLUMN verification_score INTEGER DEFAULT 0`, table: 'users', column: 'verification_score' },
     { sql: `ALTER TABLE users ADD COLUMN verified_at TEXT`, table: 'users', column: 'verified_at' },
+    // 用户安全等级（管理员可手动设置，否则由问卷自动计算）
+    { sql: `ALTER TABLE users ADD COLUMN safety_level TEXT DEFAULT NULL`, table: 'users', column: 'safety_level' },
     // verification_samples 表
     { sql: `ALTER TABLE verification_samples ADD COLUMN session_id TEXT`, table: 'verification_samples', column: 'session_id' },
   ]

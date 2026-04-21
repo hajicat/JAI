@@ -666,6 +666,7 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
 
   const usersResult = await db.execute({
     sql: `SELECT u.id, u.gender, u.preferred_gender, u.school, u.match_school_prefs,
+                 u.safety_level as manual_safety_level,
                  s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
                  s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
                  s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
@@ -709,6 +710,8 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
 
   const safeUsers: Array<{ user: any; safety: SafetyResult; truth: number }> = []
   for (const u of users) {
+    // 管理员手动 blocked 优先排除，不参与匹配
+    if (u.manual_safety_level === 'blocked') continue
     const safety = calcSafety(u)
     const truth = calcTruth(u)
     if (safety.level === 'blocked') continue

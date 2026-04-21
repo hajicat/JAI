@@ -63,10 +63,11 @@ export async function GET(req: NextRequest) {
       // Get paginated users (no contact info in list for security)
       // JOIN survey_responses to get safety question answers for safety level calculation
       const result = await db.execute({
-        sql: `SELECT u.id, u.nickname, u.gender,
+        sql: `SELECT u.id, u.nickname, u.email, u.gender,
                 u.survey_completed, u.match_enabled,
                 u.verification_status, u.verification_score,
                 u.created_at, u.invited_by,
+                u.safety_level as manual_safety_level,
                 (SELECT COUNT(*) FROM invite_codes WHERE created_by = u.id AND current_uses < max_uses) as remaining_codes,
                 inv.nickname as invited_by_name,
                 s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q21
@@ -82,21 +83,38 @@ export async function GET(req: NextRequest) {
         verification_failed:   { label: '❌ 未通过', color: 'text-red-500' },
       }
 
-      const userList = result.rows.map((row: any) => ({
-        id: row.id,
-        nickname: row.nickname,
-        gender: row.gender,
-        survey_completed: !!row.survey_completed,
-        match_enabled: !!row.match_enabled,
-        verification_status: row.verification_status || null,
-        verification_score: row.verification_score,
-        remaining_codes: Number(row.remaining_codes) || 0,
-        invited_by_name: row.invited_by_name,
-        created_at: row.created_at,
-        // 计算真实安全等级（使用 match-engine 导出的统一函数）
-        safety_level: row.survey_completed ? calcSafety(row).level : null,
-        _verifyLabel: VERIFY_LABELS[row.verification_status || ''] || { label: '—', color: 'text-gray-400' },
-      }))
+      // 校园邮箱白名单域名（同 register/route.ts）
+      const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn']
+
+      const userList = result.rows.map((row: any) => {
+        const emailDomain = String(row.email || '').split('@')[1] || ''
+        const hasSchoolEmail = SCHOOL_EMAIL_DOMAINS.includes(emailDomain)
+        // 有校园邮箱的用户不需要GPS学生验证 → 显示"校内邮箱"
+        // 没有校园邮箱的用户需要GPS验证 → 显示实际验证状态
+        let verifyLabel: { label: string; color: string }
+        if (hasSchoolEmail) {
+          verifyLabel = { label: '✅ 校内邮箱', color: 'text-blue-600' }
+        } else {
+          verifyLabel = VERIFY_LABELS[row.verification_status || ''] || { label: '—', color: 'text-gray-400' }
+        }
+
+        return {
+          id: row.id,
+          nickname: row.nickname,
+          gender: row.gender,
+          survey_completed: !!row.survey_completed,
+          match_enabled: !!row.match_enabled,
+          verification_status: row.verification_status || null,
+          verification_score: hasSchoolEmail ? null : row.verification_score,  // 校园邮箱用户不显示分数
+          remaining_codes: Number(row.remaining_codes) || 0,
+          invited_by_name: row.invited_by_name,
+          created_at: row.created_at,
+          // 计算真实安全等级：有手动值优先用手动值，否则自动计算
+          safety_level: row.manual_safety_level || (row.survey_completed ? calcSafety(row).level : null),
+          _verifyLabel: verifyLabel,
+          needsStudentVerif: !hasSchoolEmail,  // 前端用这个判断是否允许编辑验证状态
+        }
+      })
 
       return NextResponse.json({
         users: userList,
@@ -114,7 +132,7 @@ export async function GET(req: NextRequest) {
       sql: `SELECT id, nickname, email, gender, preferred_gender, conflict_type,
                 is_admin, survey_completed, match_enabled, contact_type, contact_info,
                 verification_status, verification_score, verified_at,
-                school, match_school_prefs,
+                school, match_school_prefs, safety_level,
                 created_at FROM users WHERE id = ?`,
       args: [uid],
     })
@@ -158,6 +176,11 @@ export async function GET(req: NextRequest) {
       catch { parsedPrefs = [] }
     }
 
+    // 校园邮箱白名单（同 register/route.ts）
+    const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn']
+    const emailDomain = String(userRow.email || '').split('@')[1] || ''
+    const hasSchoolEmail = SCHOOL_EMAIL_DOMAINS.includes(emailDomain)
+
     return NextResponse.json({
       user: {
         id: Number(userRow.id),
@@ -165,7 +188,9 @@ export async function GET(req: NextRequest) {
         email: userRow.email,
         gender: userRow.gender,
         preferredGender: userRow.preferred_gender,
-        safetyLevel: safetyLevel,
+        // 安全等级：有手动设置值优先使用，否则用问卷自动计算
+        safetyLevel: userRow.safety_level || safetyLevel,
+        hasManualSafetyLevel: !!userRow.safety_level,
         isAdmin: !!userRow.is_admin,
         surveyCompleted: !!userRow.survey_completed,
         matchEnabled: !!userRow.match_enabled,
@@ -177,6 +202,7 @@ export async function GET(req: NextRequest) {
         school: userRow.school || null,
         matchSchoolPrefs: parsedPrefs,
         createdAt: userRow.created_at,
+        needsStudentVerif: !hasSchoolEmail,
       },
       survey: surveyAnswers,
     })
@@ -324,12 +350,23 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: '无效的用户ID' }, { status: 400 })
     }
 
-    const body = await req.json() as { verificationStatus?: string; verificationScore?: number }
-    const { verificationStatus, verificationScore } = body
+    const body = await req.json() as { verificationStatus?: string; verificationScore?: number; safetyLevel?: string }
+    const { verificationStatus, verificationScore, safetyLevel } = body
 
-    const validStatuses = ['verified_student', 'pending_verification', 'verification_failed', 'null']
-    if (!validStatuses.includes(verificationStatus as string)) {
-      return NextResponse.json({ error: '无效的验证状态' }, { status: 400 })
+    // 验证状态校验
+    if (verificationStatus !== undefined) {
+      const validStatuses = ['verified_student', 'pending_verification', 'verification_failed', 'null']
+      if (!validStatuses.includes(verificationStatus as string)) {
+        return NextResponse.json({ error: '无效的验证状态' }, { status: 400 })
+      }
+    }
+
+    // 安全等级校验
+    if (safetyLevel !== undefined) {
+      const validLevels = ['normal', 'restricted', 'blocked', 'null']
+      if (!validLevels.includes(safetyLevel as string)) {
+        return NextResponse.json({ error: '无效的安全等级（可选：normal/restricted/blocked）' }, { status: 400 })
+      }
     }
 
     // 检查用户是否存在
@@ -337,22 +374,47 @@ export async function PATCH(req: NextRequest) {
     if (!userResult.rows[0]) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
 
     const nickname = (userResult.rows[0] as any).nickname
-    // 确保无 undefined：undefined/null → null，其余直接用
-    const statusValue: string | null =
-      verificationStatus == null || verificationStatus === 'null' ? null : verificationStatus
-    const scoreValue: number | null =
-      verificationScore !== undefined ? Number(verificationScore) : null
 
+    // 构建动态 UPDATE（只更新传了的字段）
+    const sets: string[] = []
+    const args: any[] = []
+
+    if (verificationStatus !== undefined) {
+      const statusValue: string | null =
+        verificationStatus == null || verificationStatus === 'null' ? null : verificationStatus
+      const scoreValue: number | null =
+        verificationScore !== undefined ? Number(verificationScore) : null
+
+      sets.push('verification_status = ?, verification_score = ?')
+      if (statusValue === 'verified_student') {
+        sets.push("verified_at = datetime('now')")
+      } else {
+        sets.push('verified_at = NULL')
+      }
+      args.push(statusValue, scoreValue)
+    }
+
+    if (safetyLevel !== undefined) {
+      const levelValue: string | null =
+        safetyLevel == null || safetyLevel === 'null' ? null : safetyLevel
+      sets.push('safety_level = ?')
+      args.push(levelValue)
+    }
+
+    // 至少要有一个字段可更新
+    if (sets.length === 0) {
+      return NextResponse.json({ error: '没有可更新的字段' }, { status: 400 })
+    }
+
+    args.push(uid)
     await db.execute({
-      sql: `UPDATE users SET verification_status = ?, verification_score = ?` +
-        (statusValue === 'verified_student' ? `, verified_at = datetime('now')` : `, verified_at = NULL`) +
-        ` WHERE id = ?`,
-      args: [statusValue, scoreValue, uid],
+      sql: `UPDATE users SET ${sets.join(', ')} WHERE id = ?`,
+      args,
     })
 
-    console.log(`[admin/patch-user] uid=${uid} verification_status=${statusValue} by=${decoded.id}`)
+    console.log(`[admin/patch-user] uid=${uid} fields=${sets.join(',')} by=${decoded.id}`)
 
-    return NextResponse.json({ success: true, message: `已将「${nickname}」的验证状态更新为「${statusValue || '未设置'}」` })
+    return NextResponse.json({ success: true, message: `已更新「${nickname}」的信息` })
   } catch (error) {
     console.error('[admin/patch-user]', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: '更新失败' }, { status: 500 })

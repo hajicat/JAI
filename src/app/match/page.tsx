@@ -165,16 +165,19 @@ export default function MatchPage() {
         fetch('/api/public-settings'),
         fetch('/api/match/preferences'),
       ])
-      const [meData, matchData, inviteData, histData, settingsData, prefsData] = await Promise.all([
-        meRes.json(),
-        matchRes.json(),
-        inviteRes.json(),
-        histRes.json(),
-        settingsRes.json(),
-        prefsRes.json(),
-      ])
+      // 检查认证
+      if (!meRes.ok) { router.push('/login'); return }
+      const meData = await meRes.json()
       if (!meData.user) { router.push('/login'); return }
       if (!meData.user.isAdmin && !meData.user.surveyCompleted) { router.push('/survey'); return }
+      // 其他响应即使失败也继续处理（部分数据可能正常返回）
+      const [matchData, inviteData, histData, settingsData, prefsData] = await Promise.all([
+        matchRes.ok ? matchRes.json() : {},
+        inviteRes.ok ? inviteRes.json() : {},
+        histRes.ok ? histRes.json() : {},
+        settingsRes.ok ? settingsRes.json() : {},
+        prefsRes.ok ? prefsRes.json() : {},
+      ])
       setUser(meData.user)
       setMatchEnabled(meData.user.matchEnabled)
       if (matchData.match) setMatch(matchData.match)
@@ -208,6 +211,7 @@ export default function MatchPage() {
     setHistoryLoading(true)
     try {
       const res = await fetch('/api/match/history')
+      if (!res.ok) { setHistoryLoading(false); return }
       const data = await res.json()
       if (data.weeks) {
         setHistoryWeeks(data.weeks)
@@ -288,15 +292,17 @@ export default function MatchPage() {
     setRevealing(true)
     try {
       const csrfToken = getCsrfToken()
-      await fetch('/api/match', {
-        method: 'POST', 
-        headers: { 
+      const postRes = await fetch('/api/match', {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({ matchId: match.id })
       })
+      if (!postRes.ok) { setRevealing(false); return }
       const res = await fetch('/api/match')
+      if (!res.ok) { setRevealing(false); return }
       const data = await res.json()
       if (data.match) setMatch(data.match)
     } catch { /* silent fail */ }

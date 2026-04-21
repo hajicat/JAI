@@ -129,13 +129,20 @@ export default function AdminPage() {
   const [adminSelectedWeek, setAdminSelectedWeek] = useState<string>('')
   const [availableWeeks, setAvailableWeeks] = useState<string[]>([])
 
-  // 验证状态修改（无需二级密码）
+  // 验证状态修改（无需二级密码）— 仅对无校园邮箱用户开放
   const [editVerifOpen, setEditVerifOpen] = useState(false)
   const [editVerifUserId, setEditVerifUserId] = useState<number | null>(null)
   const [editVerifNickname, setEditVerifNickname] = useState('')
   const [editVerifStatus, setEditVerifStatus] = useState('')
   const [editVerifScore, setEditVerifScore] = useState<number | ''>('')
   const [editVerifLoading, setEditVerifLoading] = useState(false)
+
+  // 安全等级修改（无需二级密码）
+  const [editSafetyOpen, setEditSafetyOpen] = useState(false)
+  const [editSafetyUserId, setEditSafetyUserId] = useState<number | null>(null)
+  const [editSafetyNickname, setEditSafetyNickname] = useState('')
+  const [editSafetyLevel, setEditSafetyLevel] = useState('')
+  const [editSafetyLoading, setEditSafetyLoading] = useState(false)
 
   // 手动匹配状态
 
@@ -210,10 +217,16 @@ export default function AdminPage() {
     setUserDetail(null)
     try {
       const res = await fetch(`/api/admin/users?id=${userId}`)
+      if (!res.ok) {
+        setToast({ msg: '加载用户详情失败，请重试', type: 'error' })
+        setLoadingDetail(false)
+        return
+      }
       const data = await res.json()
       setUserDetail(data)
-    } catch { /* ignore */ }
-    finally { setLoadingDetail(false) }
+    } catch {
+      setToast({ msg: '网络错误，请重试', type: 'error' })
+    } finally { setLoadingDetail(false) }
   }
 
   // 删除用户密码确认状态
@@ -327,9 +340,14 @@ export default function AdminPage() {
         body: JSON.stringify({
           userId: resetPwUserId,
           newPassword: resetPwNew,
-          confirmPassword: resetPwConfirm,
+          adminPassword: resetPwConfirm,
         }),
       })
+      if (!res.ok) {
+        setResetPwError('请求失败，请重试')
+        setResettingPw(false)
+        return
+      }
       const data = await res.json()
       if (data.success) {
         setResetPwModal(false)
@@ -380,6 +398,41 @@ export default function AdminPage() {
       setToast({ msg: '❌ 网络错误', type: 'error' })
     } finally {
       setEditVerifLoading(false)
+    }
+  }
+
+  /** 打开安全等级修改弹窗 */
+  const openEditSafety = (uid: number, nickname: string, currentLevel: string | null) => {
+    setEditSafetyUserId(uid)
+    setEditSafetyNickname(nickname)
+    setEditSafetyLevel(currentLevel || 'null')
+    setEditSafetyOpen(true)
+  }
+
+  /** 提交安全等级修改 */
+  const handleSaveSafety = async () => {
+    if (editSafetyUserId === null) return
+    setEditSafetyLoading(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch(`/api/admin/users?id=${editSafetyUserId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ safetyLevel: editSafetyLevel }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setEditSafetyOpen(false)
+        setToast({ msg: `✅ ${data.message}`, type: 'success' })
+        loadUsers(currentPage)
+        if (expandedUserId === editSafetyUserId) loadUserDetail(editSafetyUserId)
+      } else {
+        setToast({ msg: `❌ ${data.error || '修改失败'}`, type: 'error' })
+      }
+    } catch {
+      setToast({ msg: '❌ 网络错误', type: 'error' })
+    } finally {
+      setEditSafetyLoading(false)
     }
   }
 
@@ -885,33 +938,58 @@ export default function AdminPage() {
                                           : '—'
                                       }</div>
                                       <div><span className="text-gray-400">注册时间：</span>{formatBeijingTime(userDetail.user.createdAt)}</div>
-                                      {/* 学生验证状态 */}
-                                      <div>
-                                        <span className="text-gray-400">学生验证：</span>
-                                        {userDetail.user.verificationStatus === 'verified_student' ? (
-                                          <span className="text-green-600 font-medium">✅ 已验证（{userDetail.user.verificationScore}分）</span>
-                                        ) : userDetail.user.verificationStatus === 'pending_verification' ? (
-                                          <span className="text-yellow-600 font-medium">⏳ 待验证（{userDetail.user.verificationScore ?? 0}分）</span>
-                                        ) : userDetail.user.verificationStatus === 'verification_failed' ? (
-                                          <span className="text-red-500 font-medium">❌ 未通过</span>
-                                        ) : (
-                                          <span className="text-gray-400">—</span>
-                                        )}
-                                        {userDetail.user.verifiedAt && (
-                                          <span className="text-xs text-gray-400 ml-1">通过时间：{formatBeijingTime(userDetail.user.verifiedAt)}</span>
+                                      {/* 安全等级 */}
+                                      <div className="col-span-2 flex items-center gap-2">
+                                        <span className="text-gray-400">安全等级：</span>
+                                        <span className={`font-medium ${SAFETY_LABELS[userDetail.user.safetyLevel || 'normal']?.color || 'text-gray-400'}`}>
+                                          {SAFETY_LABELS[userDetail.user.safetyLevel || 'normal']?.label || '—'}
+                                        </span>
+                                        {userDetail.user.hasManualSafetyLevel && (
+                                          <span className="text-xs text-gray-400">（管理员设置）</span>
                                         )}
                                         <button
-                                          onClick={() => openEditVerif(
+                                          onClick={() => openEditSafety(
                                             u.id,
                                             u.nickname,
-                                            userDetail.user.verificationStatus,
-                                            userDetail.user.verificationScore,
+                                            userDetail.user.safetyLevel,
                                           )}
-                                          className="ml-2 text-xs text-blue-500 hover:underline"
+                                          className="ml-1 text-xs text-blue-500 hover:underline"
                                         >
                                           修改
                                         </button>
                                       </div>
+                                      {/* 学生验证状态 — 仅对无校园邮箱用户显示 */}
+                                      {userDetail.user.needsStudentVerif && (
+                                        <div className="col-span-2">
+                                          <span className="text-gray-400">学生验证：</span>
+                                          {userDetail.user.verificationStatus === 'verified_student' ? (
+                                            <span className="text-green-600 font-medium">✅ 已验证（{userDetail.user.verificationScore}分）</span>
+                                          ) : userDetail.user.verificationStatus === 'pending_verification' ? (
+                                            <span className="text-yellow-600 font-medium">⏳ 待验证（{userDetail.user.verificationScore ?? 0}分）</span>
+                                          ) : userDetail.user.verificationStatus === 'verification_failed' ? (
+                                            <span className="text-red-500 font-medium">❌ 未通过</span>
+                                          ) : (
+                                            <span className="text-gray-400">—</span>
+                                          )}
+                                          {userDetail.user.verifiedAt && (
+                                            <span className="text-xs text-gray-400 ml-1">通过时间：{formatBeijingTime(userDetail.user.verifiedAt)}</span>
+                                          )}
+                                          <button
+                                            onClick={() => openEditVerif(
+                                              u.id,
+                                              u.nickname,
+                                              userDetail.user.verificationStatus,
+                                              userDetail.user.verificationScore,
+                                            )}
+                                            className="ml-2 text-xs text-blue-500 hover:underline"
+                                          >
+                                            修改
+                                          </button>
+                                        </div>
+                                      )}
+                                      {!userDetail.user.needsStudentVerif && (
+                                        <div className="col-span-2 text-xs text-gray-400">学生验证：— （校园邮箱注册，无需GPS验证）</div>
+                                      )}
                                     </div>
 
                                     {userDetail.user.contactInfo ? (
@@ -1735,6 +1813,48 @@ export default function AdminPage() {
                   editVerifLoading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                 {editVerifLoading ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 安全等级修改弹窗 */}
+      {editSafetyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditSafetyOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-modal-in" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">修改安全等级</h3>
+            <p className="text-sm text-gray-500 mb-4">用户：<span className="font-medium text-gray-700">{editSafetyNickname}</span></p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">安全等级</label>
+                <select
+                  value={editSafetyLevel}
+                  onChange={e => setEditSafetyLevel(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                >
+                  <option value="normal">✅ 正常</option>
+                  <option value="restricted">⚠️ 受限</option>
+                  <option value="blocked">🚫 封禁</option>
+                  <option value="null">— 重置（自动计算）</option>
+                </select>
+              </div>
+              <p className="text-xs text-gray-400">
+                选「重置」则清除手动设置，等级将由问卷自动计算。
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setEditSafetyOpen(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                取消
+              </button>
+              <button onClick={handleSaveSafety} disabled={editSafetyLoading}
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-stone-100 to-stone-300 rounded-xl hover:opacity-90 transition text-stone-700 ${
+                  editSafetyLoading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}>
+                {editSafetyLoading ? '保存中...' : '保存'}
               </button>
             </div>
           </div>
