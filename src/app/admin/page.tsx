@@ -53,10 +53,11 @@ function formatBeijingTime(utcStr: string | null | undefined): string {
 export default function AdminPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings'>('users')
+  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings' | 'gps-feedback'>('users')
   const [users, setUsers] = useState<any[]>([])
   const [codes, setCodes] = useState<any[]>([])
   const [matchResult, setMatchResult] = useState<any>(null)
+  const [gpsFeedbacks, setGpsFeedbacks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [newCodeCount, setNewCodeCount] = useState(5)
@@ -169,6 +170,7 @@ export default function AdminPage() {
     if (tab === 'users') loadUsers()
     if (tab === 'codes') loadCodes()
     if (tab === 'match') loadMatchUsers()
+    if (tab === 'gps-feedback') loadGpsFeedbacks()
   }, [tab, loading])
 
   // 检查是否已设置二级密码（页面首次加载时）
@@ -548,6 +550,29 @@ export default function AdminPage() {
     setCodes(data.codes || [])
   }
 
+  const loadGpsFeedbacks = async () => {
+    try {
+      const res = await fetch('/api/gps-feedback')
+      const data = await res.json()
+      setGpsFeedbacks(data.feedbacks || [])
+    } catch {
+      setGpsFeedbacks([])
+    }
+  }
+
+  const deleteGpsFeedback = async (id: number) => {
+    try {
+      await fetch('/api/gps-feedback', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+        body: JSON.stringify({ id }),
+      })
+      setGpsFeedbacks(prev => prev.filter((f: any) => f.id !== id))
+    } catch {
+      // 静默
+    }
+  }
+
   const generateCodes = async () => {
     setGenerating(true)
     try {
@@ -879,6 +904,7 @@ export default function AdminPage() {
             { key: 'users', label: '👥 用户管理', count: totalUserCount || users.length },
             ...(inviteRequired ? [{ key: 'codes', label: '📨 邀请码', count: codes.length }] : []),
             { key: 'match', label: '💌 执行匹配', count: null },
+            { key: 'gps-feedback', label: '📍 定位反馈', count: gpsFeedbacks.length || null },
             { key: 'settings', label: '⚙️ 系统设置', count: null },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
@@ -1622,6 +1648,62 @@ export default function AdminPage() {
               </div>
             </div>
             )}
+
+        {/* GPS 定位反馈 */}
+        {tab === 'gps-feedback' && (
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-700">📍 用户定位反馈</h3>
+              <p className="text-xs text-gray-400 mt-1">用户反馈 GPS 定位不准确时提交的坐标信息</p>
+            </div>
+            {gpsFeedbacks.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-sm">暂无反馈</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm table-fixed" style={{ minWidth: '800px' }}>
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-gray-500 font-medium" style={{width:'5%'}}>ID</th>
+                      <th className="px-3 py-3 text-left text-gray-500 font-medium" style={{width:'18%'}}>GPS 坐标</th>
+                      <th className="px-3 py-3 text-center text-gray-500 font-medium" style={{width:'8%'}}>精度</th>
+                      <th className="px-3 py-3 text-left text-gray-500 font-medium" style={{width:'14%'}}>定位结果</th>
+                      <th className="px-3 py-3 text-left text-gray-500 font-medium" style={{width:'14%'}}>实际学校</th>
+                      <th className="px-3 py-3 text-left text-gray-500 font-medium" style={{width:'16%'}}>时间</th>
+                      <th className="px-3 py-3 text-center text-gray-500 font-medium" style={{width:'8%'}}>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {gpsFeedbacks.map((fb: any) => (
+                      <tr key={fb.id} className="hover:bg-gray-50/50">
+                        <td className="px-4 py-3 text-gray-400">#{fb.id}</td>
+                        <td className="px-3 py-3 font-mono text-xs text-gray-600">
+                          {Number(fb.latitude).toFixed(6)}, {Number(fb.longitude).toFixed(6)}
+                          <button
+                            onClick={() => safeCopy(`${fb.latitude},${fb.longitude}`)}
+                            className="ml-1 text-gray-300 hover:text-pink-400 transition"
+                                                            title="复制坐标">📋</button>
+                          <a
+                            href={`https://uri.amap.com/marker?position=${fb.longitude},${fb.latitude}&name=反馈点`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="ml-1 text-blue-400 hover:text-blue-600 transition"
+                                                            title="在高德地图中查看">🗺️</a>
+                        </td>
+                        <td className="px-3 py-3 text-center text-gray-500">{fb.accuracy ? `${Math.round(fb.accuracy)}m` : '-'}</td>
+                        <td className="px-3 py-3 text-gray-600">{fb.detectedSchool || '-'}</td>
+                        <td className="px-3 py-3 text-orange-600 font-medium">{fb.actualSchool || '-'}</td>
+                        <td className="px-3 py-3 text-gray-400 text-xs">{formatBeijingTime(fb.createdAt)}</td>
+                        <td className="px-3 py-3 text-center">
+                          <button onClick={() => deleteGpsFeedback(fb.id)}
+                            className="text-xs text-gray-300 hover:text-red-400 transition">删除</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 系统设置 */}
         {tab === 'settings' && (

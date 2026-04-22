@@ -138,6 +138,18 @@ async function doInit(): Promise<void> {
       session_id TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS gps_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      accuracy REAL,
+      detected_school TEXT,
+      actual_school TEXT,
+      user_agent TEXT,
+      ip TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_verification_samples_user ON verification_samples(user_id);
   `)
 

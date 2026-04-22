@@ -41,6 +41,12 @@ function LoginForm() {
   const [nearbyCampuses, setNearbyCampuses] = useState<NearbyCampus[]>([])
   const [selectedCampus, setSelectedCampus] = useState<string>('')
 
+  // GPS 定位反馈
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [feedbackActualSchool, setFeedbackActualSchool] = useState('')
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false)
+  const [feedbackSent, setFeedbackSent] = useState(false)
+
   // 邮箱验证码状态（仅注册模式使用）
   const [verificationCode, setVerificationCode] = useState('')
   const [codeSent, setCodeSent] = useState(false)
@@ -69,6 +75,32 @@ function LoginForm() {
       }
     }).catch(() => {})
   }, [router, isRegister])
+
+  // GPS 定位反馈提交
+  const handleGpsFeedback = async () => {
+    if (!coords) return
+    setFeedbackSubmitting(true)
+    try {
+      const res = await fetch('/api/gps-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+        body: JSON.stringify({
+          latitude: coords.lat,
+          longitude: coords.lng,
+          accuracy: undefined,
+          detectedSchool: selectedCampus || nearbyCampuses[0]?.schoolName || '',
+          actualSchool: feedbackActualSchool || undefined,
+        }),
+      })
+      if (res.ok) {
+        setFeedbackSent(true)
+      }
+    } catch {
+      // 静默失败
+    } finally {
+      setFeedbackSubmitting(false)
+    }
+  }
 
   // GPS verification for registration
   const verifyGPS = () => {
@@ -424,6 +456,62 @@ function LoginForm() {
         </div>
       )}
 
+      {/* GPS 定位反馈弹窗 */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="glass-card rounded-3xl p-8 shadow-2xl animate-fade-in max-w-sm w-full mx-4">
+            {!feedbackSent ? (
+              <>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">📍 定位有误？</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  系统将自动提交你的定位信息，我们会尽快修复！
+                </p>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">你实际所在的学校（选填）</label>
+                  <input
+                    type="text"
+                    placeholder="如：吉林大学前卫南区"
+                    value={feedbackActualSchool}
+                    onChange={e => setFeedbackActualSchool(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleGpsFeedback}
+                    disabled={feedbackSubmitting}
+                    className="flex-1 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-orange-400 to-pink-500 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {feedbackSubmitting ? '提交中...' : '提交反馈'}
+                  </button>
+                  <button
+                    onClick={() => setShowFeedbackModal(false)}
+                    className="px-4 py-2.5 text-sm font-medium text-gray-400 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+                  >
+                    取消
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center">
+                <div className="text-5xl mb-4">🔧</div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">反馈已收到！</h3>
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+                  <p className="text-sm font-bold text-orange-600">⚡ 马上解决！请一个小时后再试！</p>
+                </div>
+                <p className="text-xs text-gray-400 mb-4">你的定位信息已提交，我们会尽快修复定位问题</p>
+                <button
+                  onClick={() => setShowFeedbackModal(false)}
+                  className="px-6 py-2 text-sm font-medium text-pink-600 bg-pink-50 border border-pink-200 rounded-xl hover:bg-pink-100 transition"
+                >
+                  知道了
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="relative z-10 w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <span className="text-3xl">🎁</span>
@@ -515,6 +603,19 @@ function LoginForm() {
                           ✅ 自动识别为 <strong>{nearbyCampuses[0]?.schoolName}</strong>（距约 {nearbyCampuses[0]?.distanceKm}km）
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* 定位有误反馈按钮 */}
+                  {gpsStatus === 'ok' && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 text-center">
+                      <button
+                        type="button"
+                        onClick={() => { setShowFeedbackModal(true); setFeedbackSent(false); setFeedbackActualSchool('') }}
+                        className="text-xs text-gray-400 hover:text-orange-500 transition underline underline-offset-2"
+                      >
+                        📍 定位有误？找不到你的学校？
+                      </button>
                     </div>
                   )}
                 </div>
