@@ -32,8 +32,8 @@ function LoginForm() {
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
   const [gpsMsg, setGpsMsg] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [gpsRequired, setGpsRequired] = useState(true)
-  const [inviteRequired, setInviteRequired] = useState(true)
+  const [gpsRequired, setGpsRequired] = useState(false)
+  const [inviteRequired, setInviteRequired] = useState(false)
   const [requiresSchoolEmail, setRequiresSchoolEmail] = useState(false)
   const [emailHint, setEmailHint] = useState('')
   // 多校区重叠时供用户选择的校区列表
