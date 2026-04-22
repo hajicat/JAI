@@ -606,8 +606,8 @@ function LoginForm() {
                     </div>
                   )}
 
-                  {/* 定位有误反馈按钮 */}
-                  {gpsStatus === 'ok' && (
+                  {/* 定位有误反馈按钮 — 验证完成后始终显示 */}
+                  {gpsStatus === 'ok' || gpsStatus === 'fail' && (
                     <div className="mt-3 pt-3 border-t border-gray-200 text-center">
                       <button
                         type="button"
