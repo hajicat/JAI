@@ -148,6 +148,11 @@ export default function MatchPage() {
   const [prefsLoading, setPrefsLoading] = useState(false)
   const [prefsSaved, setPrefsSaved] = useState(false)
   const [prefsError, setPrefsError] = useState('')
+  const [schoolPage, setSchoolPage] = useState(0)
+  const SCHOOL_PAGE_SIZE = 10
+
+  // allSchools 变化时重置页码到第一页
+  useEffect(() => { setSchoolPage(0) }, [allSchools.length])
 
   // ── 历史数据状态 ──
   const [historyWeeks, setHistoryWeeks] = useState<WeekData[]>([])
@@ -337,6 +342,19 @@ export default function MatchPage() {
       })
     } catch (e) { /* ignore */ }
   }
+
+  // 全选 / 取消全选（保留自己的学校不被移除）
+  const toggleAllSchools = (selectAll: boolean) => {
+    const prev = [...schoolPrefs]
+    const next = selectAll
+      ? Array.from(new Set([...(mySchool ? [mySchool] : []), ...allSchools]))
+      : (mySchool ? [mySchool] : [])
+    setSchoolPrefs(next)
+    saveSchoolPrefs(next, prev)
+  }
+
+  // 重置翻页到第一页
+  const resetSchoolPage = () => { setSchoolPage(0) }
 
   const saveSchoolPrefs = async (selected: string[], previous: string[]) => {
     setPrefsError('')
@@ -637,30 +655,48 @@ export default function MatchPage() {
         </div>
 
         {/* School Match Preferences */}
-        {allSchools.length > 0 && (
+        {allSchools.length > 0 && (() => {
+          const totalPages = Math.ceil(allSchools.length / SCHOOL_PAGE_SIZE)
+          const pageStart = schoolPage * SCHOOL_PAGE_SIZE
+          const pageEnd = pageStart + SCHOOL_PAGE_SIZE
+          const visibleSchools = allSchools.slice(pageStart, pageEnd)
+          const isAllSelected = allSchools.every(s => schoolPrefs.includes(s))
+          return (
         <div className="mt-4 glass-card rounded-3xl p-6 shadow-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-2xl">🏫</span>
-            <div>
-              <h3 className="font-semibold text-gray-800">匹配学校偏好</h3>
-              <p className="text-xs text-gray-400">
-                {mySchool ? `你来自「${mySchool}」` : '选择你想匹配的学校'}
-                · 只会与选中学校的同学配对
-              </p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🏫</span>
+              <div>
+                <h3 className="font-semibold text-gray-800">匹配学校偏好</h3>
+                <p className="text-xs text-gray-400">
+                  {mySchool ? `你来自「${mySchool}」` : '选择你想匹配的学校'}
+                  · 只会与选中学校的同学配对
+                  {totalPages > 1 && <span className="ml-1">（{schoolPrefs.length}/{allSchools.length}）</span>}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => toggleAllSchools(!isAllSelected)}
+                disabled={prefsLoading}
+                className="text-xs px-3 py-1.5 rounded-full border border-pink-300 text-pink-600 bg-pink-50 hover:bg-pink-100 transition-colors disabled:opacity-50"
+              >
+                {isAllSelected ? '取消全选' : '全选'}
+              </button>
             </div>
           </div>
           <div className="space-y-2.5">
-            {allSchools.map((school) => {
+            {visibleSchools.map((school) => {
               const isMySchool = school === mySchool
               const isSpecial = school === '吉林动画学院' || school === '长春大学' || school === '吉林艺术学院'
               const checked = schoolPrefs.includes(school)
               return (
                 <label
                   key={school}
-                  className={`flex items-center gap-3 cursor-pointer rounded-xl px-4 py-3 transition-all ${
+                  className={`flex items-center gap-3 cursor-pointer rounded-xl px-4 py-3 transition-all border ${
                     checked
-                      ? 'bg-pink-50 border border-pink-200'
-                      : 'bg-white/50 border border-transparent hover:bg-gray-50'
+                      ? 'bg-pink-50 border-pink-200'
+                      : 'bg-white/50 border-gray-100 hover:bg-gray-50'
                   }`}
                 >
                   <input
@@ -670,7 +706,6 @@ export default function MatchPage() {
                       const newPrefs = e.target.checked
                         ? [...schoolPrefs, school]
                         : schoolPrefs.filter(s => s !== school)
-                      // 乐观更新：立即选中，后台异步保存，失败回滚
                       const prev = [...schoolPrefs]
                       setSchoolPrefs(newPrefs)
                       saveSchoolPrefs(newPrefs, prev)
@@ -691,6 +726,27 @@ export default function MatchPage() {
               )
             })}
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <button
+                onClick={() => setSchoolPage(p => Math.max(0, p - 1))}
+                disabled={schoolPage === 0 || prefsLoading}
+                className="w-8 h-8 rounded-full bg-white/60 border border-gray-200 text-gray-600 text-sm hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              >
+                ‹
+              </button>
+              <span className="text-xs text-gray-500 min-w-[3rem] text-center">
+                {schoolPage + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setSchoolPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={schoolPage === totalPages - 1 || prefsLoading}
+                className="w-8 h-8 rounded-full bg-white/60 border border-gray-200 text-gray-600 text-sm hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              >
+                ›
+              </button>
+            </div>
+          )}
           {prefsError && <p className="mt-3 text-xs text-red-500">{prefsError}</p>}
           {prefsSaved && (
             <p className="mt-3 text-xs text-green-500 flex items-center gap-1">
@@ -698,7 +754,8 @@ export default function MatchPage() {
             </p>
           )}
         </div>
-        )}
+          )
+        })()}
 
         {/* Invite Codes — 仅在开启时显示 */}
         {inviteRequired && (
