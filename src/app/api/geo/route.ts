@@ -56,14 +56,16 @@ export async function GET() {
   // 返回所有校区列表（精度降低到小数点后2位）
   return NextResponse.json({
     campusName: '长春高校圈',
-    campusAddress: '长春市（吉林大学/东北师范大学/吉林动画学院/吉林外国语大学/长春大学）',
+    campusAddress: '长春市（吉林大学/东北师范大学/吉林动画学院/吉林外国语大学/长春大学/吉林艺术学院/长春理工大学）',
     schools: [
       '吉林动画学院',
       '吉林大学',
       '东北师范大学',
       '吉林外国语大学',
       '长春大学',
+      '吉林艺术学院',
+      '长春理工大学',
     ],
-    campusCount: 13,
+    campusCount: 17,
   })
 }
