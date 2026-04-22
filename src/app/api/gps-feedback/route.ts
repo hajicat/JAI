@@ -30,6 +30,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '坐标范围无效' }, { status: 400 })
     }
 
+    // actualSchool / detectedSchool 白名单校验（防注入任意字符串）
+    const VALID_SCHOOLS = [
+      '吉林大学','长春理工大学','长春工业大学','吉林建筑大学',
+      '东北师范大学','吉林动画学院','吉林外国语大学',
+      '吉林农业大学','长春中医药大学','吉林工程技术师范学院','长春师范大学',
+      '吉林财经大学','吉林体育学院','吉林艺术学院','吉林工商学院',
+      '长春工程学院','吉林警察学院','长春大学','长春汽车职业技术大学',
+      '长春职业技术大学',
+      '长春光华学院','长春工业大学人文信息学院','长春电子科技学院',
+      '长春财经学院','吉林建筑科技学院','长春建筑学院','长春科技学院',
+      '长春大学旅游学院','长春人文学院',
+    ]
+    const safeActual = (typeof actualSchool === 'string' && VALID_SCHOOLS.includes(actualSchool)) ? actualSchool : null
+    const safeDetected = (typeof detectedSchool === 'string' && VALID_SCHOOLS.includes(detectedSchool)) ? detectedSchool : (typeof detectedSchool === 'string' ? detectedSchool.slice(0, 100) : null)
+
     const userAgent = req.headers.get('user-agent') || ''
 
     const db = getDb()
@@ -42,8 +57,8 @@ export async function POST(req: NextRequest) {
         latitude,
         longitude,
         accuracy ?? null,
-        detectedSchool || null,
-        actualSchool || null,
+        safeDetected,
+        safeActual,
         userAgent.slice(0, 500),
         ip,
       ],
