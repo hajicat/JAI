@@ -480,35 +480,41 @@ function LoginForm() {
                     {gpsStatus === 'checking' ? '定位中...' : gpsStatus === 'ok' ? '重新验证' : '点击验证高校圈位置'}
                   </button>
 
-                  {/* 多校区重叠选择框 */}
-                  {gpsStatus === 'ok' && nearbyCampuses.length > 1 && (
+                  {/* 校区选择框 — 始终显示检测到的学校信息（单匹配时展示+确认，多匹配时下拉切换） */}
+                  {gpsStatus === 'ok' && nearbyCampuses.length >= 1 && (
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                        🏫 检测到多个校区，请确认你所在的学校：
+                        🏫 检测到你在「{selectedCampus || nearbyCampuses[0]?.name}」，{nearbyCampuses.length > 1 ? '请确认你所在的学校：' : '如不正确请重新定位'}
                       </label>
-                      <select
-                        value={selectedCampus}
-                        onChange={e => {
-                          const chosen = e.target.value
-                          setSelectedCampus(chosen)
-                          const campus = nearbyCampuses.find(c => c.name === chosen)
-                          if (campus) {
-                            setRequiresSchoolEmail(campus.requiresSchoolEmail)
-                            if (campus.requiresSchoolEmail) {
-                              setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn）')
-                            } else {
-                              setEmailHint('')
+                      {nearbyCampuses.length > 1 ? (
+                        <select
+                          value={selectedCampus}
+                          onChange={e => {
+                            const chosen = e.target.value
+                            setSelectedCampus(chosen)
+                            const campus = nearbyCampuses.find(c => c.name === chosen)
+                            if (campus) {
+                              setRequiresSchoolEmail(campus.requiresSchoolEmail)
+                              if (campus.requiresSchoolEmail) {
+                                setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn）')
+                              } else {
+                                setEmailHint('')
+                              }
                             }
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-                      >
-                        {nearbyCampuses.map((c, i) => (
-                          <option key={c.name} value={c.name}>
-                            {c.schoolName}（{i === 0 ? `最近 ${c.distanceKm}km` : `${c.distanceKm}km`}）
-                          </option>
-                        ))}
-                      </select>
+                          }}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                        >
+                          {nearbyCampuses.map((c, i) => (
+                            <option key={c.name} value={c.name}>
+                              {c.schoolName}（{i === 0 ? `最近 ${c.distanceKm}km` : `${c.distanceKm}km`}）
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                          ✅ 自动识别为 <strong>{nearbyCampuses[0]?.schoolName}</strong>（距约 {nearbyCampuses[0]?.distanceKm}km）
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

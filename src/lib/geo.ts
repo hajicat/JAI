@@ -53,7 +53,7 @@ const CAMPUSES: Campus[] = [
   // 985：吉林大学（6 个校区）
   // ══════════════════════════════════
   { name: '吉林大学(前卫南区)',   lat: 43.82510,  lng: 125.26190,
-    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 1.5 },
   { name: '吉林大学(南岭校区)',   lat: 43.85546,  lng: 125.33310,
     schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
   { name: '吉林大学(朝阳校区)',   lat: 43.88067,  lng: 125.30022,
@@ -93,7 +93,7 @@ const CAMPUSES: Campus[] = [
   // ★ 吉林动画学院（创始人学校，排位靠前）
   // ══════════════════════════════════
   { name: '吉林动画学院',         lat: 43.8175,   lng: 125.2561,
-    schoolName: '吉林动画学院',   schoolShort: '吉动',     radiusKm: 2.0 },
+    schoolName: '吉林动画学院',   schoolShort: '吉动',     radiusKm: 1.5 },
 
   // ══════════════════════════════════
   // 民办（需校内邮箱）
@@ -278,7 +278,7 @@ export function scoreGpsSamples(
 ): { score: number; details: string } {
   const CAMPUS_MAP: Record<string, { lat: number; lng: number; radiusKm: number }> = {
     // 创始人学校（原数据）
-    '吉动':   { lat: 43.8175,  lng: 125.2561,  radiusKm: 2.0 },
+    '吉动':   { lat: 43.8175,  lng: 125.2561,  radiusKm: 1.5 },
     '长大':   { lat: 43.83168, lng: 125.31768, radiusKm: 1.5 },
     '吉艺':   { lat: 43.86201, lng: 125.31046, radiusKm: 1.5 },
     // 新增公办
