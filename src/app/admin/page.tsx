@@ -144,6 +144,13 @@ export default function AdminPage() {
   const [editSafetyLevel, setEditSafetyLevel] = useState('')
   const [editSafetyLoading, setEditSafetyLoading] = useState(false)
 
+  // 修改学校状态
+  const [editSchoolOpen, setEditSchoolOpen] = useState(false)
+  const [editSchoolUserId, setEditSchoolUserId] = useState<number | null>(null)
+  const [editSchoolNickname, setEditSchoolNickname] = useState('')
+  const [editSchoolValue, setEditSchoolValue] = useState('')
+  const [editSchoolLoading, setEditSchoolLoading] = useState(false)
+
   // 手动匹配状态
 
   useEffect(() => {
@@ -407,6 +414,41 @@ export default function AdminPage() {
     setEditSafetyNickname(nickname)
     setEditSafetyLevel(currentLevel || 'null')
     setEditSafetyOpen(true)
+  }
+
+  /** 打开学校修改弹窗 */
+  const openEditSchool = (uid: number, nickname: string, currentSchool: string | null) => {
+    setEditSchoolUserId(uid)
+    setEditSchoolNickname(nickname)
+    setEditSchoolValue(currentSchool || 'null')
+    setEditSchoolOpen(true)
+  }
+
+  /** 提交学校修改 */
+  const handleSaveSchool = async () => {
+    if (editSchoolUserId === null) return
+    setEditSchoolLoading(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch(`/api/admin/users?id=${editSchoolUserId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ school: editSchoolValue }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setEditSchoolOpen(false)
+        setToast({ msg: `✅ ${data.message}`, type: 'success' })
+        loadUsers(currentPage)
+        if (expandedUserId === editSchoolUserId) loadUserDetail(editSchoolUserId)
+      } else {
+        setToast({ msg: `❌ ${data.error || '修改失败'}`, type: 'error' })
+      }
+    } catch {
+      setToast({ msg: '❌ 网络错误', type: 'error' })
+    } finally {
+      setEditSchoolLoading(false)
+    }
   }
 
   /** 提交安全等级修改 */
@@ -931,7 +973,16 @@ export default function AdminPage() {
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                       <div><span className="text-gray-400">邮箱：</span>{userDetail.user.email || '-'}</div>
                                       <div><span className="text-gray-400">想匹配：</span>{GENDER_LABELS[userDetail.user.preferredGender] || '-'}</div>
-                                      <div><span className="text-gray-400">所属学校：</span>{userDetail.user.school || '-'}</div>
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-400">所属学校：</span>
+                                        <span>{userDetail.user.school || '-'}</span>
+                                        <button
+                                          onClick={() => openEditSchool(u.id, u.nickname, userDetail.user.school)}
+                                          className="text-xs text-blue-500 hover:underline"
+                                        >
+                                          修改
+                                        </button>
+                                      </div>
                                       <div><span className="text-gray-400">匹配学校偏好：</span>{
                                         Array.isArray(userDetail.user.matchSchoolPrefs) && userDetail.user.matchSchoolPrefs.length > 0
                                           ? userDetail.user.matchSchoolPrefs.join('、')
@@ -1855,6 +1906,74 @@ export default function AdminPage() {
                   editSafetyLoading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                 {editSafetyLoading ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 修改学校弹窗 */}
+      {editSchoolOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditSchoolOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-modal-in" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">修改所属学校</h3>
+            <p className="text-sm text-gray-500 mb-4">用户：<span className="font-medium text-gray-700">{editSchoolNickname}</span></p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">学校</label>
+                <select
+                  value={editSchoolValue}
+                  onChange={e => setEditSchoolValue(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                >
+                  <option value="null">— 清除学校</option>
+                  <option value="吉林大学">吉林大学（985）</option>
+                  <option value="东北师范大学">东北师范大学（211）</option>
+                  <option value="吉林动画学院">吉林动画学院</option>
+                  <option value="长春大学">长春大学</option>
+                  <option value="长春理工大学">长春理工大学</option>
+                  <option value="长春工业大学">长春工业大学</option>
+                  <option value="吉林建筑大学">吉林建筑大学</option>
+                  <option value="吉林农业大学">吉林农业大学</option>
+                  <option value="长春中医药大学">长春中医药大学</option>
+                  <option value="吉林工程技术师范学院">吉林工程技术师范学院</option>
+                  <option value="长春师范大学">长春师范大学</option>
+                  <option value="吉林财经大学">吉林财经大学</option>
+                  <option value="吉林体育学院">吉林体育学院</option>
+                  <option value="吉林艺术学院">吉林艺术学院</option>
+                  <option value="吉林工商学院">吉林工商学院</option>
+                  <option value="长春工程学院">长春工程学院</option>
+                  <option value="吉林警察学院">吉林警察学院</option>
+                  <option value="长春汽车职业技术大学">长春汽车职业技术大学</option>
+                  <option value="长春职业技术大学">长春职业技术大学</option>
+                  <option value="吉林外国语大学">吉林外国语大学</option>
+                  <option value="长春光华学院">长春光华学院</option>
+                  <option value="长春工业大学人文信息学院">长春工业大学人文信息学院</option>
+                  <option value="长春电子科技学院">长春电子科技学院</option>
+                  <option value="长春财经学院">长春财经学院</option>
+                  <option value="吉林建筑科技学院">吉林建筑科技学院</option>
+                  <option value="长春建筑学院">长春建筑学院</option>
+                  <option value="长春科技学院">长春科技学院</option>
+                  <option value="长春大学旅游学院">长春大学旅游学院</option>
+                  <option value="长春人文学院">长春人文学院</option>
+                </select>
+              </div>
+              <p className="text-xs text-gray-400">
+                修改学校后，用户的匹配池将基于新学校重新计算。
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setEditSchoolOpen(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                取消
+              </button>
+              <button onClick={handleSaveSchool} disabled={editSchoolLoading}
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-stone-100 to-stone-300 rounded-xl hover:opacity-90 transition text-stone-700 ${
+                  editSchoolLoading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}>
+                {editSchoolLoading ? '保存中...' : '保存'}
               </button>
             </div>
           </div>
