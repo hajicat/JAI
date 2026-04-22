@@ -5,7 +5,7 @@ import { sanitizeString, sanitizeForStorage } from '@/lib/validation'
 import { checkRateLimit, SURVEY_LIMITER } from '@/lib/rate-limit'
 import { getWeekKey } from '@/lib/week'
 import { getClientIp, validateCsrfToken, getCookieName } from '@/lib/csrf'
-import { scoreGpsSamples, isNoEmailSchool } from '@/lib/geo'
+import { scoreGpsSamples, isNoEmailSchool, getSchoolShort } from '@/lib/geo'
 
 export const runtime = 'edge';
 
@@ -181,10 +181,18 @@ export async function POST(req: NextRequest) {
       args: [countKey, String(currentCount + 1)],
     })
 
-    // ── GPS 采样验证（仅针对无邮箱学校：吉动/长大）──
-    // 前端只对 needsGpsVerification=true 的用户发送 gpsSamples（吉动/长大）
-    // 吉大/东师/吉外用户不发送，不进入此逻辑
+    // ── GPS 采样验证（仅针对无校内邮箱学校用户）──
+    // 前端只对 needsGpsVerification=true 的用户发送 gpsSamples
+    // 有校内邮箱的学校用户不发送，不进入此逻辑
     const userId = Number(decoded.id)
+
+    // 获取用户的学校全名，用于定位 schoolShort
+    const userSchoolRow = await db.execute({
+      sql: 'SELECT school FROM users WHERE id = ?',
+      args: [userId],
+    })
+    const userSchool = String((userSchoolRow.rows[0] as any)?.school || '')
+    const userSchoolShort = getSchoolShort(userSchool)
 
     // 前端传来的历史最高分（重做题时保留）
     const bodyPrevScore = typeof answers.prevScore === 'number' ? answers.prevScore : null
@@ -195,12 +203,24 @@ export async function POST(req: NextRequest) {
 
     // 检查是否有 GPS 采样数据（前端附带的）
     if (gpsSamples && Array.isArray(gpsSamples) && gpsSamples.length >= 1) {
-      // 吉动/长大用户需要 GPS 验证
-      const scoreResult = scoreGpsSamples(gpsSamples, '吉动')
-      const scoreResult2 = scoreGpsSamples(gpsSamples, '长大')
+      // 用用户的 schoolShort 进行 GPS 评分
+      // 如果无法确定 schoolShort，回退到对所有 NO_EMAIL_SCHOOLS 逐一评分取最高
+      let bestResult: { score: number; details: string } = { score: 0, details: '未评分' }
 
-      // 取两个学校中评分较高的（实际只会命中一个）
-      const bestResult = scoreResult.score >= scoreResult2.score ? scoreResult : scoreResult2
+      if (userSchoolShort && isNoEmailSchool(userSchoolShort)) {
+        // 已知学校：直接用对应 schoolShort 评分
+        bestResult = scoreGpsSamples(gpsSamples, userSchoolShort)
+      } else {
+        // 未知学校或无校内邮箱学校：对所有 NO_EMAIL_SCHOOLS 逐一评分取最高
+        // 兼容旧逻辑（吉动/长大可能重叠区域）
+        const noEmailSchools = ['吉动', '长大', '吉艺', '吉农大', '长中医', '吉工程师', '长师大',
+          '吉财大', '吉体院', '吉工商', '长工程', '吉警院', '汽职大', '职技大',
+          '光华', '人信学院', '电子学院', '长财经', '建科', '长建筑', '长科技', '旅游学院', '长人文']
+        for (const short of noEmailSchools) {
+          const result = scoreGpsSamples(gpsSamples, short)
+          if (result.score > bestResult.score) bestResult = result
+        }
+      }
       let newScore = bestResult.score
       verificationMessage = bestResult.details
 

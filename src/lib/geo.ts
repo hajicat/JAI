@@ -1,14 +1,13 @@
 /**
  * 地理位置工具函数（多校区版）
  *
- * 覆盖学校：
- *   - 吉林动画学院（任意邮箱，2km）
- *   - 吉林艺术学院（任意邮箱，2km）
- *   - 吉林大学（7 个校区，@jlu / @mails.jlu 校内邮箱，2km）
- *   - 东北师范大学（2 个校区，@nenu 校内邮箱，2km）
- *   - 吉林外国语大学（1 个校区，@jisu 校内邮箱）
- *   - 长春大学（2+ 个校区，任意邮箱 — 无官方学生邮箱后缀）
- *   - 长春理工大学（1 个校区，@mails.cust 校内邮箱）
+ * 覆盖长春市全部 29 所本科高校（18 公办 + 11 民办），共约 40+ 个校区
+ *
+ * 排序：985 → 211 → 吉林动画学院 → 其余按用户指定顺序
+ *
+ * 邮箱验证规则：
+ *   - 需校内邮箱：吉林大学、长春理工大学、长春工业大学、东北师范大学、吉林建筑大学、吉林外国语大学
+ *   - GPS 验证即可（任意邮箱）：其余 23 所学校
  */
 
 /** 地球半径（公里） */
@@ -42,63 +41,135 @@ interface Campus {
 /**
  * 所有校区的 GPS 坐标列表
  *
- * ─── 吉林动画学院 + 长春大学（任意邮箱） ──────
- * ─── 吉林大学 + 东师 + 吉外（需校内邮箱）──────
+ * 排序：985 → 211 → 吉林动画学院 → 其余按用户指定顺序
+ *
+ * 邮箱验证：
+ *   - 需校内邮箱（requiresSchoolEmail=true）：吉大、长理工、长工大、东师、吉建大、吉外
+ *   - 仅 GPS 验证即可（任意邮箱）：其余学校
  */
 
 const CAMPUSES: Campus[] = [
-  // ── 吉林动画学院（任意邮箱，2km） ───────────────
-  // GCJ-02: 吉林动画学院(高新校区)
-  { name: '吉林动画学院',        lat: 43.820362, lng: 125.261993,
-    schoolName: '吉林动画学院', schoolShort: '吉动', radiusKm: 1.0 },
+  // ══════════════════════════════════
+  // 985：吉林大学（6 个校区）
+  // ══════════════════════════════════
+  { name: '吉林大学(前卫南区)',   lat: 43.82510,  lng: 125.26190,
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
+  { name: '吉林大学(南岭校区)',   lat: 43.85546,  lng: 125.33310,
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
+  { name: '吉林大学(朝阳校区)',   lat: 43.88067,  lng: 125.30022,
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
+  { name: '吉林大学(南湖校区)',   lat: 43.84509,  lng: 125.28594,
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
+  { name: '吉林大学(和平校区)',   lat: 43.90834,  lng: 125.26122,
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
+  { name: '吉林大学(新民校区)',   lat: 43.86817,  lng: 125.30325,
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
 
-  // ── 吉林艺术学院（任意邮箱） ──────────────────────
-  // GCJ-02: 主校区 + 红旗校区
-  { name: '吉林艺术学院',        lat: 43.862015, lng: 125.31046,
-    schoolName: '吉林艺术学院', schoolShort: '吉艺', radiusKm: 1.5 },
-  { name: '吉艺红旗校区',       lat: 43.86179, lng: 125.310278,
-    schoolName: '吉林艺术学院', schoolShort: '吉艺', radiusKm: 1.0 },
+  // ══════════════════════════════════
+  // 公办本科（需校内邮箱）
+  // ══════════════════════════════════
+  { name: '长春理工大学',         lat: 43.83327,  lng: 125.30751,
+    schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
+  { name: '长春理工大学(西校区)', lat: 43.83231,  lng: 125.29870,
+    schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
 
-  // ── 长春大学（任意邮箱 — 无官方学生邮箱后缀） ─
-  // GCJ-02: 卫星路南 + 东校区(图书馆)
-  { name: '长春大学(卫星路南)',   lat: 43.830861, lng: 125.299475,
-    schoolName: '长春大学',      schoolShort: '长大', radiusKm: 1.0 },
-  { name: '长春大学(东校区)',     lat: 43.834209, lng: 125.320884,
-    schoolName: '长春大学',      schoolShort: '长大', radiusKm: 1.0 },
+  { name: '长春工业大学',         lat: 43.85025,  lng: 125.28316,
+    schoolName: '长春工业大学',   schoolShort: '长工大',   radiusKm: 1.5 },
 
-  // ── 吉林大学（7 个校区，全部 2km，@jlu / @mails.jlu 校内邮箱） ──
-  // GCJ-02 高德地图精确坐标
-  { name: '吉林大学(前卫南区)',   lat: 43.823755, lng: 125.277062,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(前卫北区)',   lat: 43.879464, lng: 125.319115,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(南岭校区)',   lat: 43.857075, lng: 125.335348,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(和平校区)',   lat: 43.911280, lng: 125.267357,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(朝阳校区)',   lat: 43.883165, lng: 125.307354,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(南湖校区)',   lat: 43.847944, lng: 125.293245,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
-  { name: '吉林大学(新民校区)',   lat: 43.870203, lng: 125.310869,
-    schoolName: '吉林大学',      schoolShort: '吉大', radiusKm: 2.0 },
+  { name: '吉林建筑大学',         lat: 43.79204,  lng: 125.40403,
+    schoolName: '吉林建筑大学',   schoolShort: '吉建大',   radiusKm: 1.5 },
 
-  // ── 东北师范大学（2 个校区，全部 2km，@nenu 校内邮箱） ──
-  // GCJ-02 高德地图精确坐标
-  { name: '东北师范(人民大街)',  lat: 43.861880, lng: 125.331370,
-    schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
-  { name: '东北师范净月校区',    lat: 43.826195, lng: 125.425650,
-    schoolName: '东北师范大学',  schoolShort: '东师', radiusKm: 2.0 },
+  // ══════════════════════════════════
+  // 211：东北师范大学（2 个校区）
+  // ══════════════════════════════════
+  { name: '东北师范大学(本部)',   lat: 43.82730,  lng: 125.41920,
+    schoolName: '东北师范大学',   schoolShort: '东师',     radiusKm: 2.0 },
+  { name: '东北师范大学(净月)',   lat: 43.82490,  lng: 125.41892,
+    schoolName: '东北师范大学',   schoolShort: '东师',     radiusKm: 2.0 },
 
-  // ── 吉林外国语大学（@jisu 校内邮箱） ──
-  // GCJ-02: 净月大街3658号
-  { name: '吉林外国语大学',      lat: 43.822169, lng: 125.445172,
-    schoolName: '吉林外国语大学',schoolShort: '吉外', radiusKm: 1.15 },
+  // ══════════════════════════════════
+  // ★ 吉林动画学院（创始人学校，排位靠前）
+  // ══════════════════════════════════
+  { name: '吉林动画学院',         lat: 43.8175,   lng: 125.2561,
+    schoolName: '吉林动画学院',   schoolShort: '吉动',     radiusKm: 2.0 },
 
-  // ── 长春理工大学（@mails.cust 校内邮箱） ──
-  // GCJ-02: 卫星路7186号
-  { name: '长春理工大学',        lat: 43.83327,  lng: 125.30751,
-    schoolName: '长春理工大学',  schoolShort: '长理工', radiusKm: 1.5 },
+  // ══════════════════════════════════
+  // 民办（需校内邮箱）
+  // ══════════════════════════════════
+  { name: '吉林外国语大学',       lat: 43.81970,  lng: 125.43930,
+    schoolName: '吉林外国语大学', schoolShort: '吉外',     radiusKm: 1.5 },
+
+  // ══════════════════════════════════
+  // 其余公办本科（仅 GPS 验证）
+  // ══════════════════════════════════
+  { name: '吉林农业大学',         lat: 43.81310,  lng: 125.40369,
+    schoolName: '吉林农业大学',   schoolShort: '吉农大',   radiusKm: 1.5 },
+
+  { name: '长春中医药大学',       lat: 43.82863,  lng: 125.41080,
+    schoolName: '长春中医药大学', schoolShort: '长中医',   radiusKm: 1.5 },
+
+  { name: '吉林工程技术师范学院',  lat: 43.93787,  lng: 125.31202,
+    schoolName: '吉林工程技术师范学院',schoolShort:'吉工程师',radiusKm: 1.5 },
+
+  { name: '长春师范大学',         lat: 43.91250,  lng: 125.38831,
+    schoolName: '长春师范大学',   schoolShort: '长师大',   radiusKm: 1.5 },
+
+  { name: '吉林财经大学',         lat: 43.81534,  lng: 125.42720,
+    schoolName: '吉林财经大学',   schoolShort: '吉财大',   radiusKm: 1.5 },
+
+  { name: '吉林体育学院',         lat: 43.86070,  lng: 125.33278,
+    schoolName: '吉林体育学院',   schoolShort: '吉体院',   radiusKm: 1.5 },
+
+  { name: '吉林艺术学院',         lat: 43.86201,  lng: 125.31046,
+    schoolName: '吉林艺术学院',   schoolShort: '吉艺',     radiusKm: 1.5 },
+
+  { name: '吉林工商学院',         lat: 43.98975,  lng: 125.53350,
+    schoolName: '吉林工商学院',   schoolShort: '吉工商',   radiusKm: 1.5 },
+
+  { name: '长春工程学院',         lat: 43.84906,  lng: 125.28073,
+    schoolName: '长春工程学院',   schoolShort: '长工程',   radiusKm: 1.5 },
+
+  { name: '吉林警察学院',         lat: 43.82714,  lng: 125.40747,
+    schoolName: '吉林警察学院',   schoolShort: '吉警院',   radiusKm: 1.5 },
+
+  { name: '长春大学',             lat: 43.83168,  lng: 125.31768,
+    schoolName: '长春大学',       schoolShort: '长大',     radiusKm: 1.5 },
+
+  { name: '长春汽车职业技术大学', lat: 43.87849,  lng: 125.29124,
+    schoolName: '长春汽车职业技术大学',schoolShort:'汽职大',  radiusKm: 1.5 },
+
+  { name: '长春职业技术大学',     lat: 43.82723,  lng: 125.36059,
+    schoolName: '长春职业技术大学', schoolShort:'职技大',  radiusKm: 1.5 },
+
+  // ══════════════════════════════════
+  // 其余民办本科（仅 GPS 验证）
+  // ══════════════════════════════════
+  { name: '长春光华学院',         lat: 43.87400,  lng: 125.42883,
+    schoolName: '长春光华学院',   schoolShort: '光华',     radiusKm: 1.5 },
+
+  { name: '长春工业大学人文信息学院',lat: 43.77936,lng: 125.42120,
+    schoolName: '长春工业大学人文信息学院',schoolShort:'人信学院',radiusKm: 1.5 },
+
+  { name: '长春电子科技学院',     lat: 43.99146,  lng: 125.14831,
+    schoolName: '长春电子科技学院',schoolShort:'电子学院', radiusKm: 1.5 },
+
+  { name: '长春财经学院',         lat: 43.78594,  lng: 125.40719,
+    schoolName: '长春财经学院',   schoolShort: '长财经',   radiusKm: 1.5 },
+
+  { name: '吉林建筑科技学院',     lat: 43.99330,  lng: 125.14190,
+    schoolName: '吉林建筑科技学院',schoolShort:'建科',     radiusKm: 1.5 },
+
+  { name: '长春建筑学院',         lat: 43.69444,  lng: 125.51792,
+    schoolName: '长春建筑学院',   schoolShort: '长建筑',   radiusKm: 1.5 },
+
+  { name: '长春科技学院',         lat: 43.53066,  lng: 125.66176,
+    schoolName: '长春科技学院',   schoolShort: '长科技',   radiusKm: 1.5 },
+
+  { name: '长春大学旅游学院',     lat: 43.68863,  lng: 125.51318,
+    schoolName: '长春大学旅游学院',schoolShort:'旅游学院', radiusKm: 1.5 },
+
+  { name: '长春人文学院',         lat: 43.81956,  lng: 125.40416,
+    schoolName: '长春人文学院',   schoolShort: '长人文',   radiusKm: 1.5 },
 ]
 
 // ════════════════════════════════════════════
@@ -107,7 +178,9 @@ const CAMPUSES: Campus[] = [
 
 /** 判断是否在吉林动画学院范围内（允许任意邮箱注册） */
 function isJLAI(lat: number, lng: number): boolean {
-  const jlai = CAMPUSES[0]
+  // 找吉林动画学院（不再依赖数组索引）
+  const jlai = CAMPUSES.find(c => c.schoolShort === '吉动')
+  if (!jlai) return false
   return haversineDistance(jlai.lat, jlai.lng, lat, lng) <= jlai.radiusKm
 }
 
@@ -148,7 +221,7 @@ export function verifyLocation(lat: number, lng: number):
         schoolName: c.schoolName,
         schoolShort: c.schoolShort,
         distanceKm: Math.round(dist * 100) / 100,
-        requiresSchoolEmail: c.schoolShort !== '吉动' && c.schoolShort !== '长大' && c.schoolShort !== '吉艺',
+        requiresSchoolEmail: ['吉大','长理工','长工大','吉建大','东师','吉外'].includes(c.schoolShort),
       })
     }
   }
@@ -202,9 +275,32 @@ export function scoreGpsSamples(
   schoolShort: string
 ): { score: number; details: string } {
   const CAMPUS_MAP: Record<string, { lat: number; lng: number; radiusKm: number }> = {
-    '吉动': { lat: 43.820362, lng: 125.261993, radiusKm: 1.0 },
-    '长大': { lat: 43.830861, lng: 125.299475, radiusKm: 1.0 },
-    '吉艺': { lat: 43.862015, lng: 125.31046, radiusKm: 1.5 },
+    // 创始人学校（原数据）
+    '吉动':   { lat: 43.8175,  lng: 125.2561,  radiusKm: 2.0 },
+    '长大':   { lat: 43.83168, lng: 125.31768, radiusKm: 1.5 },
+    '吉艺':   { lat: 43.86201, lng: 125.31046, radiusKm: 1.5 },
+    // 新增公办
+    '吉农大': { lat: 43.81310, lng: 125.40369, radiusKm: 1.5 },
+    '长中医': { lat: 43.82863, lng: 125.41080, radiusKm: 1.5 },
+    '吉工程师':{ lat: 43.93787, lng: 125.31202, radiusKm: 1.5 },
+    '长师大': { lat: 43.91250, lng: 125.38831, radiusKm: 1.5 },
+    '吉财大': { lat: 43.81534, lng: 125.42720, radiusKm: 1.5 },
+    '吉体院': { lat: 43.86070, lng: 125.33278, radiusKm: 1.5 },
+    '吉工商': { lat: 43.98975, lng: 125.53350, radiusKm: 1.5 },
+    '长工程': { lat: 43.84906, lng: 125.28073, radiusKm: 1.5 },
+    '吉警院': { lat: 43.82714, lng: 125.40747, radiusKm: 1.5 },
+    '汽职大': { lat: 43.87849, lng: 125.29124, radiusKm: 1.5 },
+    '职技大': { lat: 43.82723, lng: 125.36059, radiusKm: 1.5 },
+    // 新增民办
+    '光华':   { lat: 43.87400, lng: 125.42883, radiusKm: 1.5 },
+    '人信学院':{lat: 43.77936, lng: 125.42120, radiusKm: 1.5 },
+    '电子学院':{lat: 43.99146, lng: 125.14831, radiusKm: 1.5 },
+    '长财经': { lat: 43.78594, lng: 125.40719, radiusKm: 1.5 },
+    '建科':   { lat: 43.99330, lng: 125.14190, radiusKm: 1.5 },
+    '长建筑': { lat: 43.69444, lng: 125.51792, radiusKm: 1.5 },
+    '长科技': { lat: 43.53066, lng: 125.66176, radiusKm: 1.5 },
+    '旅游学院':{lat: 43.68863, lng: 125.51318, radiusKm: 1.5 },
+    '长人文': { lat: 43.81956, lng: 125.40416, radiusKm: 1.5 },
   }
 
   const campus = CAMPUS_MAP[schoolShort]
@@ -279,9 +375,24 @@ export function scoreGpsSamples(
 }
 
 /**
- * 判断用户是否为"无邮箱验证学校"（吉动/长大）
+ * 判断用户是否为"无邮箱验证学校"（GPS 验证即可，任意邮箱）
  * 这类用户在问卷提交时需要 GPS 采样验证
  */
+export const NO_EMAIL_SCHOOLS: Set<string> = new Set([
+  '吉动', '长大', '吉艺', '吉农大', '长中医', '吉工程师', '长师大', '吉财大',
+  '吉体院', '吉工商', '长工程', '吉警院', '汽职大', '职技大',
+  '光华', '人信学院', '电子学院', '长财经', '建科', '长建筑', '长科技', '旅游学院', '长人文'
+])
+
 export function isNoEmailSchool(schoolShort: string): boolean {
-  return schoolShort === '吉动' || schoolShort === '长大' || schoolShort === '吉艺'
+  return NO_EMAIL_SCHOOLS.has(schoolShort)
+}
+
+/**
+ * 根据学校全称获取简称
+ * 用于 survey/route.ts 等地方，只有 school 全名但需要 schoolShort 的场景
+ */
+export function getSchoolShort(schoolName: string): string | null {
+  const campus = CAMPUSES.find(c => c.schoolName === schoolName)
+  return campus ? campus.schoolShort : null
 }

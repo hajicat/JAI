@@ -518,8 +518,7 @@ export default function Home() {
           <div className="text-4xl mb-3">📍</div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">仅限长春高校同学</h3>
           <p className="text-gray-500 text-sm">
-            注册时需通过GPS定位验证你在长春高校圈内（吉林大学/东北师范大学/<br />
-            吉林动画学院/吉林外国语大学/长春大学/吉林艺术学院/长春理工大学，15km范围）<br />
+            注册时需通过GPS定位验证你在长春高校圈内（覆盖长春市 29 所本科高校，含吉大、东师、长理工等，15km范围）<br />
             确保每一位参与者都是真实的高校同学
           </p>
         </div>
