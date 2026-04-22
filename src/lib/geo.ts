@@ -68,14 +68,20 @@ const CAMPUSES: Campus[] = [
   // ══════════════════════════════════
   // 公办本科（需校内邮箱）
   // ══════════════════════════════════
-  { name: '长春理工大学',         lat: 43.83327,  lng: 125.30751,
+  { name: '长春理工大学(朝阳校区/东区)', lat: 43.836475, lng: 125.30609,
+    schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
+  { name: '长春理工大学(朝阳校区/南区)', lat: 43.836475, lng: 125.30609,
+    schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
+  { name: '长春理工大学(朝阳校区/西区)', lat: 43.836475, lng: 125.30609,
     schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
   { name: '长春理工大学(西校区)', lat: 43.83231,  lng: 125.29870,
     schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
   { name: '长春理工大学(春明湖校区)', lat: 44.145474, lng: 125.470963,
     schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
 
-  { name: '长春工业大学',         lat: 43.85025,  lng: 125.28316,
+  { name: '长春工业大学(南湖校区)', lat: 43.850246, lng: 125.283156,
+    schoolName: '长春工业大学',   schoolShort: '长工大',   radiusKm: 1.5 },
+  { name: '长春工业大学(北湖校区)', lat: 43.87658,  lng: 125.36372,
     schoolName: '长春工业大学',   schoolShort: '长工大',   radiusKm: 1.5 },
 
   { name: '吉林建筑大学',         lat: 43.79204,  lng: 125.40403,
@@ -94,7 +100,7 @@ const CAMPUSES: Campus[] = [
   // ══════════════════════════════════
   // ★ 吉林动画学院（创始人学校，排位靠前）
   // ══════════════════════════════════
-  { name: '吉林动画学院',         lat: 43.8175,   lng: 125.2561,
+  { name: '吉林动画学院',         lat: 43.81824,  lng: 125.254561,
     schoolName: '吉林动画学院',   schoolShort: '吉动',     radiusKm: 1.5 },
 
   // ══════════════════════════════════
@@ -115,28 +121,28 @@ const CAMPUSES: Campus[] = [
   { name: '吉林工程技术师范学院',  lat: 43.93787,  lng: 125.31202,
     schoolName: '吉林工程技术师范学院',schoolShort:'吉工程师',radiusKm: 1.5 },
 
-  { name: '长春师范大学',         lat: 43.91250,  lng: 125.38831,
+  { name: '长春师范大学',         lat: 43.91250,  lng: 125.388308,
     schoolName: '长春师范大学',   schoolShort: '长师大',   radiusKm: 1.5 },
 
   { name: '吉林财经大学',         lat: 43.81534,  lng: 125.42720,
     schoolName: '吉林财经大学',   schoolShort: '吉财大',   radiusKm: 1.5 },
 
-  { name: '吉林体育学院',         lat: 43.86070,  lng: 125.33278,
+  { name: '吉林体育学院',         lat: 43.860695, lng: 125.332777,
     schoolName: '吉林体育学院',   schoolShort: '吉体院',   radiusKm: 1.5 },
 
-  { name: '吉林艺术学院',         lat: 43.86201,  lng: 125.31046,
+  { name: '吉林艺术学院',         lat: 43.862015, lng: 125.31046,
     schoolName: '吉林艺术学院',   schoolShort: '吉艺',     radiusKm: 1.5 },
 
   { name: '吉林工商学院',         lat: 43.98975,  lng: 125.53350,
     schoolName: '吉林工商学院',   schoolShort: '吉工商',   radiusKm: 1.5 },
 
-  { name: '长春工程学院',         lat: 43.84906,  lng: 125.28073,
+  { name: '长春工程学院',         lat: 43.84906,  lng: 125.280727,
     schoolName: '长春工程学院',   schoolShort: '长工程',   radiusKm: 1.5 },
 
-  { name: '吉林警察学院',         lat: 43.82714,  lng: 125.40747,
+  { name: '吉林警察学院',         lat: 43.82714,  lng: 125.407473,
     schoolName: '吉林警察学院',   schoolShort: '吉警院',   radiusKm: 1.5 },
 
-  { name: '长春大学',             lat: 43.83168,  lng: 125.31768,
+  { name: '长春大学',             lat: 43.831684, lng: 125.31768,
     schoolName: '长春大学',       schoolShort: '长大',     radiusKm: 1.5 },
 
   { name: '长春汽车职业技术大学', lat: 43.87849,  lng: 125.29124,
@@ -151,10 +157,10 @@ const CAMPUSES: Campus[] = [
   { name: '长春光华学院',         lat: 43.87400,  lng: 125.42883,
     schoolName: '长春光华学院',   schoolShort: '光华',     radiusKm: 1.5 },
 
-  { name: '长春工业大学人文信息学院',lat: 43.77936,lng: 125.42120,
+  { name: '长春工业大学人文信息学院',lat: 43.779358, lng: 125.421201,
     schoolName: '长春工业大学人文信息学院',schoolShort:'人信学院',radiusKm: 1.5 },
 
-  { name: '长春电子科技学院',     lat: 43.99146,  lng: 125.14831,
+  { name: '长春电子科技学院',     lat: 43.999146, lng: 125.148305,
     schoolName: '长春电子科技学院',schoolShort:'电子学院', radiusKm: 1.5 },
 
   { name: '长春财经学院',         lat: 43.78594,  lng: 125.40719,
@@ -169,10 +175,10 @@ const CAMPUSES: Campus[] = [
   { name: '长春科技学院',         lat: 43.53066,  lng: 125.66176,
     schoolName: '长春科技学院',   schoolShort: '长科技',   radiusKm: 1.5 },
 
-  { name: '长春大学旅游学院',     lat: 43.68863,  lng: 125.51318,
+  { name: '长春大学旅游学院',     lat: 43.68863,  lng: 125.513177,
     schoolName: '长春大学旅游学院',schoolShort:'旅游学院', radiusKm: 1.5 },
 
-  { name: '长春人文学院',         lat: 43.81956,  lng: 125.40416,
+  { name: '长春人文学院',         lat: 43.819557, lng: 125.40416,
     schoolName: '长春人文学院',   schoolShort: '长人文',   radiusKm: 1.5 },
 ]
 
@@ -280,31 +286,31 @@ export function scoreGpsSamples(
 ): { score: number; details: string } {
   const CAMPUS_MAP: Record<string, { lat: number; lng: number; radiusKm: number }> = {
     // 创始人学校（原数据）
-    '吉动':   { lat: 43.8175,  lng: 125.2561,  radiusKm: 1.5 },
-    '长大':   { lat: 43.83168, lng: 125.31768, radiusKm: 1.5 },
-    '吉艺':   { lat: 43.86201, lng: 125.31046, radiusKm: 1.5 },
+    '吉动':   { lat: 43.81824, lng: 125.254561, radiusKm: 1.5 },
+    '长大':   { lat: 43.831684, lng: 125.31768, radiusKm: 1.5 },
+    '吉艺':   { lat: 43.862015, lng: 125.31046, radiusKm: 1.5 },
     // 新增公办
     '吉农大': { lat: 43.81310, lng: 125.40369, radiusKm: 1.5 },
     '长中医': { lat: 43.82863, lng: 125.41080, radiusKm: 1.5 },
     '吉工程师':{ lat: 43.93787, lng: 125.31202, radiusKm: 1.5 },
-    '长师大': { lat: 43.91250, lng: 125.38831, radiusKm: 1.5 },
+    '长师大': { lat: 43.91250, lng: 125.388308, radiusKm: 1.5 },
     '吉财大': { lat: 43.81534, lng: 125.42720, radiusKm: 1.5 },
-    '吉体院': { lat: 43.86070, lng: 125.33278, radiusKm: 1.5 },
+    '吉体院': { lat: 43.860695, lng: 125.332777, radiusKm: 1.5 },
     '吉工商': { lat: 43.98975, lng: 125.53350, radiusKm: 1.5 },
-    '长工程': { lat: 43.84906, lng: 125.28073, radiusKm: 1.5 },
-    '吉警院': { lat: 43.82714, lng: 125.40747, radiusKm: 1.5 },
+    '长工程': { lat: 43.84906, lng: 125.280727, radiusKm: 1.5 },
+    '吉警院': { lat: 43.82714, lng: 125.407473, radiusKm: 1.5 },
     '汽职大': { lat: 43.87849, lng: 125.29124, radiusKm: 1.5 },
     '职技大': { lat: 43.82723, lng: 125.36059, radiusKm: 1.5 },
     // 新增民办
     '光华':   { lat: 43.87400, lng: 125.42883, radiusKm: 1.5 },
-    '人信学院':{lat: 43.77936, lng: 125.42120, radiusKm: 1.5 },
-    '电子学院':{lat: 43.99146, lng: 125.14831, radiusKm: 1.5 },
+    '人信学院':{ lat: 43.779358, lng: 125.421201, radiusKm: 1.5 },
+    '电子学院':{ lat: 43.999146, lng: 125.148305, radiusKm: 1.5 },
     '长财经': { lat: 43.78594, lng: 125.40719, radiusKm: 1.5 },
     '建科':   { lat: 43.99330, lng: 125.14190, radiusKm: 1.5 },
     '长建筑': { lat: 43.69444, lng: 125.51792, radiusKm: 1.5 },
     '长科技': { lat: 43.53066, lng: 125.66176, radiusKm: 1.5 },
-    '旅游学院':{lat: 43.68863, lng: 125.51318, radiusKm: 1.5 },
-    '长人文': { lat: 43.81956, lng: 125.40416, radiusKm: 1.5 },
+    '旅游学院':{ lat: 43.68863, lng: 125.513177, radiusKm: 1.5 },
+    '长人文': { lat: 43.819557, lng: 125.40416, radiusKm: 1.5 },
   }
 
   const campus = CAMPUS_MAP[schoolShort]
