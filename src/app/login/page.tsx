@@ -732,6 +732,7 @@ function LoginForm() {
                 </div>
                 <p className="text-xs text-gray-400">请输入发到邮箱的 6 位数字验证码，5 分钟内有效</p>
                 <p className="text-xs text-stone-400">📬 如果没收到验证码，请检查垃圾箱邮件</p>
+                <p className="text-xs text-stone-500 mt-0.5">如果垃圾箱也没有，请发送邮件到网站下方的邮箱，半小时内解决</p>
                 <input
                   type="text"
                   inputMode="numeric"
