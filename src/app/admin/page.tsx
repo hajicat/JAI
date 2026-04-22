@@ -27,7 +27,7 @@ const safeCopy = async (text: string): Promise<boolean> => {
   }
 }
 
-const GENDER_LABELS: Record<string, string> = { male: '男', female: '女', other: '其他' }
+const GENDER_LABELS: Record<string, string> = { male: '男', female: '女', other: '其他', all: '不限' }
 const SAFETY_LABELS: Record<string, { label: string; color: string }> = {
   normal:   { label: '✅ 正常', color: 'text-green-600' },
   restricted: { label: '⚠️ 受限', color: 'text-yellow-600' },
