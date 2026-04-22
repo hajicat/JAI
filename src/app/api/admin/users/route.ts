@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
       }
 
       // 校园邮箱白名单域名（同 register/route.ts）
-      const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn']
+      const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn', 'mails.cust.edu.cn']
 
       const userList = result.rows.map((row: any) => {
         const emailDomain = String(row.email || '').split('@')[1] || ''
@@ -177,7 +177,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 校园邮箱白名单（同 register/route.ts）
-    const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn']
+    const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn', 'mails.cust.edu.cn']
     const emailDomain = String(userRow.email || '').split('@')[1] || ''
     const hasSchoolEmail = SCHOOL_EMAIL_DOMAINS.includes(emailDomain)
 

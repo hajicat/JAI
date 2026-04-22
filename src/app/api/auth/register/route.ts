@@ -12,10 +12,11 @@ export const runtime = 'edge'
 
 // 学校邮箱域名白名单（非吉林动画学院/长春大学用户必须使用这些域名）
 const SCHOOL_EMAIL_DOMAINS = [
-  'jlu.edu.cn',       // 吉林大学（教职工）
-  'mails.jlu.edu.cn', // 吉林大学（学生）
-  'nenu.edu.cn',      // 东北师范大学
-  'jisu.edu.cn',      // 吉林外国语大学
+  'jlu.edu.cn',           // 吉林大学（教职工）
+  'mails.jlu.edu.cn',     // 吉林大学（学生）
+  'nenu.edu.cn',          // 东北师范大学
+  'jisu.edu.cn',          // 吉林外国语大学
+  'mails.cust.edu.cn',    // 长春理工大学
 ]
 
 /** 检查邮箱是否为学校邮箱 */
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
       // ── 学校邮箱验证（非吉林动画学院/长春大学区域需要校内邮箱）──
       if (requiresSchoolEmail && !isSchoolEmail(email)) {
           return NextResponse.json({
-            error: '你所在的高校需要使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn）',
+            error: '你所在的高校需要使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.cust.edu.cn）',
           }, { status: 400 })
         }
     }
