@@ -726,7 +726,7 @@ export default function MatchPage() {
                   />
                   <span className={`flex-1 text-sm ${isMySchool ? 'font-medium text-pink-700' : 'text-gray-700'}`}>
                     {school}
-                    {isMySchool && <span className="ml-1.5 text-xs bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-full">我的学校</span>}
+                    {isMySchool && school !== '吉林动画学院' && <span className="ml-1.5 text-xs bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-full">我的学校</span>}
                     {isSpecial && school !== '吉林动画学院' && (
                       <span className="ml-1.5 text-xs text-stone-500 font-normal">
                         （可能有校外人员参加）
