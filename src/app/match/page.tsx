@@ -688,7 +688,18 @@ export default function MatchPage() {
           <div className="space-y-2.5">
             {visibleSchools.map((school) => {
               const isMySchool = school === mySchool
-              const isSpecial = school === '吉林动画学院' || school === '长春大学' || school === '吉林艺术学院'
+              // 无需校内邮箱的学校（GPS验证即可），可能存在校外人员
+              const NO_EMAIL_SCHOOLS = new Set([
+                '吉林动画学院', '长春大学', '吉林艺术学院',
+                '吉林农业大学', '长春中医药大学', '吉林工程技术师范学院',
+                '长春师范大学', '吉林财经大学', '吉林体育学院', '吉林工商学院',
+                '长春工程学院', '吉林警察学院', '长春汽车职业技术大学',
+                '长春职业技术大学',
+                '长春光华学院', '长春工业大学人文信息学院', '长春电子科技学院',
+                '长春财经学院', '吉林建筑科技学院', '长春建筑学院',
+                '长春科技学院', '长春大学旅游学院', '长春人文学院',
+              ])
+              const isSpecial = NO_EMAIL_SCHOOLS.has(school)
               const checked = schoolPrefs.includes(school)
               return (
                 <label
