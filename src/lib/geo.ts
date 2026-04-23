@@ -106,8 +106,8 @@ const CAMPUSES: Campus[] = [
   // ══════════════════════════════════
   // 民办（需校内邮箱）
   // ══════════════════════════════════
-  { name: '吉林外国语大学',       lat: 43.81970,  lng: 125.43930,
-    schoolName: '吉林外国语大学', schoolShort: '吉外',     radiusKm: 1.5 },
+  { name: '吉林外国语大学',       lat: 43.819730, lng: 125.440380,
+    schoolName: '吉林外国语大学', schoolShort: '吉外',     radiusKm: 2.0 },
 
   // ══════════════════════════════════
   // 其余公办本科（仅 GPS 验证）
@@ -126,8 +126,8 @@ const CAMPUSES: Campus[] = [
   { name: '长春师范大学',         lat: 43.91250,  lng: 125.388308,
     schoolName: '长春师范大学',   schoolShort: '长师大',   radiusKm: 1.5 },
 
-  { name: '吉林财经大学',         lat: 43.81534,  lng: 125.42720,
-    schoolName: '吉林财经大学',   schoolShort: '吉财大',   radiusKm: 1.5 },
+  { name: '吉林财经大学',         lat: 43.816064, lng: 125.428717,
+    schoolName: '吉林财经大学',   schoolShort: '吉财大',   radiusKm: 2.0 },
 
   { name: '吉林体育学院',         lat: 43.860695, lng: 125.332777,
     schoolName: '吉林体育学院',   schoolShort: '吉体院',   radiusKm: 1.5 },
@@ -296,7 +296,7 @@ export function scoreGpsSamples(
     '长中医': { lat: 43.82863, lng: 125.41080, radiusKm: 1.5 },
     '吉工程师':{ lat: 43.93787, lng: 125.31202, radiusKm: 1.5 },
     '长师大': { lat: 43.91250, lng: 125.388308, radiusKm: 1.5 },
-    '吉财大': { lat: 43.81534, lng: 125.42720, radiusKm: 1.5 },
+    '吉财大': { lat: 43.816064, lng: 125.428717, radiusKm: 2.0 },
     '吉体院': { lat: 43.860695, lng: 125.332777, radiusKm: 1.5 },
     '吉工商': { lat: 43.98975, lng: 125.53350, radiusKm: 1.5 },
     '长工程': { lat: 43.84906, lng: 125.280727, radiusKm: 1.5 },
