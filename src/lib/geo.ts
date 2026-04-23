@@ -231,7 +231,7 @@ export function verifyLocation(lat: number, lng: number):
         schoolName: c.schoolName,
         schoolShort: c.schoolShort,
         distanceKm: Math.round(dist * 100) / 100,
-        requiresSchoolEmail: ['吉大','长理工','长工大','吉建大','东师','吉外'].includes(c.schoolShort),
+        requiresSchoolEmail: ['吉大','长理工','长工大','吉建大','东师','吉外','长大','长中医'].includes(c.schoolShort),
       })
     }
   }
@@ -389,7 +389,7 @@ export function scoreGpsSamples(
  * 这类用户在问卷提交时需要 GPS 采样验证
  */
 export const NO_EMAIL_SCHOOLS: Set<string> = new Set([
-  '吉动', '长大', '吉艺', '吉农大', '长中医', '吉工程师', '长师大', '吉财大',
+  '吉动', '吉艺', '吉农大', '吉工程师', '长师大', '吉财大',
   '吉体院', '吉工商', '长工程', '吉警院', '汽职大', '职技大',
   '光华', '人信学院', '电子学院', '长财经', '建科', '长建筑', '长科技', '旅游学院', '长人文'
 ])

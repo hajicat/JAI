@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     // emailDomain 是 split('@')[1] 的结果，已不含 @ 符号
     // 与 SCHOOL_EMAIL_DOMAINS（register/route.ts）保持一致
     const emailDomain = String(user.email || '').split('@')[1] || ''
-    const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn','mails.jlu.edu.cn','mails.cust.edu.cn','stu.ccut.edu.cn','jlju.edu.cn','nenu.edu.cn','jisu.edu.cn']
+    const SCHOOL_EMAIL_DOMAINS = ['jlu.edu.cn','mails.jlu.edu.cn','mails.cust.edu.cn','stu.ccut.edu.cn','jlju.edu.cn','nenu.edu.cn','jisu.edu.cn','mails.ccu.edu.cn','ccucm.edu.cn']
     const needsGpsVerification = !SCHOOL_EMAIL_DOMAINS.includes(emailDomain)
     const currentVerificationStatus = user.verification_status || null
     const currentScore = user.verification_score != null ? Number(user.verification_score) : null
