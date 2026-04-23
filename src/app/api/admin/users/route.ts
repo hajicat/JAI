@@ -9,6 +9,18 @@ import { checkRateLimit, API_LIMITER } from '@/lib/rate-limit'
 import { getClientIp } from '@/lib/csrf'
 import { verifyPassword as verifyAdminPassword } from '@/lib/auth'
 
+// 所有学校列表（与 match/preferences/route.ts 保持一致）
+const ALL_SCHOOLS = [
+  '吉林大学', '东北师范大学', '吉林动画学院', '长春大学',
+  '长春理工大学', '长春工业大学', '吉林建筑大学', '吉林农业大学',
+  '长春中医药大学', '吉林工程技术师范学院', '长春师范大学', '吉林财经大学',
+  '吉林体育学院', '吉林艺术学院', '吉林工商学院', '长春工程学院',
+  '吉林警察学院', '长春汽车职业技术大学', '长春职业技术大学',
+  '吉林外国语大学', '长春光华学院', '长春工业大学人文信息学院',
+  '长春电子科技学院', '长春财经学院', '吉林建筑科技学院', '长春建筑学院',
+  '长春科技学院', '长春大学旅游学院', '长春人文学院',
+]
+
 // Helper: attempt to decrypt contact info, safe on failure
 async function safeDecryptContact(encrypted: string | null | undefined, contactType: string | null): Promise<{ type: string | null; info: string | null }> {
   if (!encrypted || !contactType) return { type: null, info: null }
@@ -170,7 +182,7 @@ export async function GET(req: NextRequest) {
     const prefsRaw = userRow.match_school_prefs || 'all'
     let parsedPrefs: string[]
     if (prefsRaw === 'all') {
-      parsedPrefs = ['吉林大学', '东北师范大学', '吉林外国语大学', '吉林动画学院', '长春大学']
+      parsedPrefs = [...ALL_SCHOOLS]
     } else {
       try { parsedPrefs = JSON.parse(prefsRaw) }
       catch { parsedPrefs = [] }
