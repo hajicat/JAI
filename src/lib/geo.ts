@@ -81,7 +81,7 @@ const CAMPUSES: Campus[] = [
 
   { name: '长春工业大学(南湖校区)', lat: 43.850246, lng: 125.283156,
     schoolName: '长春工业大学',   schoolShort: '长工大',   radiusKm: 1.5 },
-  { name: '长春工业大学(北湖校区)', lat: 43.87658,  lng: 125.36372,
+  { name: '长春工业大学(北湖校区)', lat: 43.994505,  lng: 125.398967,
     schoolName: '长春工业大学',   schoolShort: '长工大',   radiusKm: 1.5 },
 
   { name: '吉林建筑大学',         lat: 43.79204,  lng: 125.40403,
