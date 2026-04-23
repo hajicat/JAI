@@ -1009,7 +1009,7 @@ export default function AdminPage() {
                                           修改
                                         </button>
                                       </div>
-                                      <div><span className="text-gray-400">匹配学校偏好：</span>{
+                                      <div className="break-words"><span className="text-gray-400">匹配学校偏好：</span>{
                                         Array.isArray(userDetail.user.matchSchoolPrefs) && userDetail.user.matchSchoolPrefs.length > 0
                                           ? userDetail.user.matchSchoolPrefs.join('、')
                                           : '—'
