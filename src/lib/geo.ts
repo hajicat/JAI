@@ -115,7 +115,9 @@ const CAMPUSES: Campus[] = [
   { name: '吉林农业大学',         lat: 43.81310,  lng: 125.40369,
     schoolName: '吉林农业大学',   schoolShort: '吉农大',   radiusKm: 1.5 },
 
-  { name: '长春中医药大学',       lat: 43.82863,  lng: 125.41080,
+  { name: '长春中医药大学(主校区)', lat: 43.82863,  lng: 125.41080,
+    schoolName: '长春中医药大学', schoolShort: '长中医',   radiusKm: 1.5 },
+  { name: '长春中医药大学(红旗校区)', lat: 43.865768, lng: 125.297290,
     schoolName: '长春中医药大学', schoolShort: '长中医',   radiusKm: 1.5 },
 
   { name: '吉林工程技术师范学院',  lat: 43.93787,  lng: 125.31202,
