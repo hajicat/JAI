@@ -697,7 +697,7 @@ export default function MatchPage() {
                 '长春职业技术大学',
                 '长春光华学院', '长春工业大学人文信息学院', '长春电子科技学院',
                 '长春财经学院', '吉林建筑科技学院', '长春建筑学院',
-                '长春科技学院', '长春大学旅游学院', '长春人文学院',
+                '长春科技学院', '长春大学旅游学院', '长春人文学院', '长春中医药大学',
               ])
               const isSpecial = NO_EMAIL_SCHOOLS.has(school)
               const checked = schoolPrefs.includes(school)

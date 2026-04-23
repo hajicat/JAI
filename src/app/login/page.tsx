@@ -149,7 +149,7 @@ function LoginForm() {
               setRequiresSchoolEmail(data.requiresSchoolEmail)
             }
             if (data.requiresSchoolEmail) {
-              setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn / @ccucm.edu.cn）')
+              setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn）')
             }
             setGpsMsg(`✅ 定位成功！检测到您在「${data.location}」，距最近校区 ${data.nearestDistance ?? 0}km`)
           } else {
@@ -196,9 +196,9 @@ function LoginForm() {
     // 校内邮箱前置校验：如果 GPS 检测到需要校内邮箱，非校内域名直接拦截
     if (requiresSchoolEmail) {
       const domain = form.email.split('@')[1]?.toLowerCase() || ''
-      const allowedDomains = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'mails.cust.edu.cn', 'stu.ccut.edu.cn', 'jlju.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn', 'mails.ccu.edu.cn', 'ccucm.edu.cn']
+      const allowedDomains = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'mails.cust.edu.cn', 'stu.ccut.edu.cn', 'jlju.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn', 'mails.ccu.edu.cn']
       if (!allowedDomains.includes(domain)) {
-        setError('该区域必须使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn / @ccucm.edu.cn）')
+        setError('该区域必须使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn）')
         return
       }
     }
@@ -349,9 +349,9 @@ function LoginForm() {
       // 校内邮箱二次校验（防止绕过前端发送验证码的检查）
       if (requiresSchoolEmail) {
         const domain = form.email.split('@')[1]?.toLowerCase() || ''
-        const allowedDomains = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'mails.cust.edu.cn', 'stu.ccut.edu.cn', 'jlju.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn', 'mails.ccu.edu.cn', 'ccucm.edu.cn']
+        const allowedDomains = ['jlu.edu.cn', 'mails.jlu.edu.cn', 'mails.cust.edu.cn', 'stu.ccut.edu.cn', 'jlju.edu.cn', 'nenu.edu.cn', 'jisu.edu.cn', 'mails.ccu.edu.cn']
         if (!allowedDomains.includes(domain)) {
-          setError('该区域必须使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn / @ccucm.edu.cn）')
+          setError('该区域必须使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn）')
           return
         }
       }
@@ -584,7 +584,7 @@ function LoginForm() {
                             if (campus) {
                               setRequiresSchoolEmail(campus.requiresSchoolEmail)
                               if (campus.requiresSchoolEmail) {
-                                setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn / @ccucm.edu.cn）')
+                                setEmailHint('💡 该区域需使用校内邮箱注册（@jlu.edu.cn / @mails.jlu.edu.cn / @mails.cust.edu.cn / @stu.ccut.edu.cn / @jlju.edu.cn / @nenu.edu.cn / @jisu.edu.cn / @mails.ccu.edu.cn）')
                               } else {
                                 setEmailHint('')
                               }

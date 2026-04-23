@@ -20,7 +20,6 @@ const SCHOOL_EMAIL_DOMAINS = [
   'nenu.edu.cn',          // 东北师范大学
   'jisu.edu.cn',          // 吉林外国语大学
   'mails.ccu.edu.cn',     // 长春大学
-  'ccucm.edu.cn',         // 长春中医药大学
 ]
 
 /** 检查邮箱是否为学校邮箱 */

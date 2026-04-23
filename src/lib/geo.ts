@@ -44,8 +44,8 @@ interface Campus {
  * 排序：985 → 211 → 吉林动画学院 → 其余按用户指定顺序
  *
  * 邮箱验证：
- *   - 需校内邮箱（requiresSchoolEmail=true）：吉大、长理工、长工大、吉建大、东师、吉外、长大、长中医
- *   - 仅 GPS 验证即可（任意邮箱）：其余 21 所学校
+ *   - 需校内邮箱（requiresSchoolEmail=true）：吉大、长理工、长工大、吉建大、东师、吉外、长大
+ *   - 仅 GPS 验证即可（任意邮箱）：其余 21 所学校（含长中医）
  */
 
 const CAMPUSES: Campus[] = [
@@ -118,7 +118,7 @@ const CAMPUSES: Campus[] = [
   { name: '长春中医药大学(主校区)', lat: 43.82863,  lng: 125.41080,
     schoolName: '长春中医药大学', schoolShort: '长中医',   radiusKm: 1.5 },
   { name: '长春中医药大学(红旗校区)', lat: 43.865768, lng: 125.297290,
-    schoolName: '长春中医药大学', schoolShort: '长中医',   radiusKm: 1.5 },
+    schoolName: '长春中医药大学', schoolShort: '长中医',   radiusKm: 0.3 },
 
   { name: '吉林工程技术师范学院',  lat: 43.93787,  lng: 125.31202,
     schoolName: '吉林工程技术师范学院',schoolShort:'吉工程师',radiusKm: 1.5 },
@@ -233,7 +233,7 @@ export function verifyLocation(lat: number, lng: number):
         schoolName: c.schoolName,
         schoolShort: c.schoolShort,
         distanceKm: Math.round(dist * 100) / 100,
-        requiresSchoolEmail: ['吉大','长理工','长工大','吉建大','东师','吉外','长大','长中医'].includes(c.schoolShort),
+        requiresSchoolEmail: ['吉大','长理工','长工大','吉建大','东师','吉外','长大'].includes(c.schoolShort),
       })
     }
   }
@@ -393,7 +393,7 @@ export function scoreGpsSamples(
 export const NO_EMAIL_SCHOOLS: Set<string> = new Set([
   '吉动', '吉艺', '吉农大', '吉工程师', '长师大', '吉财大',
   '吉体院', '吉工商', '长工程', '吉警院', '汽职大', '职技大',
-  '光华', '人信学院', '电子学院', '长财经', '建科', '长建筑', '长科技', '旅游学院', '长人文'
+  '光华', '人信学院', '电子学院', '长财经', '建科', '长建筑', '长科技', '旅游学院', '长人文', '长中医'
 ])
 
 export function isNoEmailSchool(schoolShort: string): boolean {
