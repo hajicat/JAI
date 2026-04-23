@@ -44,4 +44,5 @@ data/.admin-credentials.txt
 # logs
 dev.log
 dev-err.log
+build-log*.txt
 .workbuddy/
