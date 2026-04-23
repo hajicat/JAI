@@ -53,7 +53,7 @@ const CAMPUSES: Campus[] = [
   // 985：吉林大学（6 个校区）
   // ══════════════════════════════════
   { name: '吉林大学(前卫南区)',   lat: 43.82510,  lng: 125.26190,
-    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 1.5 },
+    schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.5 },
   { name: '吉林大学(南岭校区)',   lat: 43.85546,  lng: 125.33310,
     schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
   { name: '吉林大学(朝阳校区)',   lat: 43.88067,  lng: 125.30022,
@@ -68,11 +68,11 @@ const CAMPUSES: Campus[] = [
   // ══════════════════════════════════
   // 公办本科（需校内邮箱）
   // ══════════════════════════════════
-  { name: '长春理工大学(朝阳校区/东区)', lat: 43.836475, lng: 125.30609,
+  { name: '长春理工大学(朝阳校区/东区)', lat: 43.838705, lng: 125.315539,
     schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
-  { name: '长春理工大学(朝阳校区/南区)', lat: 43.836475, lng: 125.30609,
+  { name: '长春理工大学(朝阳校区/南区)', lat: 43.830422, lng: 125.313534,
     schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
-  { name: '长春理工大学(朝阳校区/西区)', lat: 43.836475, lng: 125.30609,
+  { name: '长春理工大学(朝阳校区/西区)', lat: 43.835226, lng: 125.301320,
     schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
   { name: '长春理工大学(西校区)', lat: 43.83231,  lng: 125.29870,
     schoolName: '长春理工大学',   schoolShort: '长理工',   radiusKm: 1.5 },
