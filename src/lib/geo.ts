@@ -56,7 +56,7 @@ const CAMPUSES: Campus[] = [
     schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.5 },
   { name: '吉林大学(南岭校区)',   lat: 43.85546,  lng: 125.33310,
     schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
-  { name: '吉林大学(朝阳校区)',   lat: 43.88067,  lng: 125.30022,
+  { name: '吉林大学(朝阳校区)',   lat: 43.882894,  lng: 125.308502,
     schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
   { name: '吉林大学(南湖校区)',   lat: 43.84509,  lng: 125.28594,
     schoolName: '吉林大学',      schoolShort: '吉大',     radiusKm: 2.0 },
@@ -147,7 +147,7 @@ const CAMPUSES: Campus[] = [
   { name: '长春大学',             lat: 43.831684, lng: 125.31768,
     schoolName: '长春大学',       schoolShort: '长大',     radiusKm: 1.5 },
 
-  { name: '长春汽车职业技术大学', lat: 43.87849,  lng: 125.29124,
+  { name: '长春汽车职业技术大学', lat: 43.82948, lng: 125.14691,
     schoolName: '长春汽车职业技术大学',schoolShort:'汽职大',  radiusKm: 1.5 },
 
   { name: '长春职业技术大学',     lat: 43.82723,  lng: 125.36059,
@@ -301,7 +301,7 @@ export function scoreGpsSamples(
     '吉工商': { lat: 43.98975, lng: 125.53350, radiusKm: 1.5 },
     '长工程': { lat: 43.84906, lng: 125.280727, radiusKm: 1.5 },
     '吉警院': { lat: 43.82714, lng: 125.407473, radiusKm: 1.5 },
-    '汽职大': { lat: 43.87849, lng: 125.29124, radiusKm: 1.5 },
+    '汽职大': { lat: 43.82948, lng: 125.14691, radiusKm: 1.5 },
     '职技大': { lat: 43.82723, lng: 125.36059, radiusKm: 1.5 },
     // 新增民办
     '光华':   { lat: 43.87400, lng: 125.42883, radiusKm: 1.5 },
