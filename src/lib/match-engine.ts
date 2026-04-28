@@ -170,8 +170,115 @@ const COMP_QUESTIONS = [
   { id: 'q28', fn: scoreQ28, name: '需求表达' },
 ]
 
-/** 自动匹配最低分数门槛 */
-const MATCH_THRESHOLD = 76
+// ─────────────────────────────────────────────
+//  匹配配置（后台可调，存储在 settings 表）
+// ─────────────────────────────────────────────
+
+export interface MatchConfig {
+  /** 硬门槛：>= 此分数一定匹配（默认 76） */
+  threshold: number
+  /** 软门槛：>= 此分数有概率匹配（默认 50，仅概率模式生效） */
+  softThreshold: number
+  /** 概率模式开关（默认关闭） */
+  probabilityMode: boolean
+  /** 概率模式下，软硬门槛之间的基础命中率（默认 30%） */
+  baseProbability: number
+}
+
+/** 默认配置 */
+const DEFAULT_CONFIG: MatchConfig = {
+  threshold: 76,
+  softThreshold: 50,
+  probabilityMode: false,
+  baseProbability: 30,
+}
+
+/** settings 表中的 key */
+const MATCH_CONFIG_KEY = 'match_config'
+
+/**
+ * 从 settings 表读取匹配配置（带缓存，同一次匹配流程只读一次）
+ * 若无记录或解析失败则返回默认值
+ */
+let _cachedConfig: MatchConfig | null = null
+
+export async function getMatchConfig(): Promise<MatchConfig> {
+  if (_cachedConfig) return _cachedConfig
+
+  try {
+    const db = getDb()
+    const res = await db.execute({
+      sql: `SELECT value FROM settings WHERE key = ?`,
+      args: [MATCH_CONFIG_KEY],
+    })
+    const row = res.rows[0] as any
+    if (row?.value) {
+      const parsed = JSON.parse(row.value)
+      // 校验并填充缺失字段
+      _cachedConfig = {
+        threshold: typeof parsed.threshold === 'number' ? parsed.threshold : DEFAULT_CONFIG.threshold,
+        softThreshold: typeof parsed.softThreshold === 'number' ? parsed.softThreshold : DEFAULT_CONFIG.softThreshold,
+        probabilityMode: !!parsed.probabilityMode,
+        baseProbability: typeof parsed.baseProbability === 'number' ? parsed.baseProbability : DEFAULT_CONFIG.baseProbability,
+      }
+      return _cachedConfig!
+    }
+  } catch { /* 解析失败用默认 */ }
+
+  _cachedConfig = { ...DEFAULT_CONFIG }
+  return _cachedConfig!
+}
+
+/** 清除缓存（管理员修改配置后调用） */
+export function clearMatchConfigCache(): void {
+  _cachedConfig = null
+}
+
+/** 保存匹配配置到 settings 表 */
+export async function saveMatchConfig(config: Partial<MatchConfig>): Promise<MatchConfig> {
+  const current = await getMatchConfig()
+  const merged: MatchConfig = {
+    ...current,
+    ...config,
+    // 防止非法值
+    threshold: Math.max(0, Math.min(99, config.threshold ?? current.threshold)),
+    softThreshold: Math.max(0, Math.min(99, config.softThreshold ?? current.softThreshold)),
+    baseProbability: Math.max(0, Math.min(100, config.baseProbability ?? current.baseProbability)),
+  }
+
+  const db = getDb()
+  await db.execute({
+    sql: `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))`,
+    args: [MATCH_CONFIG_KEY, JSON.stringify(merged)],
+  })
+
+  // 更新缓存
+  _cachedConfig = merged
+  return merged
+}
+
+/**
+ * 判断一对配对是否通过门槛
+ *
+ * 规则：
+ *   1. score >= threshold → 一定通过
+ *   2. probabilityMode 开启 且 softThreshold <= score < threshold → 按概率掷骰子
+ *   3. 其他 → 不通过
+ */
+function passesThreshold(score: number, config: MatchConfig): boolean {
+  if (score >= config.threshold) return true
+  if (config.probabilityMode && score >= config.softThreshold) {
+    // 分数越高概率越大：softThreshold 处 = baseProbability%，threshold 处 = 100%
+    const range = config.threshold - config.softThreshold || 1
+    const ratio = (score - config.softThreshold) / range
+    // 概率从 baseProbability% 线性增长到 100%
+    const prob = config.baseProbability + (100 - config.baseProbability) * ratio
+    // 密码学安全随机
+    const rand = crypto.getRandomValues(new Uint8Array(1))[0] / 255
+    return rand < prob / 100
+  }
+  return false
+}
 
 /** 所有学校名称（与 geo.ts + /api/match/preferences 保持一致） */
 const ALL_SCHOOL_NAMES = [
@@ -664,6 +771,11 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
   const db = getDb()
   const wk = weekKey || getWeekKey()
 
+  // ── 读取匹配配置（阈值、概率模式等）──
+  const matchConfig = await getMatchConfig()
+  // 清除缓存，确保下次调用重新读取（防止跨批次使用过期缓存）
+  clearMatchConfigCache()
+
   const usersResult = await db.execute({
     sql: `SELECT u.id, u.gender, u.preferred_gender, u.school, u.match_school_prefs,
                  u.safety_level as manual_safety_level,
@@ -771,7 +883,7 @@ export async function executeAutoMatch(weekKey?: string): Promise<AutoMatchResul
       }
     }
 
-    if (bestMatch && bestResult && bestScore >= MATCH_THRESHOLD) {
+    if (bestMatch && bestResult && passesThreshold(bestScore, matchConfig)) {
       insertStatements.push({
         sql: `INSERT INTO matches (user_a, user_b, score, dim_scores, reasons, week_key)
               VALUES (?, ?, ?, ?, ?, ?)`,

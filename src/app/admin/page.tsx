@@ -106,6 +106,15 @@ export default function AdminPage() {
   const [resettingMatch, setResettingMatch] = useState(false)
   const [matchUsersForSelect, setMatchUsersForSelect] = useState<any[]>([])
 
+  // 匹配配置状态（后台可调参数）
+  const [matchConfig, setMatchConfig] = useState<{
+    threshold: number
+    softThreshold: number
+    probabilityMode: boolean
+    baseProbability: number
+  } | null>(null)
+  const [matchConfigSaving, setMatchConfigSaving] = useState(false)
+
   // 匹配结果详情（分页列表，需二级密码验证）
   const [matchDetailVerified, setMatchDetailVerified] = useState(false)    // 是否已通过二级密码验证
   const [showMatchPwModal, setShowMatchPwModal] = useState(false)          // 匹配详情密码弹窗
@@ -180,7 +189,7 @@ export default function AdminPage() {
     if (loading) return
     if (tab === 'users') loadUsers()
     if (tab === 'codes') loadCodes()
-    if (tab === 'match') loadMatchUsers()
+    if (tab === 'match') { loadMatchUsers(); loadMatchConfig() }
     if (tab === 'gps-feedback') loadGpsFeedbacks()
     if (tab === 'broadcast' && !broadcastLoaded) loadBroadcastUsers()
   }, [tab, loading])
@@ -764,6 +773,38 @@ export default function AdminPage() {
       setMatchUsersForSelect((data.users || []).filter((u: any) => u.survey_completed))
       setMatchUsersLoaded(true)
     } catch { /* ignore */ }
+  }
+
+  // ── 匹配配置（后台可调参数）──
+  const loadMatchConfig = async () => {
+    try {
+      const res = await fetch('/api/admin/match-config')
+      const data = await res.json()
+      if (data.config) setMatchConfig(data.config)
+    } catch { /* ignore */ }
+  }
+
+  const handleSaveMatchConfig = async () => {
+    if (!matchConfig) return
+    setMatchConfigSaving(true)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/match-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify(matchConfig),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setToast({ msg: data.error || '保存失败', type: 'error' })
+      } else {
+        setToast({ msg: '✅ 匹配配置已保存，下次匹配生效', type: 'success' })
+      }
+    } catch {
+      setToast({ msg: '网络错误', type: 'error' })
+    } finally {
+      setMatchConfigSaving(false)
+    }
   }
 
   // ── 检测本周是否已执行过自动匹配（用户端触发的也能显示）──
@@ -1438,6 +1479,110 @@ export default function AdminPage() {
                     </span>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* ═══════════ ⚙️ 匹配算法配置（后台可调）════════════ */}
+            {matchConfig && (
+              <div className="glass-card rounded-2xl p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">⚙️</span>
+                  <h3 className="text-base font-bold text-gray-800">匹配算法配置</h3>
+                  <span className="text-xs text-gray-400">修改后下次匹配生效</span>
+                </div>
+
+                {/* 阈值设置 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      硬门槛（分） — 超过此分数<strong>一定配对</strong>
+                    </label>
+                    <input
+                      type="number" min={0} max={99}
+                      value={matchConfig.threshold}
+                      onChange={e => setMatchConfig({ ...matchConfig, threshold: Math.max(0, Math.min(99, Number(e.target.value) || 0)) })}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">默认 76，降低可增加配对数量</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      软门槛（分） — 仅在概率模式生效时使用
+                    </label>
+                    <input
+                      type="number" min={0} max={99}
+                      value={matchConfig.softThreshold}
+                      onChange={e => setMatchConfig({ ...matchConfig, softThreshold: Math.max(0, Math.min(99, Number(e.target.value) || 0)) })}
+                      className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none ${
+                        matchConfig.softThreshold > matchConfig.threshold ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                      }`}
+                    />
+                    {matchConfig.softThreshold > matchConfig.threshold && (
+                      <p className="text-xs text-red-500 mt-1">⚠️ 不能大于硬门槛</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">默认 50，此分数以上有概率配对</p>
+                  </div>
+                </div>
+
+                {/* 概率模式开关 + 基础概率 */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer select-none bg-white/60 border border-gray-200 rounded-xl px-4 py-3 hover:bg-white transition flex-1">
+                    <input
+                      type="checkbox"
+                      checked={matchConfig.probabilityMode}
+                      onChange={e => setMatchConfig({ ...matchConfig, probabilityMode: e.target.checked })}
+                      className="w-4 h-4 accent-pink-500"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">🎲 概率匹配模式</span>
+                      <p className="text-xs text-gray-400">开启后，软~硬门槛之间的分数按概率配对</p>
+                    </div>
+                  </label>
+
+                  {matchConfig.probabilityMode && (
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">基础命中率（%）</label>
+                      <input
+                        type="number" min={0} max={100}
+                        value={matchConfig.baseProbability}
+                        onChange={e => setMatchConfig({ ...matchConfig, baseProbability: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        分数越高概率越大：{matchConfig.softThreshold}分≈{matchConfig.baseProbability}%，{matchConfig.threshold}分=100%
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 预估效果提示 */}
+                <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-4 text-xs text-gray-600 space-y-1">
+                  <p><strong>当前效果预估：</strong></p>
+                  <ul className="list-disc list-inside space-y-0.5 text-gray-500 ml-1">
+                    <li>分数 ≥ <strong>{matchConfig.threshold}</strong> → ✅ 一定配对</li>
+                    {matchConfig.probabilityMode ? (
+                      <>
+                        <li>分数 {matchConfig.softThreshold} ~ {matchConfig.threshold} → 🎲 按概率配对（约 {matchConfig.baseProbability}% ~ 100%）</li>
+                        <li>分数 &lt; {matchConfig.softThreshold} → ❌ 不配对</li>
+                      </>
+                    ) : (
+                      <li>分数 &lt; {matchConfig.threshold} → ❌ 不配对（概率模式未开启）</li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* 保存按钮 */}
+                <button
+                  onClick={handleSaveMatchConfig}
+                  disabled={matchConfigSaving || matchConfig.softThreshold > matchConfig.threshold}
+                  className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition ${
+                    matchConfigSaving || matchConfig.softThreshold > matchConfig.threshold
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#ec4899] to-[#a855f7] text-white hover:opacity-90 shadow-md'
+                  }`}>
+                  {matchConfigSaving ? '保存中...' : '💾 保存配置'}
+                </button>
               </div>
             )}
 
