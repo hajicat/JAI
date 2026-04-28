@@ -53,7 +53,7 @@ function formatBeijingTime(utcStr: string | null | undefined): string {
 export default function AdminPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings' | 'gps-feedback'>('users')
+  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings' | 'gps-feedback' | 'broadcast'>('users')
   const [users, setUsers] = useState<any[]>([])
   const [codes, setCodes] = useState<any[]>([])
   const [matchResult, setMatchResult] = useState<any>(null)
@@ -130,6 +130,17 @@ export default function AdminPage() {
   const [adminSelectedWeek, setAdminSelectedWeek] = useState<string>('')
   const [availableWeeks, setAvailableWeeks] = useState<string[]>([])
 
+  // 群发邮件状态
+  const [broadcastSubject, setBroadcastSubject] = useState('')
+  const [broadcastContent, setBroadcastContent] = useState('')
+  const [broadcastUserIds, setBroadcastUserIds] = useState<Set<number>>(new Set()) // 空集合=全选
+  const [broadcastSelectAll, setBroadcastSelectAll] = useState(true) // 默认全选
+  const [broadcastInterval, setBroadcastInterval] = useState(5) // 默认5秒间隔
+  const [broadcastSending, setBroadcastSending] = useState(false)
+  const [broadcastResult, setBroadcastResult] = useState<{ total?: number; sent?: number; failed?: number; results?: any[]; error?: string } | null>(null)
+  const [broadcastUsers, setBroadcastUsers] = useState<any[]>([])
+  const [broadcastLoaded, setBroadcastLoaded] = useState(false)
+
   // 验证状态修改（无需二级密码）— 仅对无校园邮箱用户开放
   const [editVerifOpen, setEditVerifOpen] = useState(false)
   const [editVerifUserId, setEditVerifUserId] = useState<number | null>(null)
@@ -171,6 +182,7 @@ export default function AdminPage() {
     if (tab === 'codes') loadCodes()
     if (tab === 'match') loadMatchUsers()
     if (tab === 'gps-feedback') loadGpsFeedbacks()
+    if (tab === 'broadcast' && !broadcastLoaded) loadBroadcastUsers()
   }, [tab, loading])
 
   // 检查是否已设置二级密码（页面首次加载时）
@@ -329,6 +341,71 @@ export default function AdminPage() {
       setNotifyResult({ error: '网络错误，请重试' })
     }
     setNotifySending(false)
+  }
+
+  // ── 群发邮件相关函数 ──
+
+  /** 加载用户列表（用于群发选择） */
+  const loadBroadcastUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users?all=1')
+      const data = await res.json()
+      setBroadcastUsers(data.users || [])
+      setBroadcastLoaded(true)
+      // 默认全选（userIds 为空表示全选）
+      setBroadcastUserIds(new Set())
+      setBroadcastSelectAll(true)
+    } catch {
+      setToast({ msg: '加载用户列表失败', type: 'error' })
+    }
+  }
+
+  /** 执行群发邮件 */
+  const handleBroadcastSend = async () => {
+    if (!broadcastSubject.trim() || !broadcastContent.trim()) return
+    if (broadcastSending) return
+
+    const confirmMsg = broadcastSelectAll
+      ? `⚠️ 确定向全部 ${broadcastUsers.length} 位用户发送邮件？\n\n标题：${broadcastSubject}\n间隔：${broadcastInterval}秒`
+      : `⚠️ 确定向 ${broadcastUsers.length - broadcastUserIds.size} 位用户发送邮件？\n\n标题：${broadcastSubject}\n间隔：${broadcastInterval}秒`
+
+    if (!confirm(confirmMsg)) return
+
+    setBroadcastSending(true)
+    setBroadcastResult(null)
+
+    try {
+      const csrfToken = getCsrfToken()
+      const body: any = {
+        subject: broadcastSubject,
+        htmlContent: broadcastContent,
+        intervalMs: broadcastInterval * 1000,
+      }
+      // 非全选时传入排除的用户ID
+      if (!broadcastSelectAll && broadcastUserIds.size > 0) {
+        body.userIds = broadcastUsers
+          .filter((u: any) => !broadcastUserIds.has(u.id))
+          .map((u: any) => u.id)
+      }
+      // 全选时不传 userIds，后端会自动查全部用户
+
+      const res = await fetch('/api/admin/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify(body),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setBroadcastResult({ error: data.error || '发送失败' })
+      } else {
+        setBroadcastResult(data)
+      }
+    } catch (e) {
+      setBroadcastResult({ error: '网络错误，请检查连接' })
+    } finally {
+      setBroadcastSending(false)
+    }
   }
 
   /** 提交重置密码 */
@@ -905,6 +982,7 @@ export default function AdminPage() {
             ...(inviteRequired ? [{ key: 'codes', label: '📨 邀请码', count: codes.length }] : []),
             { key: 'match', label: '💌 执行匹配', count: null },
             { key: 'gps-feedback', label: '📍 定位反馈', count: gpsFeedbacks.length || null },
+            { key: 'broadcast', label: '📧 群发邮件', count: null },
             { key: 'settings', label: '⚙️ 系统设置', count: null },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
@@ -2151,6 +2229,184 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
+
+        {/* ═══════════ 📧 群发邮件 Tab ═══════════ */}
+        {tab === 'broadcast' && (
+          <div className="space-y-5">
+            {/* 邮件内容编辑区 */}
+            <div className="glass-card rounded-2xl p-6 space-y-4">
+              <h3 className="text-base font-bold text-gray-800">✏️ 编辑邮件</h3>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1.5">邮件标题 *</label>
+                <input
+                  type="text"
+                  value={broadcastSubject}
+                  onChange={e => setBroadcastSubject(e.target.value)}
+                  placeholder="请输入邮件标题"
+                  maxLength={200}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300 outline-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1.5">邮件内容 *（支持 HTML）</label>
+                <textarea
+                  value={broadcastContent}
+                  onChange={e => setBroadcastContent(e.target.value)}
+                  placeholder="请输入邮件内容，支持 HTML 标签（如 &lt;b&gt;粗体&lt;/b&gt;、&lt;br&gt; 换行等）"
+                  rows={8}
+                  maxLength={100000}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-pink-300 focus:border-pink-300 outline-none transition resize-y"
+                />
+                <p className="text-xs text-gray-400 mt-1">{broadcastContent.length.toLocaleString()} / 100,000 字符</p>
+              </div>
+            </div>
+
+            {/* 用户选择区 */}
+            <div className="glass-card rounded-2xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-gray-800">👥 选择收件人</h3>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={broadcastSelectAll}
+                      onChange={e => {
+                        setBroadcastSelectAll(e.target.checked)
+                        if (e.target.checked) {
+                          setBroadcastUserIds(new Set())
+                        } else {
+                          setBroadcastUserIds(new Set(broadcastUsers.map((u: any) => u.id)))
+                        }
+                      }}
+                      className="w-4 h-4 accent-pink-500"
+                    />
+                    全部用户
+                  </label>
+                  <span className="text-xs text-gray-400">
+                    {broadcastSelectAll
+                      ? `已选全部 (${broadcastUsers.length} 人)`
+                      : `已选 ${broadcastUsers.length - broadcastUserIds.size} / ${broadcastUsers.length} 人`
+                    }
+                  </span>
+                </div>
+              </div>
+
+              {!broadcastLoaded ? (
+                <div className="text-center py-8 text-gray-400 text-sm">⏳ 加载用户列表...</div>
+              ) : broadcastUsers.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">暂无用户</div>
+              ) : (
+                <div className="max-h-60 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
+                  {broadcastUsers.map((u: any) => (
+                    <label key={u.id} className={`flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-pink-50/30 transition ${
+                      !broadcastSelectAll && broadcastUserIds.has(u.id) ? 'bg-pink-50' : ''
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={!broadcastUserIds.has(u.id)}
+                        onChange={() => {
+                          const next = new Set(broadcastUserIds)
+                          if (next.has(u.id)) next.delete(u.id)
+                          else next.add(u.id)
+                          setBroadcastUserIds(next)
+                        }}
+                        disabled={broadcastSelectAll}
+                        className="w-4 h-4 accent-pink-500"
+                      />
+                      <span className="text-sm text-gray-700 flex-1 truncate">{u.nickname}</span>
+                      <span className="text-xs text-gray-400 shrink-0">{u.email}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {!broadcastSelectAll && broadcastUserIds.size > 0 && (
+                <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                  ⚠️ 已排除 {broadcastUserIds.size} 个用户（取消勾选的用户将不会收到邮件）
+                </p>
+              )}
+            </div>
+
+            {/* 发送设置 */}
+            <div className="glass-card rounded-2xl p-6 space-y-4">
+              <h3 className="text-base font-bold text-gray-800">⚙️ 发送设置</h3>
+              <div className="flex items-center gap-4">
+                <label className="text-sm text-gray-600 whitespace-nowrap">发送间隔：</label>
+                <select
+                  value={broadcastInterval}
+                  onChange={e => setBroadcastInterval(Number(e.target.value))}
+                  className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none"
+                >
+                  <option value={3}>3 秒（快，可能触发限速）</option>
+                  <option value={5}>5 秒（推荐）</option>
+                  <option value={10}>10 秒（安全）</option>
+                  <option value={15}>15 秒（非常安全）</option>
+                  <option value={20}>20 秒（保守）</option>
+                </select>
+                <span className="text-xs text-gray-400">
+                  {broadcastUsers.length > 0 &&
+                    `预计耗时约 ${Math.ceil(broadcastUsers.length * broadcastInterval / 60)} 分钟`
+                  }
+                </span>
+              </div>
+            </div>
+
+            {/* 操作按钮 + 结果展示 */}
+            <div className="glass-card rounded-2xl p-6 space-y-4">
+              <button
+                onClick={handleBroadcastSend}
+                disabled={broadcastSending || !broadcastSubject.trim() || !broadcastContent.trim() || broadcastUsers.length === 0}
+                className={`w-full py-3 rounded-xl text-sm font-bold transition ${
+                  broadcastSending || !broadcastSubject.trim() || !broadcastContent.trim()
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#ec4899] to-[#a855f7] text-white hover:opacity-90 shadow-lg'
+                }`}
+              >
+                {broadcastSending
+                  ? `📤 发送中...`
+                  : `📧 确认发送 ${broadcastSelectAll ? `给全部 ${broadcastUsers.length} 位用户` : `给 ${broadcastUsers.length - broadcastUserIds.size} 位用户`}`
+                }
+              </button>
+
+              {/* 实时进度/结果 */}
+              {broadcastResult && (
+                <div className={`rounded-xl p-4 ${
+                  broadcastResult.error ? 'bg-red-50' : broadcastResult.sent !== undefined ? 'bg-green-50' : 'bg-gray-50'
+                }`}>
+                  {broadcastResult.error ? (
+                    <div>
+                      <p className="font-bold text-red-600 text-sm">❌ 发送失败</p>
+                      <p className="text-red-500 text-sm mt-1">{broadcastResult.error}</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-bold text-green-700 text-sm">
+                        ✅ 发送完成！成功 {broadcastResult.sent} 封，失败 {broadcastResult.failed} 封
+                      </p>
+                      {broadcastResult.results && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-green-600 cursor-pointer hover:text-green-800">
+                            展开查看详细结果 ({broadcastResult.results.length} 条)
+                          </summary>
+                          <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                            {broadcastResult.results.map((r: any, i: number) => (
+                              <div key={i} className={`text-xs px-2 py-1 rounded ${r.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                                {r.ok ? '✅' : '❌'} {r.nickname} ({r.email}){!r.ok && r.error ? ` — ${r.error}` : ''}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
