@@ -53,35 +53,8 @@ export async function GET(req: NextRequest) {
       args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, weekKey],
     })
 
-    // ── 可见窗口内回退查询：当前周无匹配时，取最近一周的匹配结果展示 ──
-    // 原因：weekKey 在周日12:00(北京)切换，但匹配结果应在可见窗口内持续展示
-    // 注意：如果中间某周用户轮空（matches表无记录），会跳过该周取更早的记录
-    let isFallback = false
-    if (matchResult.rows.length === 0 && isRevealWindow()) {
-      const fallbackSql = 'SELECT m.*, ' +
-        'CASE WHEN m.user_a = ? THEN u2.nickname ELSE u1.nickname END as partner_nickname, ' +
-        'CASE WHEN m.user_a = ? THEN u2.id ELSE u1.id END as partner_id, ' +
-        'CASE WHEN m.user_a = ? THEN m.a_revealed ELSE m.b_revealed END as i_revealed, ' +
-        'CASE WHEN m.user_a = ? THEN m.b_revealed ELSE m.a_revealed END as partner_revealed, ' +
-        'CASE WHEN m.user_a = ? THEN u2.conflict_type ELSE u1.conflict_type END as partner_conflict_type, ' +
-        'CASE WHEN m.user_a = ? THEN u2.school ELSE u1.school END as partner_school, ' +
-        'CASE WHEN m.user_a = ? THEN u2.contact_info ELSE u1.contact_info END as partner_contact_info, ' +
-        'CASE WHEN m.user_a = ? THEN u2.contact_type ELSE u1.contact_type END as partner_contact_type, ' +
-        'CASE WHEN m.user_a = ? THEN u1.contact_info ELSE u2.contact_info END as self_contact_info ' +
-        'FROM matches m ' +
-        'JOIN users u1 ON m.user_a = u1.id ' +
-        'JOIN users u2 ON m.user_b = u2.id ' +
-        'WHERE (m.user_a = ? OR m.user_b = ?) ' +
-        'ORDER BY m.created_at DESC LIMIT 1'
-
-      matchResult = await db.execute({
-        sql: fallbackSql,
-        args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
-      })
-      if (matchResult.rows.length > 0) {
-        isFallback = true
-      }
-    }
+    // 当前周无匹配时，直接进入下方状态判断（轮空/等待中）
+    // 历史匹配通过 /api/match/history 接口在页面底部以小卡片形式展示
 
     if (matchResult.rows.length === 0) {
       // ── 无匹配记录时的状态判断 ──
@@ -204,7 +177,6 @@ export async function GET(req: NextRequest) {
         contact: partnerContact,
         selfHasContact,
         partnerSurvey,
-        isFallback,
       },
     })
   } catch (error) {
