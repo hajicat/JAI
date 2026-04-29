@@ -518,7 +518,7 @@ function scoreQ28(a: number, b: number): number {
 //  五、完整匹配引擎
 // ─────────────────────────────────────────────
 
-function calculateMatch(a: any, b: any): MatchResult {
+export function calculateMatch(a: any, b: any): MatchResult {
   // 1. 安全筛查
   const safetyA = calcSafety(a)
   const safetyB = calcSafety(b)

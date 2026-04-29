@@ -106,6 +106,12 @@ export default function AdminPage() {
   const [resettingMatch, setResettingMatch] = useState(false)
   const [matchUsersForSelect, setMatchUsersForSelect] = useState<any[]>([])
 
+  // 手动匹配预览（选两个用户后实时显示匹配度，不写库）
+  const [manualPreview, setManualPreview] = useState<{
+    score: number; dimScores: any[]; reasons: string[]; safetyLevel: string
+  } | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+
   // 匹配配置状态（后台可调参数）
   const [matchConfig, setMatchConfig] = useState<{
     threshold: number
@@ -774,6 +780,36 @@ export default function AdminPage() {
       setMatchUsersLoaded(true)
     } catch { /* ignore */ }
   }
+
+  // 预览两个用户的匹配度（选满两个用户后自动触发，带防抖）
+  useEffect(() => {
+    if (!manualUserA || !manualUserB) {
+      setManualPreview(null)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setPreviewLoading(true)
+      try {
+        const csrfToken = getCsrfToken()
+        const res = await fetch('/api/admin/match-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+          body: JSON.stringify({ userA: manualUserA, userB: manualUserB }),
+        })
+        const data = await res.json()
+        if (data.success && data.preview) {
+          setManualPreview(data.preview)
+        } else {
+          setManualPreview(null)
+        }
+      } catch {
+        setManualPreview(null)
+      } finally {
+        setPreviewLoading(false)
+      }
+    }, 400) // 400ms 防抖
+    return () => clearTimeout(timer)
+  }, [manualUserA, manualUserB])
 
   // ── 匹配配置（后台可调参数）──
   const loadMatchConfig = async () => {
@@ -1637,6 +1673,69 @@ export default function AdminPage() {
                     placeholder="留空 = 本周" />
                 </div>
               </div>
+
+              {/* 匹配度预览（选满两个用户后自动显示） */}
+              {manualUserA && manualUserB && (
+                <div className="mt-2 p-4 rounded-2xl border bg-gradient-to-r from-pink-50/80 to-stone-50/80 border-pink-100 animate-fade-in">
+                  {previewLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span className="animate-spin inline-block w-4 h-4 border-2 border-pink-300 border-t-transparent rounded-full"></span>
+                      计算匹配度中...
+                    </div>
+                  ) : manualPreview ? (
+                    <div className="space-y-3">
+                      {/* 总分 + 安全等级 */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl font-bold gradient-text">{manualPreview.score}%</span>
+                          <span className="text-sm text-gray-500">契合度</span>
+                        </div>
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                          manualPreview.safetyLevel === 'blocked' ? 'bg-red-50 text-red-600 border border-red-200' :
+                          manualPreview.safetyLevel === 'restricted' ? 'bg-yellow-50 text-yellow-600 border border-yellow-200' :
+                          'bg-green-50 text-green-600 border border-green-200'
+                        }`}>
+                          {manualPreview.safetyLevel === 'blocked' ? '🚫 安全筛查不通过' :
+                           manualPreview.safetyLevel === 'restricted' ? '⚠️ 受限' : '✅ 安全'}
+                        </span>
+                      </div>
+                      {/* 维度分条 */}
+                      {manualPreview.dimScores && manualPreview.dimScores.length > 0 && (
+                        <div className="space-y-2">
+                          {manualPreview.dimScores.map((dim: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 w-16 text-right shrink-0">{dim.name}</span>
+                              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    dim.score >= 70 ? 'bg-gradient-to-r from-green-400 to-emerald-300' :
+                                    dim.score >= 50 ? 'bg-gradient-to-r from-yellow-300 to-amber-300' :
+                                    'bg-gradient-to-r from-red-300 to-orange-300'
+                                  }`}
+                                  style={{ width: `${dim.score}%` }}
+                                />
+                              </div>
+                              <span className={`text-xs font-bold w-8 text-right shrink-0 ${
+                                dim.score >= 70 ? 'text-green-500' : dim.score >= 50 ? 'text-yellow-500' : 'text-red-400'
+                              }`}>{dim.score}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* 匹配原因（最多显示2条） */}
+                      {manualPreview.reasons && manualPreview.reasons.length > 0 && (
+                        <div className="pt-2 border-t border-pink-100/60">
+                          {manualPreview.reasons.slice(0, 2).map((r: string, i: number) => (
+                            <p key={i} className="text-xs text-gray-500 leading-relaxed">• {r}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">无法计算匹配度（可能缺少问卷数据）</p>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center gap-4">
                 <button onClick={runManualMatching}
