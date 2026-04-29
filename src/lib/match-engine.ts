@@ -731,15 +731,21 @@ export async function handleManualMatch(body: any): Promise<ManualMatchResult> {
 
   const result = calculateMatch(userA, userB)
 
-  // 手动匹配：计算下一次揭晓时间（下一个周日 北京时间 20:00 = UTC 周日 12:00）
-  // 无论当前是否在窗口内，手动匹配都等到下次揭晓才可见
-  function getNextRevealAt(): string {
+  // 手动匹配：揭晓时间与自动匹配对齐（当周周日 北京时间 20:00 = UTC 周日 12:00）
+  // 如果当周周日已过，则用下个周日
+  function getRevealAt(): string {
     const now = new Date()
     const utcDay = now.getUTCDay()       // 0=Sun
+    const utcHours = now.getUTCHours()
     const reveal = new Date(now)
-    // 距离下一个周日的天数（如果是周日也算"下一个"，即 +7 天）
-    const daysUntilNextSun = utcDay === 0 ? 7 : 7 - utcDay
-    reveal.setUTCDate(reveal.getUTCDate() + daysUntilNextSun)
+
+    // 距离当本周日的天数（周日→0, 周六→1, ..., 周一→6）
+    let daysUntilSun = (7 - utcDay) % 7
+    // 如果已经是周日且已过 UTC 12:00（北京 20:00），则用下个周日
+    if (utcDay === 0 && utcHours >= 12) {
+      daysUntilSun = 7
+    }
+    reveal.setUTCDate(reveal.getUTCDate() + daysUntilSun)
     reveal.setUTCHours(12, 0, 0, 0)     // 北京时间 20:00
     return reveal.toISOString().replace('Z', '')   // SQLite 兼容格式
   }
@@ -747,7 +753,7 @@ export async function handleManualMatch(body: any): Promise<ManualMatchResult> {
   await db.execute({
     sql: `INSERT INTO matches (user_a, user_b, score, dim_scores, reasons, week_key, source, reveal_at)
           VALUES (?, ?, ?, ?, ?, ?, 'manual', ?)`,
-    args: [userAId, userBId, result.score, JSON.stringify(result.dimScores), JSON.stringify(result.reasons), weekKey, getNextRevealAt()],
+    args: [userAId, userBId, result.score, JSON.stringify(result.dimScores), JSON.stringify(result.reasons), weekKey, getRevealAt()],
   })
 
   const insertRes = await db.execute({ sql: 'SELECT last_insert_rowid() as id', args: [] })
