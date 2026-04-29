@@ -4,7 +4,7 @@
 // POST { email, limit? } → { recommendations: [...] }
 //
 // 使用与自动匹配相同的 calculateMatch() 算法，
-// 候选池过滤条件：已完成问卷 + 已启用匹配 + 非blocked + 双向性别兼容
+// 候选池过滤条件：已完成问卷 + 已启用匹配 + 非blocked + 双向性别兼容 + 双向学校偏好
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, initDb } from '@/lib/db'
@@ -21,6 +21,12 @@ export const runtime = 'edge'
 const DEFAULT_LIMIT = 20
 
 export async function POST(req: NextRequest) {
+  // 解析学校偏好：'all'/null → 接受全部；JSON数组 → 具体学校列表
+  function parsePrefs(raw: string | null): Set<string> {
+    if (!raw || raw === 'all') return new Set(['__ALL__'])
+    try { return new Set(JSON.parse(raw)) } catch { return new Set(['__ALL__']) }
+  }
+
   try {
     const cookieName = getCookieName('token')
     const token = req.cookies.get(cookieName)?.value
@@ -57,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     // ── 查询选中用户 ──
     const selectedRes = await db.execute({
-      sql: `SELECT u.id, u.nickname, u.gender, u.preferred_gender, u.school,
+      sql: `SELECT u.id, u.nickname, u.gender, u.preferred_gender, u.school, u.match_school_prefs,
               s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
               s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
               s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
@@ -72,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     // ── 查询所有候选用户（与自动匹配候选池一致）──
     const candidatesResult = await db.execute({
-      sql: `SELECT u.id, u.nickname, u.gender, u.preferred_gender, u.school, u.safety_level as manual_safety_level,
+      sql: `SELECT u.id, u.nickname, u.gender, u.preferred_gender, u.school, u.safety_level as manual_safety_level, u.match_school_prefs,
               s.q1,s.q2,s.q3,s.q4,s.q5,s.q6,s.q7,s.q8,s.q9,s.q10,
               s.q11,s.q12,s.q13,s.q14,s.q15,s.q16,s.q17,s.q18,s.q19,s.q20,
               s.q21,s.q22,s.q23,s.q24,s.q25,s.q26,s.q27,s.q28,s.q29,s.q30,
@@ -98,6 +104,21 @@ export async function POST(req: NextRequest) {
       const aWantsB = selectedUser.preferred_gender === 'all' || selectedUser.preferred_gender === cand.gender
       const bWantsA = cand.preferred_gender === 'all' || cand.preferred_gender === selectedUser.gender
       if (!aWantsB || !bWantsA) continue
+
+      // 学校偏好过滤（与自动匹配引擎一致）：双向都要包含对方学校
+      const selSchool = (selectedUser.school || '') as string
+      const candSchool = (cand.school || '') as string
+      if (selSchool && candSchool) {
+        const prefsA = parsePrefs(selectedUser.match_school_prefs)
+        const prefsB = parsePrefs(cand.match_school_prefs)
+        if (!prefsA.has('__ALL__') && !prefsB.has('__ALL__')) {
+          if (!prefsA.has(candSchool) || !prefsB.has(selSchool)) continue
+        } else if (!prefsA.has('__ALL__')) {
+          if (!prefsA.has(candSchool)) continue
+        } else if (!prefsB.has('__ALL__')) {
+          if (!prefsB.has(selSchool)) continue
+        }
+      }
 
       // 安全过滤：排除 blocked 用户
       if (cand.manual_safety_level === 'blocked') continue
