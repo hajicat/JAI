@@ -286,6 +286,7 @@ export default function AdminPage() {
   const [resetPwNickname, setResetPwNickname] = useState('')
   const [resetPwNew, setResetPwNew] = useState('')
   const [resetPwConfirm, setResetPwConfirm] = useState('')
+  const [resetPwAdmin, setResetPwAdmin] = useState('')
   const [resetPwError, setResetPwError] = useState('')
   const [resettingPw, setResettingPw] = useState(false)
 
@@ -337,6 +338,7 @@ export default function AdminPage() {
     setResetPwNickname(nickname)
     setResetPwNew('')
     setResetPwConfirm('')
+    setResetPwAdmin('')
     setResetPwError('')
     setResetPwModal(true)
   }
@@ -436,7 +438,8 @@ export default function AdminPage() {
     if (!resetPwNew.trim()) { setResetPwError('请输入新密码'); return }
     if (resetPwNew.length < 8) { setResetPwError('密码至少8位'); return }
     if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(resetPwNew)) { setResetPwError('密码需同时包含字母和数字'); return }
-    if (resetPwNew !== resetPwConfirm) { setResetPwError('两次输入的密码不一致'); return }
+    if (resetPwNew !== resetPwConfirm) { setResetPwError('两次输入的新密码不一致'); return }
+    if (!resetPwAdmin.trim()) { setResetPwError('请输入管理员二级密码确认操作'); return }
     if (resetPwUserId == null) return
 
     setResettingPw(true)
@@ -449,7 +452,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           userId: resetPwUserId,
           newPassword: resetPwNew,
-          adminPassword: resetPwConfirm,
+          adminPassword: resetPwAdmin,
         }),
       })
       if (!res.ok) {
@@ -2650,6 +2653,20 @@ export default function AdminPage() {
                   placeholder="再次输入新密码"
                   className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
                     resetPwError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-stone-400'
+                  }`}
+                  disabled={resettingPw}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-pink-500 font-medium mb-1">🔐 管理员二级密码</label>
+                <input
+                  type="password"
+                  value={resetPwAdmin}
+                  onChange={e => { setResetPwAdmin(e.target.value); setResetPwError('') }}
+                  onKeyDown={e => { if (e.key === 'Enter') handleResetPassword() }}
+                  placeholder="请输入管理员二级密码以确认操作"
+                  className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition ${
+                    resetPwError ? 'border-red-300 focus:ring-red-200' : 'border-pink-200 focus:ring-pink-300'
                   }`}
                   disabled={resettingPw}
                 />
