@@ -53,7 +53,7 @@ function formatBeijingTime(utcStr: string | null | undefined): string {
 export default function AdminPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'settings' | 'gps-feedback' | 'broadcast'>('users')
+  const [tab, setTab] = useState<'users' | 'codes' | 'match' | 'recommend' | 'settings' | 'gps-feedback' | 'broadcast'>('users')
   const [users, setUsers] = useState<any[]>([])
   const [codes, setCodes] = useState<any[]>([])
   const [matchResult, setMatchResult] = useState<any>(null)
@@ -112,6 +112,12 @@ export default function AdminPage() {
     score: number; dimScores: any[]; reasons: string[]; safetyLevel: string
   } | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+
+  // 推荐匹配状态
+  const [recUserId, setRecUserId] = useState<number | ''>('')
+  const [recLoading, setRecLoading] = useState(false)
+  const [recResults, setRecResults] = useState<any>(null)  // { selectedUser, totalCandidates, compatibleCount, recommendations[] }
+  const [recManualTarget, setRecManualTarget] = useState<number | null>(null)  // 点击推荐结果后填入手动配对的目标用户
 
   // 匹配配置状态（后台可调参数）
   const [matchConfig, setMatchConfig] = useState<{
@@ -1083,6 +1089,7 @@ export default function AdminPage() {
             { key: 'users', label: '👥 用户管理', count: totalUserCount || users.length },
             ...(inviteRequired ? [{ key: 'codes', label: '📨 邀请码', count: codes.length }] : []),
             { key: 'match', label: '💌 执行匹配', count: null },
+            { key: 'recommend', label: '💡 推荐匹配', count: null },
             { key: 'gps-feedback', label: '📍 定位反馈', count: gpsFeedbacks.length || null },
             { key: 'broadcast', label: '📧 群发邮件', count: null },
             { key: 'settings', label: '⚙️ 系统设置', count: null },
@@ -2011,6 +2018,155 @@ export default function AdminPage() {
               </div>
             </div>
             )}
+
+        {/* ═══════════ 💡 推荐匹配 Tab ═══════════ */}
+        {tab === 'recommend' && (
+          <div className="space-y-6">
+            <div className="glass-card rounded-2xl p-6">
+              <h3 className="text-base font-semibold text-gray-700 mb-1">💡 推荐匹配</h3>
+              <p className="text-xs text-gray-400 mb-4">选择一个用户，系统按匹配算法列出最契合的候选人（符合该用户的性别偏好要求）</p>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  type="number"
+                  value={recUserId}
+                  onChange={e => setRecUserId(Number(e.target.value) || '')}
+                  placeholder="输入用户 ID"
+                  min={1}
+                  className="w-40 px-4 py-2 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                />
+                <button
+                  onClick={() => { if (!recUserId) return; setRecLoading(true); setRecResults(null); setRecManualTarget(null)
+                    const csrfToken = getCsrfToken()
+                    fetch('/api/admin/match-recommendations', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                      body: JSON.stringify({ userId: recUserId, limit: 20 }),
+                    }).then(r => r.json()).then(data => {
+                      setRecLoading(false)
+                      if (data.error) { alert('错误: ' + data.error); return }
+                      setRecResults(data)
+                    }).catch(() => { setRecLoading(false); alert('网络错误') })
+                  }}
+                  disabled={!recUserId || recLoading}
+                  className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-xl hover:opacity-90 transition text-[#8b4a54] disabled:opacity-50"
+                >
+                  {recLoading ? '计算中...' : '🔍 查找最匹配的人'}
+                </button>
+                {recResults && (
+                  <span className="text-xs text-gray-500">
+                    共 {recResults.totalCandidates} 位候选人，
+                    其中 {recResults.compatibleCount} 位符合性别偏好
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 结果列表 */}
+            {recLoading ? (
+              <div className="glass-card rounded-2xl p-10 text-center animate-fade-in">
+                <div className="text-3xl mb-3 animate-bounce">⏳</div>
+                <p className="text-sm text-gray-400">正在计算匹配度...</p>
+                <p className="text-xs text-gray-300 mt-1">需要逐一对比每位候选人的问卷答案，请稍候</p>
+              </div>
+            ) : recResults ? (
+              <div className="glass-card rounded-2xl overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-gray-700">推荐结果</span>
+                    <span className="ml-2 text-xs text-pink-500">
+                      为「{recResults.selectedUser.nickname}」({GENDER_LABELS[recResults.selectedUser.gender]} · {recResults.selectedUser.school || '未知学校'})
+                      偏好: {GENDER_LABELS[recResults.selectedUser.preferredGender]}
+                    </span>
+                  </div>
+                  {recResults.recommendations.length > 0 && (
+                    <span className="text-xs text-green-600 font-medium">
+                      Top {Math.min(recResults.recommendations.length, 20)} 位
+                    </span>
+                  )}
+                </div>
+                {recResults.recommendations.length === 0 ? (
+                  <div className="p-10 text-center text-gray-400 text-sm">
+                    😢 没有找到符合条件的候选人（可能该用户已与所有兼容用户配对过）
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {recResults.recommendations.map((r: any, i: number) => (
+                      <div key={r.userId} className="flex items-center gap-4 px-5 py-4 hover:bg-pink-50/30 transition group">
+                        {/* 排名 */}
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                          i === 0 ? 'bg-yellow-100 text-yellow-700' :
+                          i === 1 ? 'bg-stone-200 text-stone-600' :
+                          i === 2 ? 'bg-orange-50 text-orange-500' :
+                          'bg-gray-100 text-gray-400'
+                        }`}>
+                          #{i + 1}
+                        </span>
+                        {/* 头像 */}
+                        <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 text-white ${
+                          r.gender === 'female' ? 'bg-gradient-to-br from-pink-300 to-rose-400' :
+                          r.gender === 'male' ? 'bg-gradient-to-br from-blue-300 to-cyan-400' :
+                          'bg-gradient-to-br from-gray-300 to-gray-400'
+                        }`}>
+                          {r.nickname[0]}
+                        </span>
+                        {/* 信息 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-800 truncate">{r.nickname}</span>
+                            <span className="text-xs text-gray-400">{GENDER_LABELS[r.gender]}</span>
+                            {r.school && <span className="text-xs text-pink-400 shrink-0">{r.school}</span>}
+                          </div>
+                          {/* 匹配原因摘要 */}
+                          {r.reasons && r.reasons.length > 0 && (
+                            <p className="text-xs text-gray-400 mt-0.5 truncate">
+                              {r.reasons.slice(0, 2).join(' · ')}
+                              {r.reasons.length > 2 && ` ...`}
+                            </p>
+                          )}
+                        </div>
+                        {/* 分数条 */}
+                        <div className="flex items-center gap-2 w-36 shrink-0">
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-500 ${
+                              r.score >= 76 ? 'bg-gradient-to-r from-green-400 to-emerald-300' :
+                              r.score >= 50 ? 'bg-gradient-to-r from-yellow-300 to-amber-300' :
+                              'bg-gradient-to-r from-red-300 to-orange-300'
+                            }`} style={{ width: `${r.score}%` }} />
+                          </div>
+                          <span className={`text-sm font-bold w-10 text-right shrink-0 ${
+                            r.score >= 76 ? 'text-green-500' : r.score >= 50 ? 'text-yellow-500' : 'text-red-400'
+                          }`}>{r.score}%</span>
+                        </div>
+                        {/* 操作：填入手动配对 */}
+                        <button
+                          onClick={() => {
+                            setManualUserA(recUserId as number)
+                            setManualUserB(r.userId)
+                            setRecManualTarget(r.userId)
+                            // 切换到执行匹配tab
+                            setTab('match')
+                          }}
+                          className="shrink-0 px-3 py-1.5 text-xs font-medium border rounded-lg transition
+                            border-pink-200 text-pink-600 hover:bg-pink-50 opacity-0 group-hover:opacity-100"
+                          title="将此二人设为手动配对目标"
+                        >
+                          ✋ 配对
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {recManualTarget !== null && (
+              <div className="rounded-xl p-3 bg-blue-50/80 border border-blue-200 text-sm text-blue-700 animate-fade-in">
+                💡 已自动填入手动配对区域（ID: {recUserId} ↔ ID: {recManualTarget}），切换到「执行匹配」tab 可直接确认配对。
+              </div>
+            )}
+          </div>
+        )}
 
         {/* GPS 定位反馈 */}
         {tab === 'gps-feedback' && (
