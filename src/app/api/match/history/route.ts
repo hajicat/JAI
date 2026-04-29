@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
         WHERE ${whereClause}
         ORDER BY m.week_key DESC, m.created_at DESC
       `,
-      args: [...filterArgs, uid, uid, uid, uid, uid, uid, uid, uid, uid],
+      args: [...filterArgs, uid, uid, uid, uid, uid, uid, uid, uid],
     })
 
     const rows = result.rows as any[]
@@ -175,8 +175,7 @@ export async function GET(req: NextRequest) {
       totalWeeks: weeks.length,
     })
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error)
-    console.error('[match/history]', errMsg)
-    return NextResponse.json({ error: '获取历史匹配失败', detail: errMsg }, { status: 500 })
+    console.error('[match/history]', error instanceof Error ? error.message : String(error))
+    return NextResponse.json({ error: '获取历史匹配失败' }, { status: 500 })
   }
 }
