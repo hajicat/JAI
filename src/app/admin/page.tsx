@@ -452,6 +452,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           userId: resetPwUserId,
           newPassword: resetPwNew,
+          confirmPassword: resetPwConfirm,
           adminPassword: resetPwAdmin,
         }),
       })
