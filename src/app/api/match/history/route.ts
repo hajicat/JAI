@@ -95,7 +95,13 @@ export async function GET(req: NextRequest) {
       // 当前周未到揭晓时间 → 非管理员完全跳过该条记录（不返回任何信息）
       // 原因：/api/match GET 在未揭晓时会返回 match:null，
       //       如果 history 仍返回记录，前端会显示"历史候选人"区域造成信息泄露
-      const hideDetails = isCurrentWeek && !isRevealWindow() && !isAdmin
+      //
+      // 两种隐藏场景：
+      //   1. 当前周 + 不在标准揭晓窗口（自动匹配的常规保护）
+      //   2. 手动匹配(source=manual) + 未到 reveal_at 时间（延迟揭晓保护）
+      const nowIso = new Date().toISOString()
+      const isManualNotRevealed = row.source === 'manual' && row.reveal_at && (nowIso < String(row.reveal_at))
+      const hideDetails = (isCurrentWeek && !isRevealWindow() && !isAdmin) || (isManualNotRevealed && !isAdmin)
       if (hideDetails) continue
 
       const entry = {

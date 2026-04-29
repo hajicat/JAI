@@ -234,6 +234,9 @@ async function doInit(): Promise<void> {
     { sql: `ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`, table: 'users', column: 'email_verified' },
     // matches 表新增列
     { sql: `ALTER TABLE matches ADD COLUMN dim_scores TEXT`, table: 'matches', column: 'dim_scores' },
+    // 手动匹配来源标记和延迟揭晓时间
+    { sql: `ALTER TABLE matches ADD COLUMN source TEXT DEFAULT 'auto'`, table: 'matches', column: 'source' },
+    { sql: `ALTER TABLE matches ADD COLUMN reveal_at TEXT`, table: 'matches', column: 'reveal_at' },
     // survey_responses 表新增列
     { sql: `ALTER TABLE survey_responses ADD COLUMN q21 TEXT`, table: 'survey_responses', column: 'q21' },
     { sql: `ALTER TABLE survey_responses ADD COLUMN q22 TEXT`, table: 'survey_responses', column: 'q22' },

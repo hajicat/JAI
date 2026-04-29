@@ -120,6 +120,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待' })
     }
 
+    // 手动匹配额外守卫：即使当前在标准揭晓窗口内，
+    // 如果还没到该条记录设定的 reveal_at 时间（下个周日），非管理员仍不可见
+    if (match.source === 'manual' && match.reveal_at && !decoded.isAdmin) {
+      const nowIso = new Date().toISOString()
+      if (nowIso < String(match.reveal_at)) {
+        return NextResponse.json({ match: null, message: '本周匹配尚未完成，请耐心等待' })
+      }
+    }
+
     let partnerContact = null
     let partnerSurvey: any = null
 
@@ -221,11 +230,19 @@ export async function POST(req: NextRequest) {
     }
 
     const matchResult = await db.execute({
-      sql: 'SELECT id, user_a, user_b FROM matches WHERE id = ? AND (user_a = ? OR user_b = ?)',
+      sql: 'SELECT id, user_a, user_b, source, reveal_at FROM matches WHERE id = ? AND (user_a = ? OR user_b = ?)',
       args: [id, decoded.id, decoded.id],
     })
     const match = matchResult.rows[0] as any
     if (!match) return NextResponse.json({ error: '匹配不存在或无权操作' }, { status: 404 })
+
+    // 手动匹配额外约束：未到 reveal_at 也不允许（管理员豁免）
+    if (match.source === 'manual' && match.reveal_at && !decoded.isAdmin) {
+      const nowIso = new Date().toISOString()
+      if (nowIso < String(match.reveal_at)) {
+        return NextResponse.json({ error: '匹配结果尚未揭晓，请等待周日20:00' }, { status: 403 })
+      }
+    }
 
     const userA = Number(match.user_a)
     const userB = Number(match.user_b)

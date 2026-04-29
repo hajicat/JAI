@@ -730,10 +730,23 @@ export async function handleManualMatch(body: any): Promise<ManualMatchResult> {
 
   const result = calculateMatch(userA, userB)
 
+  // 手动匹配：计算下一次揭晓时间（下一个周日 北京时间 20:00 = UTC 周日 12:00）
+  // 无论当前是否在窗口内，手动匹配都等到下次揭晓才可见
+  function getNextRevealAt(): string {
+    const now = new Date()
+    const utcDay = now.getUTCDay()       // 0=Sun
+    const reveal = new Date(now)
+    // 距离下一个周日的天数（如果是周日也算"下一个"，即 +7 天）
+    const daysUntilNextSun = utcDay === 0 ? 7 : 7 - utcDay
+    reveal.setUTCDate(reveal.getUTCDate() + daysUntilNextSun)
+    reveal.setUTCHours(12, 0, 0, 0)     // 北京时间 20:00
+    return reveal.toISOString().replace('Z', '')   // SQLite 兼容格式
+  }
+
   await db.execute({
-    sql: `INSERT INTO matches (user_a, user_b, score, dim_scores, reasons, week_key)
-          VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [userAId, userBId, result.score, JSON.stringify(result.dimScores), JSON.stringify(result.reasons), weekKey],
+    sql: `INSERT INTO matches (user_a, user_b, score, dim_scores, reasons, week_key, source, reveal_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'manual', ?)`,
+    args: [userAId, userBId, result.score, JSON.stringify(result.dimScores), JSON.stringify(result.reasons), weekKey, getNextRevealAt()],
   })
 
   return {
