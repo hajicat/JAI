@@ -175,7 +175,8 @@ export async function GET(req: NextRequest) {
       totalWeeks: weeks.length,
     })
   } catch (error) {
-    console.error('[match/history]', error instanceof Error ? error.message : String(error))
-    return NextResponse.json({ error: '获取历史匹配失败' }, { status: 500 })
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.error('[match/history]', errMsg)
+    return NextResponse.json({ error: '获取历史匹配失败', detail: errMsg }, { status: 500 })
   }
 }
