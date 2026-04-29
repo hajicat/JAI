@@ -35,11 +35,44 @@ export async function GET(req: NextRequest) {
     const currentWeekKey = getWeekKey()
     const isAdmin = !!decoded.isAdmin
 
-    // ── 查询用户所有历史匹配记录（按周倒序，最新的在前）──
+    // ── 查询用户历史匹配记录 ──
+    //
+    // 安全策略（多层防御）：
+    //   1. SQL 层：对非管理员排除当前周未到揭晓时间的记录
+    //   2. 应用层：二次校验兜底
+    //   3. source/reveal_at 字段：手动匹配延迟揭晓
+    //
+    const nowIso = new Date().toISOString()
+    const inRevealWindow = isRevealWindow()
+
+    // 管理员看全部；非管理员用 WHERE 过滤
+    let whereClause = '(m.user_a = ? OR m.user_b = ?)'
+    let filterArgs: any[] = [uid, uid]
+
+    if (!isAdmin) {
+      // SQL 层安全底线：只排除"绝对不该看"的记录
+      //   - 手动匹配(source=manual) 且未到 reveal_at 时间 → 延迟保护
+      //
+      // 当前周是否显示由应用层的 isRevealWindow 决定（因为需要运行时计算）
+      whereClause += `
+        AND (
+          m.source != 'manual'
+          OR m.reveal_at IS NULL
+          OR m.reveal_at <= ?
+        )
+      `
+      filterArgs.push(nowIso)
+    }
+
+    // 注意：当前周自动匹配在窗口外的情况由前端 match/page.tsx 处理
+    // （主卡片返回 null 时隐藏整个历史区域）
+    // 这里 SQL 层仍然返回它以便前端做"当前周"标签展示（窗口内时）
+
     const result = await db.execute({
       sql: `
         SELECT m.id, m.week_key, m.score, m.dim_scores, m.reasons, m.created_at,
                m.a_revealed, m.b_revealed,
+               m.source, m.reveal_at,
                CASE WHEN m.user_a = ? THEN u2.nickname ELSE u1.nickname END as partner_nickname,
                CASE WHEN m.user_a = ? THEN u2.gender ELSE u1.gender END as partner_gender,
                CASE WHEN m.user_a = ? THEN u2.school ELSE u1.school END as partner_school,
@@ -51,10 +84,10 @@ export async function GET(req: NextRequest) {
         FROM matches m
         JOIN users u1 ON m.user_a = u1.id
         JOIN users u2 ON m.user_b = u2.id
-        WHERE (m.user_a = ? OR m.user_b = ?)
+        WHERE ${whereClause}
         ORDER BY m.week_key DESC, m.created_at DESC
       `,
-      args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
+      args: [...filterArgs, uid, uid, uid, uid, uid, uid, uid, uid, uid],
     })
 
     const rows = result.rows as any[]

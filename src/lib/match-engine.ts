@@ -672,6 +672,7 @@ export interface ManualMatchResult {
   weekKey?: string
   manual?: boolean
   match?: {
+    id?: number
     userA: number
     userAName: string
     userB: number
@@ -749,11 +750,15 @@ export async function handleManualMatch(body: any): Promise<ManualMatchResult> {
     args: [userAId, userBId, result.score, JSON.stringify(result.dimScores), JSON.stringify(result.reasons), weekKey, getNextRevealAt()],
   })
 
+  const insertRes = await db.execute({ sql: 'SELECT last_insert_rowid() as id', args: [] })
+  const insertedId = Number((insertRes.rows[0] as any)?.id || 0)
+
   return {
     success: true,
     manual: true,
     weekKey,
     match: {
+      id: insertedId,
       userA: userAId,
       userAName: userA.nickname,
       userB: userBId,

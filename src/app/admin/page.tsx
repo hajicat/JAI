@@ -104,6 +104,7 @@ export default function AdminPage() {
   const [manualDate, setManualDate] = useState('')        // empty = immediate (this week)
   const [manualMatching, setManualMatching] = useState(false)
   const [resettingMatch, setResettingMatch] = useState(false)
+  const [deletingMatchId, setDeletingMatchId] = useState<number | null>(null)
   const [matchUsersForSelect, setMatchUsersForSelect] = useState<any[]>([])
 
   // 手动匹配预览（选两个用户后实时显示匹配度，不写库）
@@ -725,6 +726,30 @@ export default function AdminPage() {
       }
     } catch { setToast({ msg: '网络错误', type: 'error' }) }
     finally { setResettingMatch(false) }
+  }
+
+  // 删除单条匹配记录（管理员清理测试数据用）
+  const handleDeleteMatch = async (matchId: number, label?: string) => {
+    if (!confirm(`确定删除此匹配记录？${label ? `\n${label}` : ''}\n\n⚠️ 此操作不可恢复！`)) return
+    setDeletingMatchId(matchId)
+    try {
+      const csrfToken = getCsrfToken()
+      const res = await fetch('/api/admin/delete-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ matchId }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setToast({ msg: `✅ 已删除：${data.deleted.users}`, type: 'success' })
+        setMatchResult(null)
+        // 刷新匹配详情列表（如果正在显示）
+        loadMatchDetails(matchPage, adminSelectedWeek)
+      } else {
+        setToast({ msg: data.error || '删除失败', type: 'error' })
+      }
+    } catch { setToast({ msg: '网络错误', type: 'error' }) }
+    finally { setDeletingMatchId(null) }
   }
 
   // 手动指定匹配
@@ -1806,6 +1831,15 @@ export default function AdminPage() {
                     <p>📅 匹配周：<strong>{matchResult.weekKey}</strong></p>
                     <p>🔗 <strong>{matchResult.match?.userAName}</strong> ↔ <strong>{matchResult.match?.userBName}</strong></p>
                     <p>💯 契合度：<strong className="text-pink-600">{matchResult.match?.score}%</strong></p>
+                    {matchResult.match?.id && (
+                      <button
+                        onClick={() => handleDeleteMatch(matchResult.match.id, `${matchResult.match?.userAName} ↔ ${matchResult.match?.userBName}`)}
+                        disabled={deletingMatchId === matchResult.match?.id}
+                        className="mt-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                      >
+                        {deletingMatchId === matchResult.match?.id ? '删除中...' : '🗑️ 删除此条记录'}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2 text-sm">
@@ -1905,6 +1939,13 @@ export default function AdminPage() {
                                 <span className={`text-xs ${pair.bRevealed ? 'text-green-500' : 'text-gray-400'}`}>
                                   {pair.userB?.name}: {pair.bRevealed ? '✅ 已确认' : '⏳ 待确认'}
                                 </span>
+                                <button
+                                  onClick={() => handleDeleteMatch(pair.id, `${pair.userA?.name} ↔ ${pair.userB?.name}`)}
+                                  disabled={deletingMatchId === pair.id}
+                                  className="ml-auto text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded transition disabled:opacity-50"
+                                >
+                                  {deletingMatchId === pair.id ? '删除中...' : '🗑️ 删除'}
+                                </button>
                               </div>
                             </div>
                           ))}
