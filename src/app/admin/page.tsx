@@ -114,10 +114,11 @@ export default function AdminPage() {
   const [previewLoading, setPreviewLoading] = useState(false)
 
   // 推荐匹配状态
-  const [recUserId, setRecUserId] = useState<number | ''>('')
+  const [recEmail, setRecEmail] = useState('')
   const [recLoading, setRecLoading] = useState(false)
   const [recResults, setRecResults] = useState<any>(null)  // { selectedUser, totalCandidates, compatibleCount, recommendations[] }
   const [recManualTarget, setRecManualTarget] = useState<number | null>(null)  // 点击推荐结果后填入手动配对的目标用户
+  const [recSelectedUserId, setRecSelectedUserId] = useState<number | null>(null)  // 查询后保存选中用户的ID，用于手动配对
 
   // 匹配配置状态（后台可调参数）
   const [matchConfig, setMatchConfig] = useState<{
@@ -2028,27 +2029,27 @@ export default function AdminPage() {
 
               <div className="flex items-center gap-3 flex-wrap">
                 <input
-                  type="number"
-                  value={recUserId}
-                  onChange={e => setRecUserId(Number(e.target.value) || '')}
-                  placeholder="输入用户 ID"
-                  min={1}
-                  className="w-40 px-4 py-2 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  type="email"
+                  value={recEmail}
+                  onChange={e => setRecEmail(e.target.value)}
+                  placeholder="输入用户注册邮箱"
+                  className="w-56 px-4 py-2 bg-white/60 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
                 />
                 <button
-                  onClick={() => { if (!recUserId) return; setRecLoading(true); setRecResults(null); setRecManualTarget(null)
+                  onClick={() => { if (!recEmail) return; setRecLoading(true); setRecResults(null); setRecManualTarget(null)
                     const csrfToken = getCsrfToken()
                     fetch('/api/admin/match-recommendations', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                      body: JSON.stringify({ userId: recUserId, limit: 20 }),
+                      body: JSON.stringify({ email: recEmail, limit: 20 }),
                     }).then(r => r.json()).then(data => {
                       setRecLoading(false)
                       if (data.error) { alert('错误: ' + data.error); return }
                       setRecResults(data)
+                      setRecSelectedUserId(data.selectedUser.id)  // 保存选中用户ID用于手动配对
                     }).catch(() => { setRecLoading(false); alert('网络错误') })
                   }}
-                  disabled={!recUserId || recLoading}
+                  disabled={!recEmail || recLoading}
                   className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-[#FFF2F2] to-[#FFB6B6] rounded-xl hover:opacity-90 transition text-[#8b4a54] disabled:opacity-50"
                 >
                   {recLoading ? '计算中...' : '🔍 查找最匹配的人'}
@@ -2141,7 +2142,8 @@ export default function AdminPage() {
                         {/* 操作：填入手动配对 */}
                         <button
                           onClick={() => {
-                            setManualUserA(recUserId as number)
+                            if (!recSelectedUserId) return
+                            setManualUserA(recSelectedUserId)
                             setManualUserB(r.userId)
                             setRecManualTarget(r.userId)
                             // 切换到执行匹配tab
@@ -2162,7 +2164,7 @@ export default function AdminPage() {
 
             {recManualTarget !== null && (
               <div className="rounded-xl p-3 bg-blue-50/80 border border-blue-200 text-sm text-blue-700 animate-fade-in">
-                💡 已自动填入手动配对区域（ID: {recUserId} ↔ ID: {recManualTarget}），切换到「执行匹配」tab 可直接确认配对。
+                💡 已自动填入手动配对区域，切换到「执行匹配」tab 可直接确认配对。
               </div>
             )}
           </div>

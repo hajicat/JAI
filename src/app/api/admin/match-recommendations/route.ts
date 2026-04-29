@@ -1,7 +1,7 @@
 // src/app/api/admin/match-recommendations/route.ts
 // 管理员推荐匹配：选择一个用户，列出最匹配的候选人（符合该用户的性别要求）
 //
-// POST { userId, limit? } → { recommendations: [{ userId, nickname, gender, school, score, dimScores, reasons }] }
+// POST { email, limit? } → { recommendations: [...] }
 //
 // 使用与自动匹配相同的 calculateMatch() 算法，
 // 候选池过滤条件：已完成问卷 + 已启用匹配 + 非blocked + 双向性别兼容
@@ -38,12 +38,22 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}))
-    const userId = Number(body.userId)
+    const email = String(body.email || '').trim()
     const limit = Math.min(Math.max(Number(body.limit) || DEFAULT_LIMIT, 1), 50)
 
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return NextResponse.json({ error: '无效的用户ID' }, { status: 400 })
+    if (!email || !email.includes('@')) {
+      return NextResponse.json({ error: '请输入有效的注册邮箱' }, { status: 400 })
     }
+
+    // ── 根据邮箱查找用户 ──
+    const userLookup = await db.execute({
+      sql: `SELECT id FROM users WHERE email = ? LIMIT 1`,
+      args: [email],
+    })
+    if (!userLookup.rows.length) {
+      return NextResponse.json({ error: '未找到该邮箱对应的用户' }, { status: 404 })
+    }
+    const userId = Number(userLookup.rows[0].id)
 
     // ── 查询选中用户 ──
     const selectedRes = await db.execute({
