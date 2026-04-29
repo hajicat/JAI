@@ -55,6 +55,8 @@ export async function GET(req: NextRequest) {
 
     // ── 可见窗口内回退查询：当前周无匹配时，取最近一周的匹配结果展示 ──
     // 原因：weekKey 在周日12:00(北京)切换，但匹配结果应在可见窗口内持续展示
+    // 注意：如果中间某周用户轮空（matches表无记录），会跳过该周取更早的记录
+    let isFallback = false
     if (matchResult.rows.length === 0 && isRevealWindow()) {
       const fallbackSql = 'SELECT m.*, ' +
         'CASE WHEN m.user_a = ? THEN u2.nickname ELSE u1.nickname END as partner_nickname, ' +
@@ -76,6 +78,9 @@ export async function GET(req: NextRequest) {
         sql: fallbackSql,
         args: [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid],
       })
+      if (matchResult.rows.length > 0) {
+        isFallback = true
+      }
     }
 
     if (matchResult.rows.length === 0) {
@@ -199,6 +204,7 @@ export async function GET(req: NextRequest) {
         contact: partnerContact,
         selfHasContact,
         partnerSurvey,
+        isFallback,
       },
     })
   } catch (error) {

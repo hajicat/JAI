@@ -13,6 +13,7 @@ interface MatchData {
   contact: { type: string | null; info: string | null; decryptError?: boolean; empty?: boolean } | null
   selfHasContact?: boolean
   partnerSurvey?: any
+  isFallback?: boolean // 回退查询标记：当前周无匹配时展示的历史匹配
 }
 
 // 历史匹配记录（精简版）
@@ -486,8 +487,15 @@ export default function MatchPage() {
           <div className="glass-card rounded-3xl p-8 shadow-xl animate-fade-in">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">💌</div>
-              <h2 className="text-2xl font-bold text-gray-800">本周匹配结果</h2>
-              <p className="text-sm text-gray-400 mt-1">{match.weekKey}</p>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {match.isFallback ? '近期匹配结果' : '本周匹配结果'}
+              </h2>
+              <p className="text-sm text-gray-400 mt-1">
+                {match.weekKey}
+                {match.isFallback && (
+                  <span className="ml-1.5 px-2 py-0.5 bg-amber-50 text-amber-600 text-xs rounded-full border border-amber-200">历史</span>
+                )}
+              </p>
             </div>
 
             <div className="bg-gradient-to-r from-pink-50 to-stone-50 rounded-2xl p-6 mb-6 text-center">
